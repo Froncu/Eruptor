@@ -1,5 +1,5 @@
-workspace "Vulkan"
+workspace "Eruptor"
 	include "External/Premake/workspace"
+	include "Eruptor"
 
-	include "Vulkan"
-	startproject "Vulkan"
+	startproject "Eruptor"
