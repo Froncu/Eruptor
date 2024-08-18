@@ -1,9 +1,5 @@
-language "C++"
-cppdialect "C++20"
-warnings "high"
 systemversion "latest"
 flags { "FatalWarnings", "MultiProcessorCompile" }
-defines "WIN32"
 
 absolute_output_directory = "%{cfg.buildcfg} (%{cfg.platform})"
 targetdir ("%{prj.location}/../Output/" .. absolute_output_directory)
@@ -28,10 +24,4 @@ filter "configurations:Distribute"
 
 filter {}
 
-filter "platforms:x64"
-	defines "PLATFORM_X64"
-
-filter "platforms:x86"
-	defines "PLATFORM_X86"
-
-filter {}
+defines "WIN32"

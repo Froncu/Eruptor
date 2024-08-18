@@ -1,18 +1,13 @@
 project "Eruptor"
 	include "../External/Premake/project"
+	language "C++"
+	cppdialect "C++20"
+	warnings "high"
 	kind "ConsoleApp"
-
 	files "Source/**.cpp"
 
-	filter "platforms:x64"
-		libdirs "$(VULKAN_SDK)/Lib"
-	
-	filter "platforms:x86"
-		libdirs "$(VULKAN_SDK)/Lib32"
-
-	filter {}
-	
-	links "vulkan-1.lib"
-	includedirs "$(VULKAN_SDK)/Include"
+	dofile "../External/Vulkan/premake5.lua"
+	dofile "../External/GLFW/premake5.lua"
+	dofile "../External/GLM/premake5.lua"
 
 project "*"
