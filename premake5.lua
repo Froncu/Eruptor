@@ -29,14 +29,7 @@ newaction
 
 workspace "Eruptor"
 	configurations { "Debug",  "Release", "Distribute" }
-	platforms { "x64", "x86" }
-	
-	filter "platforms:x64"
-		architecture "x64"
-	
-	filter "platforms:x86"
-		architecture "x86"
-	
-	filter {}
+	platforms "x64"
+	architecture "x64"
 
 	include "Eruptor"

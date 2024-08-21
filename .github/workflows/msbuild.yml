@@ -17,7 +17,6 @@ jobs:
     strategy:
       matrix:
         configuration: [Debug, Release, Distribute]
-        platform: [x64, Win32]
 
     steps:
     - name: Clone repository to runner
@@ -39,4 +38,4 @@ jobs:
 
     - name: Build program
       working-directory: ${{ github.workspace }}
-      run: msbuild /m /p:Configuration="${{ matrix.configuration }}" /p:Platform="${{ matrix.platform }}" ${{ env.solution }}
+      run: msbuild /m /p:Configuration="${{ matrix.configuration }}" /p:Platform="x64" ${{ env.solution }}

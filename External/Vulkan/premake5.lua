@@ -1,10 +1,3 @@
-filter "platforms:x64"
-	libdirs "$(VULKAN_SDK)/Lib"
-
-filter "platforms:x86"
-	libdirs "$(VULKAN_SDK)/Lib32"
-
-filter {}
-
+libdirs "$(VULKAN_SDK)/Lib"
 links "vulkan-1.lib"
 includedirs "$(VULKAN_SDK)/Include"
