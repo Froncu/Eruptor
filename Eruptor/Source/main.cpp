@@ -8,26 +8,27 @@
 
 int main()
 {
-	glfwInit();
+    glfwInit();
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-	GLFWwindow* const window{ glfwCreateWindow(800, 600, "Vulkan window", nullptr, nullptr) };
+    GLFWwindow* const window{ glfwCreateWindow(800, 600, "Vulkan window", nullptr, nullptr) };
 
-	std::uint32_t extension_count{};
-	std::ignore = vk::enumerateInstanceExtensionProperties(nullptr, &extension_count, nullptr);
+    std::uint32_t extension_count{};
+    std::ignore = vk::enumerateInstanceExtensionProperties(nullptr, &extension_count, nullptr);
 
-	std::cout << extension_count << " extensions supported\n";
+    std::cout << extension_count << " extensions supported\n";
 
-	glm::mat4 matrix{};
-	glm::vec4 vec{};
-	auto test{ matrix * vec };
+    glm::mat4 matrix{};
+    glm::vec4 vec{};
+    auto test{ matrix * vec };
 
-	while (not glfwWindowShouldClose(window))
-		glfwPollEvents();
+    while (not glfwWindowShouldClose(window))
+        glfwPollEvents();
 
-	glfwDestroyWindow(window);
+    glfwDestroyWindow(window);
 
-	glfwTerminate();
+    glfwTerminate();
 
-	return 0;
+    return 0;
 }
