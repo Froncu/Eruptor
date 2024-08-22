@@ -4,7 +4,8 @@ project "Eruptor"
 	cppdialect "C++20"
 	warnings "high"
 	kind "ConsoleApp"
-	files "Source/**.cpp"
+	files { "Source/**.cpp", "Source/**.c" }
+	includedirs "Source"
 
 	dofile "../External/Vulkan/premake5.lua"
 	dofile "../External/GLFW/premake5.lua"
