@@ -1,3 +1,1 @@
-local relativepath = os.getcwd()
-
-includedirs (relativepath)
+includedirs (os.getcwd())

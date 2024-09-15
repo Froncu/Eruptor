@@ -7,7 +7,7 @@
 namespace eru
 {
     template<typename Type>
-    using UniquePointer = std::unique_ptr<Type, std::function<void(Type*)>>;
+    using unique_pointer = std::unique_ptr<Type, std::function<void(Type*)>>;
 }
 
 #endif

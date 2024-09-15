@@ -1,25 +1,25 @@
 #include "erupch.hpp"
 
-#include "Application.hpp"
+#include "application.hpp"
 
 namespace eru
 {
-   Application::Application()
+   application::application()
    {
    }
 
-   Application::~Application()
+   application::~application()
    {
       instance_.destroy();
    }
 
-   void Application::run() const
+   void application::run() const
    {
       while (not glfwWindowShouldClose(window_.get()))
          glfwPollEvents();
    }
 
-   vk::Instance Application::createInstance() const
+   vk::Instance application::create_instance() const
    {
       std::uint32_t extension_count;
       char const* const* const extensions{ glfwGetRequiredInstanceExtensions(&extension_count) };

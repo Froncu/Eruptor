@@ -3,29 +3,29 @@
 
 #include "erupch.hpp"
 
-#include "Utility/UniquePointer.hpp"
+#include "utility/unique_pointer.hpp"
 
 namespace eru
 {
-   class Application final
+   class application final
    {
    public:
-      Application();
-      Application(Application const&) = delete;
-      Application(Application&&) = delete;
+      application();
+      application(application const&) = delete;
+      application(application&&) = delete;
 
-      ~Application();
+      ~application();
 
-      Application& operator=(Application const&) = delete;
-      Application& operator=(Application&&) = delete;
+      application& operator=(application const&) = delete;
+      application& operator=(application&&) = delete;
 
       void run() const;
 
    private:
-      [[nodiscard]] vk::Instance createInstance() const;
+      [[nodiscard]] vk::Instance create_instance() const;
 
-      UniquePointer<GLFWwindow> const window_{ glfwCreateWindow(800, 600, "Vulkan window", nullptr, nullptr), glfwDestroyWindow };
-      vk::Instance const instance_{ createInstance() };
+      unique_pointer<GLFWwindow> const window_{ glfwCreateWindow(800, 600, "Vulkan window", nullptr, nullptr), glfwDestroyWindow };
+      vk::Instance const instance_{ create_instance() };
    };
 }
 

@@ -1,16 +1,16 @@
 project "Eruptor"
-   include "../External/Premake/project"
+   include "../external/Premake/project"
    language "C++"
    cppdialect "C++20"
    warnings "high"
    kind "ConsoleApp"
-   files { "Source/**.cpp", "Source/**.c" }
-   includedirs "Source"
+   files { "source/**.cpp", "source/**.c" }
+   includedirs "source"
    pchheader "erupch.hpp"
-   pchsource "Source/erupch.cpp"
+   pchsource "source/erupch.cpp"
 
-   dofile "../External/Vulkan/premake5.lua"
-   dofile "../External/GLFW/premake5.lua"
-   dofile "../External/GLM/premake5.lua"
+   dofile "../external/Vulkan/premake5.lua"
+   dofile "../external/GLFW/premake5.lua"
+   dofile "../external/GLM/premake5.lua"
 
 project "*"

@@ -2,7 +2,7 @@ function clean_directories(root_directory)
    for index, full_directory_path in ipairs(os.matchdirs(root_directory .. "/*")) do
       local directory_name = path.getbasename(full_directory_path)
 
-      if directory_name == ".vs" or directory_name == "Output" or directory_name == "Intermediate" then
+      if directory_name == ".vs" or directory_name == "output" or directory_name == "intermediate" then
          print("Deleting \"" .. full_directory_path .. "\" ...")
          os.rmdir(full_directory_path)
       else
@@ -28,7 +28,7 @@ newaction
 }
 
 workspace "Eruptor"
-   configurations { "Debug",  "Release", "Distribute" }
+   configurations { "debug",  "release", "distribute" }
    platforms "x64"
    architecture "x64"
 

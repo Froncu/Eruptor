@@ -1,6 +1,6 @@
 #include "erupch.hpp"
 
-#include "Application/Application.hpp"
+#include "application/application.hpp"
 
 int main()
 {
@@ -10,7 +10,7 @@ int main()
 
    try
    {
-      eru::Application{}.run();
+      eru::application{}.run();
    }
    catch (std::exception const exception)
    {
