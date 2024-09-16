@@ -9,6 +9,7 @@
 
 #include <format>
 #include <iostream>
+#include <optional>
 #include <ranges>
 
 #endif
