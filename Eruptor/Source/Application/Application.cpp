@@ -11,6 +11,7 @@ namespace eru
    application::~application()
    {
       device_.destroy();
+      instance_.destroySurfaceKHR(surface_);
       instance_.destroy();
    }
 
@@ -22,24 +23,32 @@ namespace eru
 
    vk::Instance application::create_instance() const
    {
-      std::uint32_t extension_count;
-      char const* const* const extensions{ glfwGetRequiredInstanceExtensions(&extension_count) };
-      std::vector<char const*> const extension_names{ extensions, extensions + extension_count };
-
 #if defined NDEBUG
-      std::vector<char const*> const valdiation_layer_names{};
+      std::array<char const*, 0> constexpr valdiation_layer_names{};
 #else
-      std::vector const valdiation_layer_names{ "VK_LAYER_KHRONOS_validation" };
+      std::array constexpr valdiation_layer_names{ "VK_LAYER_KHRONOS_validation" };
 #endif
 
+      std::uint32_t extension_count;
+      char const* const* const extension_names{ glfwGetRequiredInstanceExtensions(&extension_count) };
+
       vk::InstanceCreateInfo const instance_info{
-         {},
-         {},
-         valdiation_layer_names,
-         extension_names
+         .enabledLayerCount{ static_cast<std::uint32_t>(valdiation_layer_names.size()) },
+         .ppEnabledLayerNames{ valdiation_layer_names.data() },
+         .enabledExtensionCount{ extension_count },
+         .ppEnabledExtensionNames{ extension_names }
       };
 
       return vk::createInstance(instance_info);
+   }
+
+   vk::SurfaceKHR application::create_surface() const
+   {
+      if (VkSurfaceKHR surface;
+         glfwCreateWindowSurface(instance_, window_.get(), nullptr, &surface) == VkResult::VK_SUCCESS)
+         return surface;
+
+      throw std::runtime_error("failed to create window surface!");
    }
 
    vk::PhysicalDevice application::pick_physical_device() const
@@ -55,7 +64,7 @@ namespace eru
       return physical_devices.front();
    }
 
-   std::optional<std::uint32_t> application::graphics_queue_index() const
+   std::uint32_t application::graphics_queue_index() const
    {
       std::uint32_t queue_index{};
       for (vk::QueueFamilyProperties const& queue : physical_device_.getQueueFamilyProperties())
@@ -64,19 +73,43 @@ namespace eru
          else
             ++queue_index;
 
-      return std::nullopt;
+      throw std::runtime_error("no queue with support for graphics operations present!");
+   }
+
+   std::uint32_t application::presentation_queue_index() const
+   {
+      for (std::uint32_t queue_index{}; queue_index < physical_device_.getQueueFamilyProperties().size(); ++queue_index)
+         if (physical_device_.getSurfaceSupportKHR(queue_index, surface_))
+            return queue_index;
+         else
+            ++queue_index;
+
+      throw std::runtime_error("no queue with support for surface presentation present!");
    }
 
    vk::Device application::create_device() const
    {
       std::array constexpr queue_priorities{ 1.0f };
 
-      vk::DeviceQueueCreateInfo const queue_info{
-         {},
-         graphics_queue_index_,
-         queue_priorities
+      std::vector queue_infos{
+         vk::DeviceQueueCreateInfo{
+            .queueFamilyIndex{ graphics_queue_index_ },
+            .queueCount{ 1 },
+            .pQueuePriorities{ queue_priorities.data() }
+         },
+         vk::DeviceQueueCreateInfo{
+            .queueFamilyIndex{ presentation_queue_index_ },
+            .queueCount{ 1 },
+            .pQueuePriorities{ queue_priorities.data() }
+         }
       };
 
+      std::ranges::sort(queue_infos);
+      auto const& [new_end, old_end] { std::ranges::unique(queue_infos) };
+      queue_infos.erase(new_end, old_end);
+
+      std::array constexpr extension_names{ VK_KHR_SURFACE_EXTENSION_NAME };
+      
       vk::PhysicalDeviceFeatures constexpr features{};
 
       // TODO: for backwards comaptibility, enable the same
@@ -84,11 +117,11 @@ namespace eru
       // the ones enabled on the instance from which the
       // logical device is created
       vk::DeviceCreateInfo const device_info{
-         {},
-         queue_info,
-         {},
-         {},
-         &features
+         .queueCreateInfoCount{ static_cast<std::uint32_t>(queue_infos.size()) },
+         .pQueueCreateInfos{ queue_infos.data() },
+         .enabledExtensionCount{ static_cast<std::uint32_t>(extension_names.size()) },
+         .ppEnabledExtensionNames{ extension_names.data() },
+         .pEnabledFeatures{ &features }
       };
 
       return physical_device_.createDevice(device_info);
