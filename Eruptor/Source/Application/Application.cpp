@@ -10,6 +10,7 @@ namespace eru
 
    application::~application()
    {
+      device_.destroySwapchainKHR(swap_chain_);
       device_.destroy();
       instance_.destroySurfaceKHR(surface_);
       instance_.destroy();
@@ -32,14 +33,12 @@ namespace eru
       std::uint32_t extension_count;
       char const* const* const extension_names{ glfwGetRequiredInstanceExtensions(&extension_count) };
 
-      vk::InstanceCreateInfo const instance_info{
+      return vk::createInstance({
          .enabledLayerCount{ static_cast<std::uint32_t>(valdiation_layer_names.size()) },
          .ppEnabledLayerNames{ valdiation_layer_names.data() },
          .enabledExtensionCount{ extension_count },
          .ppEnabledExtensionNames{ extension_names }
-      };
-
-      return vk::createInstance(instance_info);
+         });
    }
 
    vk::SurfaceKHR application::create_surface() const
@@ -108,22 +107,102 @@ namespace eru
       auto const& [new_end, old_end] { std::ranges::unique(queue_infos) };
       queue_infos.erase(new_end, old_end);
 
-      std::array constexpr extension_names{ VK_KHR_SURFACE_EXTENSION_NAME };
-      
-      vk::PhysicalDeviceFeatures constexpr features{};
+      std::array constexpr extension_names{ vk::KHRSwapchainExtensionName };
 
       // TODO: for backwards comaptibility, enable the same
       // validation layers on each logical device as
       // the ones enabled on the instance from which the
       // logical device is created
-      vk::DeviceCreateInfo const device_info{
+      return physical_device_.createDevice({
          .queueCreateInfoCount{ static_cast<std::uint32_t>(queue_infos.size()) },
          .pQueueCreateInfos{ queue_infos.data() },
          .enabledExtensionCount{ static_cast<std::uint32_t>(extension_names.size()) },
-         .ppEnabledExtensionNames{ extension_names.data() },
-         .pEnabledFeatures{ &features }
-      };
+         .ppEnabledExtensionNames{ extension_names.data() }
+         });
+   }
 
-      return physical_device_.createDevice(device_info);
+   vk::SurfaceFormatKHR application::pick_swap_chain_format() const
+   {
+      auto const available_formats{ physical_device_.getSurfaceFormatsKHR(surface_) };
+      for (vk::SurfaceFormatKHR const available_format : available_formats)
+         if (available_format.format == vk::Format::eB8G8R8A8Srgb and
+            available_format.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear)
+            return available_format;
+
+      return available_formats.front();
+   }
+
+   vk::Extent2D application::pick_swap_chain_extent() const
+   {
+      vk::SurfaceCapabilitiesKHR const surface_capabilities{ physical_device_.getSurfaceCapabilitiesKHR(surface_) };
+
+      if (surface_capabilities.currentExtent.width not_eq std::numeric_limits<std::uint32_t>::max())
+         return surface_capabilities.currentExtent;
+      else
+      {
+         int width;
+         int height;
+         glfwGetFramebufferSize(window_.get(), &width, &height);
+
+         return{
+            .width{
+               std::clamp(static_cast<std::uint32_t>(width),
+               surface_capabilities.minImageExtent.width,
+               surface_capabilities.maxImageExtent.width)
+            },
+            .height{
+               std::clamp(static_cast<std::uint32_t>(height),
+               surface_capabilities.minImageExtent.height,
+               surface_capabilities.maxImageExtent.height)
+            }
+         };
+      }
+   }
+
+   vk::SwapchainKHR application::create_swap_chain() const
+   {
+      // NOTE: eFifo is guaranteed to be present, 
+      // so we use it as a standard value
+      vk::PresentModeKHR present_mode{ vk::PresentModeKHR::eFifo };
+      for (auto const avaialble_present_mode : physical_device_.getSurfacePresentModesKHR(surface_))
+         if (avaialble_present_mode == vk::PresentModeKHR::eMailbox)
+         {
+            present_mode = avaialble_present_mode;
+            break;
+         }
+
+      vk::SharingMode sharing_mode{ vk::SharingMode::eExclusive };
+      std::vector<std::uint32_t> queue_family_indices{};
+
+      if (graphics_queue_index_ not_eq presentation_queue_index_)
+      {
+         sharing_mode = vk::SharingMode::eConcurrent;
+
+         queue_family_indices.resize(2);
+         queue_family_indices[0] = graphics_queue_index_;
+         queue_family_indices[1] = presentation_queue_index_;
+      }
+
+      vk::SurfaceCapabilitiesKHR const surface_capabilities{ physical_device_.getSurfaceCapabilitiesKHR(surface_) };
+      return device_.createSwapchainKHR({
+         .surface{ surface_ },
+         .minImageCount{
+            surface_capabilities.maxImageCount not_eq 0 ?
+            std::min(surface_capabilities.minImageCount + 1, surface_capabilities.maxImageCount) :
+            surface_capabilities.minImageCount + 1
+         },
+         .imageFormat{ swap_chain_format_.format },
+         .imageColorSpace{ swap_chain_format_.colorSpace },
+         .imageExtent{ swap_chain_extent_ },
+         .imageArrayLayers{ 1 },
+         .imageUsage{ vk::ImageUsageFlagBits::eColorAttachment },
+         .imageSharingMode{ sharing_mode },
+         .queueFamilyIndexCount{ static_cast<std::uint32_t>(queue_family_indices.size()) },
+         .pQueueFamilyIndices{ queue_family_indices.data() },
+         .preTransform{ surface_capabilities.currentTransform },
+         .compositeAlpha{ vk::CompositeAlphaFlagBitsKHR::eOpaque },
+         .presentMode{ present_mode },
+         .clipped{ true }
+         });
    }
 }

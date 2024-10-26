@@ -14,7 +14,7 @@ int main()
    }
    catch (std::exception const exception)
    {
-      std::cout << std::format("Exception caught: {}\n", exception.what());
+      std::cout << std::format("exception caught: {}\n", exception.what());
    }
 
    glfwTerminate();
