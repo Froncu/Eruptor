@@ -10,6 +10,9 @@ namespace eru
 
    application::~application()
    {
+      for (vk::ImageView const image_view : swap_chain_image_views_)
+         device_.destroyImageView(image_view);
+
       device_.destroySwapchainKHR(swap_chain_);
       device_.destroy();
       instance_.destroySurfaceKHR(surface_);
@@ -204,5 +207,30 @@ namespace eru
          .presentMode{ present_mode },
          .clipped{ true }
          });
+   }
+
+   std::vector<vk::ImageView> application::create_image_views() const
+   {
+      std::vector<vk::ImageView> image_views{};
+      image_views.reserve(swap_chain_images_.size());
+      for (vk::Image const image : swap_chain_images_)
+         image_views.emplace_back(device_.createImageView({
+            .image{ image },
+            .viewType{ vk::ImageViewType::e2D },
+            .format{ swap_chain_format_.format },
+            .components{
+               .r{ vk::ComponentSwizzle::eIdentity },
+               .g{ vk::ComponentSwizzle::eIdentity },
+               .b{ vk::ComponentSwizzle::eIdentity },
+               .a{ vk::ComponentSwizzle::eIdentity }
+            },
+            .subresourceRange{
+               .aspectMask{ vk::ImageAspectFlagBits::eColor },
+               .levelCount{ 1 },
+               .layerCount{ 1 }
+            }
+            }));
+
+      return image_views;
    }
 }

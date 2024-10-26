@@ -34,6 +34,7 @@ namespace eru
       [[nodiscard]] vk::SurfaceFormatKHR pick_swap_chain_format() const;
       [[nodiscard]] vk::Extent2D pick_swap_chain_extent() const;
       [[nodiscard]] vk::SwapchainKHR create_swap_chain() const;
+      [[nodiscard]] std::vector<vk::ImageView> create_image_views() const;
 
 
 
@@ -54,6 +55,7 @@ namespace eru
       vk::Extent2D const swap_chain_extent_{ pick_swap_chain_extent() };
       vk::SwapchainKHR const swap_chain_{ create_swap_chain() };
       std::vector<vk::Image> const swap_chain_images_{ device_.getSwapchainImagesKHR(swap_chain_) };
+      std::vector<vk::ImageView> const swap_chain_image_views_{ create_image_views() };
    };
 }
 
