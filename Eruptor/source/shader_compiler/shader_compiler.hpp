@@ -1,7 +1,7 @@
 #if not defined SHADER_COMPILER_HPP
 #define SHADER_COMPILER_HPP
 
-#include <erupch.hpp>
+#include "erupch.hpp"
 
 namespace eru
 {

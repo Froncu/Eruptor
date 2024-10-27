@@ -48,7 +48,7 @@ namespace eru
    {
       if (VkSurfaceKHR surface;
          glfwCreateWindowSurface(instance_, window_.get(), nullptr, &surface) == VkResult::VK_SUCCESS)
-         return surface;
+         return static_cast<vk::SurfaceKHR>(surface);
 
       throw std::runtime_error("failed to create window surface!");
    }

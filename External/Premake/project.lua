@@ -9,19 +9,16 @@ filter "configurations:debug"
 	symbols "full"
 	optimize "off"
 	runtime "debug"
-
 filter "configurations:release"
 	symbols "full"
 	optimize "speed"
 	runtime "release"
 	defines "NDEBUG"
-
 filter "configurations:distribute"
 	symbols "off"
 	optimize "speed"
 	runtime "release"
 	defines "NDEBUG"
-
 filter {}
 
 defines "WIN32"

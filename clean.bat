@@ -1,1 +1,0 @@
-External\Premake\premake5.exe clean
