@@ -1,6 +1,7 @@
 #include "erupch.hpp"
 
 #include "application/application.hpp"
+#include "shader_compiler/shader_compiler.hpp"
 
 int main()
 {
@@ -10,6 +11,7 @@ int main()
 
    try
    {
+      std::cout << eru::compile_shader("resources/shaders/shader.vert").size();
       eru::application{}.run();
    }
    catch (std::exception const exception)

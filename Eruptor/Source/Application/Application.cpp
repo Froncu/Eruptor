@@ -213,6 +213,7 @@ namespace eru
    {
       std::vector<vk::ImageView> image_views{};
       image_views.reserve(swap_chain_images_.size());
+
       for (vk::Image const image : swap_chain_images_)
          image_views.emplace_back(device_.createImageView({
             .image{ image },
