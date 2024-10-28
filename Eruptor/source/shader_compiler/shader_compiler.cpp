@@ -52,17 +52,24 @@ namespace eru
          else if (file_type == ".vert")
             shader_type = shaderc_shader_kind::shaderc_vertex_shader;
          else
-            throw std::runtime_error(std::format("{} is not a known shader file extension!", file_type));
+            throw std::runtime_error(std::format("\"{}\" is not a known shader file extension!", file_type));
 
-         shaderc::CompilationResult result{ compiler.CompileGlslToSpv(code.str(), shader_type, file_name.c_str()) };
+         shaderc::CompilationResult const result{ compiler.CompileGlslToSpv(code.str(), shader_type, file_name.c_str()) };
 
-         if (result.GetCompilationStatus() == shaderc_compilation_status::shaderc_compilation_status_invalid_stage and
-            shader_type == shaderc_shader_kind::shaderc_glsl_infer_from_source)
-            throw std::runtime_error("cannot detect the shader type; specify it in the source code!");
+         if (result.GetCompilationStatus() not_eq shaderc_compilation_status::shaderc_compilation_status_success)
+            if (result.GetCompilationStatus() == shaderc_compilation_status::shaderc_compilation_status_invalid_stage and
+               shader_type == shaderc_shader_kind::shaderc_glsl_infer_from_source)
+               throw std::runtime_error("cannot detect the shader type; specify it in the source code!");
+            else
+               throw std::runtime_error(std::format("failed to compile \"{}\"!\ncompilation status: {}\nerror: {}",
+                  file_name,
+                  static_cast<int>(result.GetCompilationStatus()),
+                  result.GetErrorMessage()));
+
 
          return{ result.begin(), result.end() };
       }
       else
-         throw std::runtime_error(std::format("failed to open {}!", path.string()));
+         throw std::runtime_error(std::format("failed to open \"{}\"!", path.string()));
    }
 }
