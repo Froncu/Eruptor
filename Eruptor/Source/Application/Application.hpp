@@ -35,6 +35,9 @@ namespace eru
       [[nodiscard]] vk::Extent2D pick_swap_chain_extent() const;
       [[nodiscard]] vk::SwapchainKHR create_swap_chain() const;
       [[nodiscard]] std::vector<vk::ImageView> create_image_views() const;
+      [[nodiscard]] vk::ShaderModule create_shader_module(std::vector<std::uint32_t> const& byte_code) const;
+
+      [[nodiscard]] vk::Pipeline create_pipeline() const;
 
 
 
@@ -56,6 +59,8 @@ namespace eru
       vk::SwapchainKHR const swap_chain_{ create_swap_chain() };
       std::vector<vk::Image> const swap_chain_images_{ device_.getSwapchainImagesKHR(swap_chain_) };
       std::vector<vk::ImageView> const swap_chain_image_views_{ create_image_views() };
+
+      vk::Pipeline const pipeline_{ create_pipeline() };
    };
 }
 

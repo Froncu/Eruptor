@@ -11,7 +11,6 @@ int main()
 
    try
    {
-      std::cout << eru::compile_shader("resources/shaders/shader.vert").size();
       eru::application{}.run();
    }
    catch (std::exception const exception)

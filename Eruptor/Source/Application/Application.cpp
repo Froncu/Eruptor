@@ -1,6 +1,7 @@
 #include "erupch.hpp"
 
 #include "application.hpp"
+#include "shader_compiler/shader_compiler.hpp"
 
 namespace eru
 {
@@ -216,22 +217,52 @@ namespace eru
 
       for (vk::Image const image : swap_chain_images_)
          image_views.emplace_back(device_.createImageView({
-            .image{ image },
-            .viewType{ vk::ImageViewType::e2D },
-            .format{ swap_chain_format_.format },
-            .components{
-               .r{ vk::ComponentSwizzle::eIdentity },
-               .g{ vk::ComponentSwizzle::eIdentity },
-               .b{ vk::ComponentSwizzle::eIdentity },
-               .a{ vk::ComponentSwizzle::eIdentity }
-            },
-            .subresourceRange{
-               .aspectMask{ vk::ImageAspectFlagBits::eColor },
-               .levelCount{ 1 },
-               .layerCount{ 1 }
-            }
+               .image{ image },
+               .viewType{ vk::ImageViewType::e2D },
+               .format{ swap_chain_format_.format },
+               .components{
+                  .r{ vk::ComponentSwizzle::eIdentity },
+                  .g{ vk::ComponentSwizzle::eIdentity },
+                  .b{ vk::ComponentSwizzle::eIdentity },
+                  .a{ vk::ComponentSwizzle::eIdentity }
+               },
+               .subresourceRange{
+                  .aspectMask{ vk::ImageAspectFlagBits::eColor },
+                  .levelCount{ 1 },
+                  .layerCount{ 1 }
+               }
             }));
 
       return image_views;
+   }
+
+   vk::ShaderModule application::create_shader_module(std::vector<std::uint32_t> const& byte_code) const
+   {
+      return device_.createShaderModule({
+            .codeSize{ byte_code.size() },
+            .pCode{ byte_code.data() }
+         });
+   }
+
+   vk::Pipeline application::create_pipeline() const
+   {
+      vk::ShaderModule const vertex_shader_module{ create_shader_module(compile_shader("resources/shaders/shader.vert")) };
+      vk::ShaderModule const fragment_shader_module{ create_shader_module(compile_shader("resources/shaders/shader.frag")) };
+
+      std::array const shader_stage_create_infos{
+         vk::PipelineShaderStageCreateInfo{
+            .stage{ vk::ShaderStageFlagBits::eVertex },
+            .module{ vertex_shader_module },
+            .pName{ "main" }
+         },
+         vk::PipelineShaderStageCreateInfo{
+            .stage{ vk::ShaderStageFlagBits::eFragment },
+            .module{ fragment_shader_module },
+            .pName{ "main" }
+         }
+      };
+
+      device_.destroyShaderModule(fragment_shader_module);
+      device_.destroyShaderModule(vertex_shader_module);
    }
 }
