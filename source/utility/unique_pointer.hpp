@@ -3,10 +3,9 @@
 
 #include "erupch.hpp"
 
-namespace eru
-{
-    template<typename Type>
-    using unique_pointer = std::unique_ptr<Type, std::function<void(Type*)>>;
+namespace eru{
+   template<typename Type>
+   using unique_pointer = std::unique_ptr<Type, std::function<void(Type*)>>;
 }
 
 #endif
