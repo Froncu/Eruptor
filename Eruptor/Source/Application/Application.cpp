@@ -239,7 +239,7 @@ namespace eru
    vk::ShaderModule application::create_shader_module(std::vector<std::uint32_t> const& byte_code) const
    {
       return device_.createShaderModule({
-            .codeSize{ byte_code.size() },
+            .codeSize{ sizeof(std::uint32_t) * byte_code.size() },
             .pCode{ byte_code.data() }
          });
    }
@@ -264,5 +264,7 @@ namespace eru
 
       device_.destroyShaderModule(fragment_shader_module);
       device_.destroyShaderModule(vertex_shader_module);
+
+      return {};
    }
 }
