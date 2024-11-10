@@ -39,8 +39,8 @@ fetchcontent_makeavailable(glm)
 #endif()
 
 target_include_directories(${PROJECT_NAME} PRIVATE
-   ${Vulkan_INCLUDE_DIRS}
-   ${CMAKE_CURRENT_SOURCE_DIR}/source)
+   ${CMAKE_CURRENT_SOURCE_DIR}/source
+   ${Vulkan_INCLUDE_DIRS})
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
    ${Vulkan_LIBRARIES}
