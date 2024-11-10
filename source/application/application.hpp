@@ -46,6 +46,7 @@ namespace eru
          [[nodiscard]] vk::CommandBuffer create_command_buffer() const;
 
          void record_command_buffer(vk::CommandBuffer command_buffer, std::uint32_t image_index) const;
+         void draw_frame() const;
 
          unique_pointer<GLFWwindow> const window_{
             glfwCreateWindow(800, 600, "Vulkan window", nullptr, nullptr),
@@ -76,6 +77,9 @@ namespace eru
 
          vk::CommandPool const command_pool_{ create_command_pool() };
          vk::CommandBuffer const command_buffer_{ create_command_buffer() };
+         vk::Semaphore const image_available_semaphore_{ device_.createSemaphore({}) };
+         vk::Semaphore const render_finished_semaphore_{ device_.createSemaphore({}) };
+         vk::Fence const in_flight_fence_{ device_.createFence({ .flags{ vk::FenceCreateFlagBits::eSignaled } }) };
    };
 }
 

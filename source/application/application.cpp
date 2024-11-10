@@ -7,6 +7,9 @@ namespace eru
 {
    application::~application()
    {
+      device_.destroyFence(in_flight_fence_);
+      device_.destroySemaphore(render_finished_semaphore_);
+      device_.destroySemaphore(image_available_semaphore_);
       device_.destroyCommandPool(command_pool_);
 
       device_.destroyPipeline(pipeline_);
@@ -29,12 +32,17 @@ namespace eru
    void application::run() const
    {
       while (not glfwWindowShouldClose(window_.get()))
+      {
          glfwPollEvents();
+         draw_frame();
+      }
+
+      device_.waitIdle();
    }
 
    vk::Instance application::create_instance()
    {
-      #if defined NDEBUG
+      #ifdef NDEBUG
       std::array<char const*, 0> constexpr valdiation_layer_names{};
       #else
       std::array constexpr valdiation_layer_names{ "VK_LAYER_KHRONOS_validation" };
@@ -134,7 +142,7 @@ namespace eru
 
    vk::SurfaceFormatKHR application::pick_swap_chain_format() const
    {
-      auto const available_formats{ physical_device_.getSurfaceFormatsKHR(surface_) };
+      std::vector const available_formats{ physical_device_.getSurfaceFormatsKHR(surface_) };
       for (vk::SurfaceFormatKHR const available_format : available_formats)
          if (available_format.format == vk::Format::eB8G8R8A8Srgb and
             available_format.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear)
@@ -183,7 +191,7 @@ namespace eru
             break;
          }
 
-      auto sharing_mode{ vk::SharingMode::eExclusive };
+      vk::SharingMode sharing_mode;
       std::vector<std::uint32_t> queue_family_indices{};
 
       // ReSharper disable once CppDFAConstantConditions
@@ -196,6 +204,8 @@ namespace eru
          queue_family_indices[0] = graphics_queue_index_;
          queue_family_indices[1] = presentation_queue_index_;
       }
+      else
+         sharing_mode = vk::SharingMode::eExclusive;
 
       vk::SurfaceCapabilitiesKHR const surface_capabilities{ physical_device_.getSurfaceCapabilitiesKHR(surface_) };
       return device_.createSwapchainKHR(
@@ -227,7 +237,7 @@ namespace eru
       image_views.reserve(swap_chain_images_.size());
 
       for (vk::Image const image : swap_chain_images_)
-         image_views.emplace_back(
+         image_views.push_back(
             device_.createImageView(
                {
                   .image{ image },
@@ -282,12 +292,21 @@ namespace eru
          .pColorAttachments{ &color_attachment_reference }
       };
 
+      vk::SubpassDependency constexpr dependency{
+         .srcSubpass{ vk::SubpassExternal },
+         .srcStageMask{ vk::PipelineStageFlagBits::eColorAttachmentOutput },
+         .dstStageMask{ vk::PipelineStageFlagBits::eColorAttachmentOutput },
+         .dstAccessMask{ vk::AccessFlagBits::eColorAttachmentWrite }
+      };
+
       return device_.createRenderPass(
          {
             .attachmentCount{ 1 },
             .pAttachments{ &color_attachment_description },
             .subpassCount{ 1 },
-            .pSubpasses{ &subpass_description }
+            .pSubpasses{ &subpass_description },
+            .dependencyCount{ 1 },
+            .pDependencies{ &dependency }
          });
    }
 
@@ -296,7 +315,7 @@ namespace eru
       std::vector<vk::Framebuffer> framebuffers{};
       framebuffers.reserve(swap_chain_image_views_.size());
 
-      for (vk::ImageView const& image_view : swap_chain_image_views_)
+      for (vk::ImageView const image_view : swap_chain_image_views_)
          framebuffers.push_back(
             device_.createFramebuffer(
                {
@@ -381,9 +400,9 @@ namespace eru
          .dstAlphaBlendFactor{ vk::BlendFactor::eZero },
          .alphaBlendOp{ vk::BlendOp::eAdd },
          .colorWriteMask{
-            vk::ColorComponentFlagBits::eR &
-            vk::ColorComponentFlagBits::eG &
-            vk::ColorComponentFlagBits::eB &
+            vk::ColorComponentFlagBits::eR |
+            vk::ColorComponentFlagBits::eG |
+            vk::ColorComponentFlagBits::eB |
             vk::ColorComponentFlagBits::eA
          }
       };
@@ -395,22 +414,23 @@ namespace eru
          .pAttachments{ &color_blend_attachment_state }
       };
 
-      vk::GraphicsPipelineCreateInfo const graphics_pipeline_create_info{
-         .stageCount{ static_cast<std::uint32_t>(shader_stage_create_infos.size()) },
-         .pStages{ shader_stage_create_infos.data() },
-         .pVertexInputState{ &vertex_input_state_create_info },
-         .pInputAssemblyState{ &input_assembly_state_create_info },
-         .pViewportState{ &viewport_state_create_info },
-         .pRasterizationState{ &rasterization_state_create_info },
-         .pMultisampleState{ &multisample_state_create_info },
-         .pDepthStencilState{ &depth_stencil_state_create_info },
-         .pColorBlendState{ &color_blend_state_create_info },
-         .pDynamicState{ &dynamic_state_create_info },
-         .layout{ pipeline_layout_ },
-         .renderPass{ render_pass_ }
+      auto&& [result, pipeline]{
+         device_.createGraphicsPipeline(
+            nullptr, {
+               .stageCount{ static_cast<std::uint32_t>(shader_stage_create_infos.size()) },
+               .pStages{ shader_stage_create_infos.data() },
+               .pVertexInputState{ &vertex_input_state_create_info },
+               .pInputAssemblyState{ &input_assembly_state_create_info },
+               .pViewportState{ &viewport_state_create_info },
+               .pRasterizationState{ &rasterization_state_create_info },
+               .pMultisampleState{ &multisample_state_create_info },
+               .pDepthStencilState{ &depth_stencil_state_create_info },
+               .pColorBlendState{ &color_blend_state_create_info },
+               .pDynamicState{ &dynamic_state_create_info },
+               .layout{ pipeline_layout_ },
+               .renderPass{ render_pass_ }
+            })
       };
-
-      auto&& [result, pipeline]{ device_.createGraphicsPipeline(nullptr, graphics_pipeline_create_info) };
 
       device_.destroyShaderModule(fragment_shader_module);
       device_.destroyShaderModule(vertex_shader_module);
@@ -439,7 +459,8 @@ namespace eru
 
    void application::record_command_buffer(vk::CommandBuffer const command_buffer, std::uint32_t const image_index) const
    {
-      if (command_buffer.begin({}) not_eq vk::Result::eSuccess)
+      vk::CommandBufferBeginInfo constexpr begin_info{};
+      if (command_buffer.begin(&begin_info) not_eq vk::Result::eSuccess)
          throw std::runtime_error("failed to begin recording command buffer!");
 
       vk::ClearValue constexpr clear_color_value{ { 0.0f, 0.0f, 0.0f, 1.0f } };
@@ -458,7 +479,8 @@ namespace eru
 
       vk::Viewport const viewport{
          .width{ static_cast<float>(swap_chain_extent_.width) },
-         .height{ static_cast<float>(swap_chain_extent_.height) }
+         .height{ static_cast<float>(swap_chain_extent_.height) },
+         .maxDepth{ 1.0f }
       };
       command_buffer.setViewport(0, 1, &viewport);
 
@@ -472,5 +494,44 @@ namespace eru
       command_buffer.endRenderPass();
 
       command_buffer.end();
+   }
+
+   void application::draw_frame() const
+   {
+      if (device_.waitForFences(1, &in_flight_fence_, true, std::numeric_limits<std::uint64_t>::max()) not_eq
+         vk::Result::eSuccess)
+         throw std::runtime_error("failed to wait for fences!");
+
+      if (device_.resetFences(1, &in_flight_fence_) not_eq vk::Result::eSuccess)
+         throw std::runtime_error("failed to reset fence!");
+
+      auto&& [result, image_index]{
+         device_.acquireNextImageKHR(swap_chain_, std::numeric_limits<std::uint64_t>::max(), image_available_semaphore_)
+      };
+
+      command_buffer_.reset();
+      record_command_buffer(command_buffer_, image_index);
+
+      std::array<vk::PipelineStageFlags, 1> constexpr wait_stages{ vk::PipelineStageFlagBits::eColorAttachmentOutput };
+      graphics_queue_.submit(
+         vk::SubmitInfo{
+            .waitSemaphoreCount{ 1 },
+            .pWaitSemaphores{ &image_available_semaphore_ },
+            .pWaitDstStageMask{ wait_stages.data() },
+            .commandBufferCount{ 1 },
+            .pCommandBuffers{ &command_buffer_ },
+            .signalSemaphoreCount{ 1 },
+            .pSignalSemaphores{ &render_finished_semaphore_ },
+         }, in_flight_fence_);
+
+      if (presentation_queue_.presentKHR(
+         {
+            .waitSemaphoreCount{ 1 },
+            .pWaitSemaphores{ &render_finished_semaphore_ },
+            .swapchainCount{ 1 },
+            .pSwapchains{ &swap_chain_ },
+            .pImageIndices{ &image_index }
+         }) not_eq vk::Result::eSuccess)
+         throw std::runtime_error("failed to present!");
    }
 }
