@@ -9,6 +9,10 @@ namespace eru
    {
       device_.destroyPipeline(pipeline_);
       device_.destroyPipelineLayout(pipeline_layout_);
+
+      for (vk::Framebuffer const framebuffer : swap_chain_framebuffers_)
+         device_.destroyFramebuffer(framebuffer);
+
       device_.destroyRenderPass(render_pass_);
 
       for (vk::ImageView const image_view : swap_chain_image_views_)
@@ -252,11 +256,6 @@ namespace eru
          });
    }
 
-   vk::PipelineLayout application::create_pipeline_layout() const
-   {
-      return device_.createPipelineLayout({});
-   }
-
    vk::RenderPass application::create_render_pass() const
    {
       vk::AttachmentDescription const color_attachment_description{
@@ -288,6 +287,31 @@ namespace eru
             .subpassCount{ 1 },
             .pSubpasses{ &subpass_description }
          });
+   }
+
+   std::vector<vk::Framebuffer> application::create_frame_buffers() const
+   {
+      std::vector<vk::Framebuffer> framebuffers{};
+      framebuffers.reserve(swap_chain_image_views_.size());
+
+      for (vk::ImageView const& image_view : swap_chain_image_views_)
+         framebuffers.push_back(
+            device_.createFramebuffer(
+               {
+                  .renderPass{ render_pass_ },
+                  .attachmentCount{ 1 },
+                  .pAttachments{ &image_view },
+                  .width{ swap_chain_extent_.width },
+                  .height{ swap_chain_extent_.height },
+                  .layers{ 1 }
+               }));
+
+      return framebuffers;
+   }
+
+   vk::PipelineLayout application::create_pipeline_layout() const
+   {
+      return device_.createPipelineLayout({});
    }
 
    vk::Pipeline application::create_pipeline() const

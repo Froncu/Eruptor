@@ -37,8 +37,9 @@ namespace eru
          [[nodiscard]] std::vector<vk::ImageView> create_image_views() const;
          [[nodiscard]] vk::ShaderModule create_shader_module(std::vector<std::uint32_t> const& byte_code) const;
 
-         [[nodiscard]] vk::PipelineLayout create_pipeline_layout() const;
          [[nodiscard]] vk::RenderPass create_render_pass() const;
+         [[nodiscard]] std::vector<vk::Framebuffer> create_frame_buffers() const;
+         [[nodiscard]] vk::PipelineLayout create_pipeline_layout() const;
          [[nodiscard]] vk::Pipeline create_pipeline() const;
 
          unique_pointer<GLFWwindow> const window_{
@@ -64,6 +65,7 @@ namespace eru
          std::vector<vk::ImageView> const swap_chain_image_views_{ create_image_views() };
 
          vk::RenderPass const render_pass_{ create_render_pass() };
+         std::vector<vk::Framebuffer> swap_chain_framebuffers_{ create_frame_buffers() };
          vk::PipelineLayout const pipeline_layout_{ create_pipeline_layout() };
          vk::Pipeline const pipeline_{ create_pipeline() };
    };
