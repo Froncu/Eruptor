@@ -5,8 +5,10 @@
 
 #include "utility/unique_pointer.hpp"
 
-namespace eru{
-   class application final{
+namespace eru
+{
+   class application final
+   {
       public:
          application() = default;
          application(application const&) = delete;
@@ -35,6 +37,8 @@ namespace eru{
          [[nodiscard]] std::vector<vk::ImageView> create_image_views() const;
          [[nodiscard]] vk::ShaderModule create_shader_module(std::vector<std::uint32_t> const& byte_code) const;
 
+         [[nodiscard]] vk::PipelineLayout create_pipeline_layout() const;
+         [[nodiscard]] vk::RenderPass create_render_pass() const;
          [[nodiscard]] vk::Pipeline create_pipeline() const;
 
          unique_pointer<GLFWwindow> const window_{
@@ -59,6 +63,8 @@ namespace eru{
          std::vector<vk::Image> const swap_chain_images_{ device_.getSwapchainImagesKHR(swap_chain_) };
          std::vector<vk::ImageView> const swap_chain_image_views_{ create_image_views() };
 
+         vk::RenderPass const render_pass_{ create_render_pass() };
+         vk::PipelineLayout const pipeline_layout_{ create_pipeline_layout() };
          vk::Pipeline const pipeline_{ create_pipeline() };
    };
 }
