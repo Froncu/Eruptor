@@ -407,7 +407,7 @@ namespace eru
       };
 
       vk::GraphicsPipelineCreateInfo const graphics_pipeline_create_info{
-         .stageCount{ shader_stage_create_infos.size() },
+         .stageCount{ static_cast<std::uint32_t>(shader_stage_create_infos.size()) },
          .pStages{ shader_stage_create_infos.data() },
          .pVertexInputState{ &vertex_input_state_create_info },
          .pInputAssemblyState{ &input_assembly_state_create_info },
