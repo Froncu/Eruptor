@@ -7,20 +7,22 @@ namespace eru
 {
    application::~application()
    {
+      device_.destroyCommandPool(command_pool_);
+
       device_.destroyPipeline(pipeline_);
       device_.destroyPipelineLayout(pipeline_layout_);
-
       for (vk::Framebuffer const framebuffer : swap_chain_framebuffers_)
          device_.destroyFramebuffer(framebuffer);
-
       device_.destroyRenderPass(render_pass_);
 
       for (vk::ImageView const image_view : swap_chain_image_views_)
          device_.destroyImageView(image_view);
-
       device_.destroySwapchainKHR(swap_chain_);
+
       device_.destroy();
+
       instance_.destroySurfaceKHR(surface_);
+
       instance_.destroy();
    }
 
@@ -348,22 +350,9 @@ namespace eru
          .primitiveRestartEnable{ false }
       };
 
-      vk::Viewport const viewport{
-         .width{ static_cast<float>(swap_chain_extent_.width) },
-         .height{ static_cast<float>(swap_chain_extent_.height) },
-         .minDepth{ 0.0f },
-         .maxDepth{ 1.0f }
-      };
-
-      vk::Rect2D const scissor{
-         .extent{ swap_chain_extent_ }
-      };
-
-      vk::PipelineViewportStateCreateInfo const viewport_state_create_info{
+      vk::PipelineViewportStateCreateInfo constexpr viewport_state_create_info{
          .viewportCount{ 1 },
-         .pViewports{ &viewport },
-         .scissorCount{ 1 },
-         .pScissors{ &scissor }
+         .scissorCount{ 1 }
       };
 
       vk::PipelineRasterizationStateCreateInfo constexpr rasterization_state_create_info{
@@ -427,5 +416,61 @@ namespace eru
       device_.destroyShaderModule(vertex_shader_module);
 
       return pipeline;
+   }
+
+   vk::CommandPool application::create_command_pool() const
+   {
+      return device_.createCommandPool(
+         {
+            .flags{ vk::CommandPoolCreateFlagBits::eResetCommandBuffer },
+            .queueFamilyIndex{ graphics_queue_index_ }
+         });
+   }
+
+   vk::CommandBuffer application::create_command_buffer() const
+   {
+      return device_.allocateCommandBuffers(
+         {
+            .commandPool{ command_pool_ },
+            .level{ vk::CommandBufferLevel::ePrimary },
+            .commandBufferCount{ 1 }
+         }).front();
+   }
+
+   void application::record_command_buffer(vk::CommandBuffer const command_buffer, std::uint32_t const image_index) const
+   {
+      if (command_buffer.begin({}) not_eq vk::Result::eSuccess)
+         throw std::runtime_error("failed to begin recording command buffer!");
+
+      vk::ClearValue constexpr clear_color_value{ { 0.0f, 0.0f, 0.0f, 1.0f } };
+      command_buffer.beginRenderPass(
+         {
+            .renderPass{ render_pass_ },
+            .framebuffer{ swap_chain_framebuffers_[image_index] },
+            .renderArea{
+               .extent{ swap_chain_extent_ }
+            },
+            .clearValueCount{ 1 },
+            .pClearValues{ &clear_color_value }
+         }, vk::SubpassContents::eInline);
+
+      command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline_);
+
+      vk::Viewport const viewport{
+         .width{ static_cast<float>(swap_chain_extent_.width) },
+         .height{ static_cast<float>(swap_chain_extent_.height) }
+      };
+      command_buffer.setViewport(0, 1, &viewport);
+
+      vk::Rect2D const scissor{
+         .extent{ swap_chain_extent_ }
+      };
+      command_buffer.setScissor(0, 1, &scissor);
+
+      command_buffer.draw(3, 1, 0, 0);
+
+      command_buffer.endRenderPass();
+
+      command_buffer.end();
    }
 }

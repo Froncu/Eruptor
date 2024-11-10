@@ -42,6 +42,11 @@ namespace eru
          [[nodiscard]] vk::PipelineLayout create_pipeline_layout() const;
          [[nodiscard]] vk::Pipeline create_pipeline() const;
 
+         [[nodiscard]] vk::CommandPool create_command_pool() const;
+         [[nodiscard]] vk::CommandBuffer create_command_buffer() const;
+
+         void record_command_buffer(vk::CommandBuffer command_buffer, std::uint32_t image_index) const;
+
          unique_pointer<GLFWwindow> const window_{
             glfwCreateWindow(800, 600, "Vulkan window", nullptr, nullptr),
             glfwDestroyWindow
@@ -68,6 +73,9 @@ namespace eru
          std::vector<vk::Framebuffer> swap_chain_framebuffers_{ create_frame_buffers() };
          vk::PipelineLayout const pipeline_layout_{ create_pipeline_layout() };
          vk::Pipeline const pipeline_{ create_pipeline() };
+
+         vk::CommandPool const command_pool_{ create_command_pool() };
+         vk::CommandBuffer const command_buffer_{ create_command_buffer() };
    };
 }
 
