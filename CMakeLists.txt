@@ -16,37 +16,31 @@ target_compile_options(${PROJECT_NAME} PRIVATE
 
 target_precompile_headers(${PROJECT_NAME} PRIVATE source/erupch.hpp)
 
-# Find Vulkan
 find_package(Vulkan REQUIRED)
 
 include(FetchContent)
 
-# Fetch GLFW
 fetchcontent_declare(glfw
    GIT_REPOSITORY https://github.com/glfw/glfw.git
-   GIT_TAG 3.4
-)
+   GIT_TAG 3.4)
 fetchcontent_makeavailable(glfw)
 
-# Fetch glm
 fetchcontent_declare(glm
    GIT_REPOSITORY https://github.com/g-truc/glm.git
-   GIT_TAG 1.0.1
-)
-fetchcontent_makeavailable(glm)
-#if(NOT glm_POPULATED)
-#   fetchcontent_populate(glm)
-#endif()
+   GIT_TAG 1.0.1)
+if(NOT glm_POPULATED)
+   fetchcontent_populate(glm)
+endif()
 
 target_include_directories(${PROJECT_NAME} PRIVATE
    ${CMAKE_CURRENT_SOURCE_DIR}/source
-   ${Vulkan_INCLUDE_DIRS})
+   ${Vulkan_INCLUDE_DIRS}
+   ${glm_SOURCE_DIR})
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
    ${Vulkan_LIBRARIES}
    $ENV{VULKAN_SDK}/Lib/shaderc_shared.lib
-   glfw
-   glm)
+   glfw)
 
 add_custom_command(
    TARGET ${PROJECT_NAME} POST_BUILD

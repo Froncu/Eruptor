@@ -286,6 +286,8 @@ namespace eru
          .layout{ vk::ImageLayout::eColorAttachmentOptimal }
       };
 
+      // ReSharper disable once CppVariableCanBeMadeConstexpr
+      // this cannot be constexpr
       vk::SubpassDescription const subpass_description{
          .pipelineBindPoint{ vk::PipelineBindPoint::eGraphics },
          .colorAttachmentCount{ 1 },
@@ -338,6 +340,9 @@ namespace eru
    vk::Pipeline application::create_pipeline() const
    {
       std::array constexpr dynamic_states{ vk::DynamicState::eViewport, vk::DynamicState::eScissor };
+
+      // ReSharper disable once CppVariableCanBeMadeConstexpr
+      // this cannot be constexpr
       vk::PipelineDynamicStateCreateInfo const dynamic_state_create_info{
          .dynamicStateCount{ static_cast<std::uint32_t>(dynamic_states.size()) },
          .pDynamicStates{ dynamic_states.data() }
@@ -407,6 +412,8 @@ namespace eru
          }
       };
 
+      // ReSharper disable once CppVariableCanBeMadeConstexpr
+      // this cannot be constexpr
       vk::PipelineColorBlendStateCreateInfo const color_blend_state_create_info{
          .logicOpEnable{ false },
          .logicOp{ vk::LogicOp::eCopy },
