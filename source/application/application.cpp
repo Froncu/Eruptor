@@ -7,7 +7,7 @@ namespace eru
 {
    application::~application()
    {
-      device_.destroyFence(in_flight_fence_);
+      device_.destroyFence(command_buffer_executed_fence);
       device_.destroySemaphore(render_finished_semaphore_);
       device_.destroySemaphore(image_available_semaphore_);
       device_.destroyCommandPool(command_pool_);
@@ -43,9 +43,9 @@ namespace eru
    vk::Instance application::create_instance()
    {
       #ifdef NDEBUG
-      std::array<char const*, 0> constexpr valdiation_layer_names{};
+      std::array<char const*, 0> constexpr validation_layer_names{};
       #else
-      std::array constexpr valdiation_layer_names{ "VK_LAYER_KHRONOS_validation" };
+      std::array constexpr validation_layer_names{ "VK_LAYER_KHRONOS_validation" };
       #endif
 
       std::uint32_t extension_count;
@@ -53,8 +53,8 @@ namespace eru
 
       return vk::createInstance(
          {
-            .enabledLayerCount{ static_cast<std::uint32_t>(valdiation_layer_names.size()) },
-            .ppEnabledLayerNames{ valdiation_layer_names.data() },
+            .enabledLayerCount{ static_cast<std::uint32_t>(validation_layer_names.size()) },
+            .ppEnabledLayerNames{ validation_layer_names.data() },
             .enabledExtensionCount{ extension_count },
             .ppEnabledExtensionNames{ extension_names }
          });
@@ -127,7 +127,7 @@ namespace eru
 
       std::array constexpr extension_names{ vk::KHRSwapchainExtensionName };
 
-      // TODO: for backwards comaptibility, enable the same
+      // TODO: for backwards compatibility, enable the same
       // validation layers on each logical device as
       // the ones enabled on the instance from which the
       // logical device is created
@@ -184,10 +184,10 @@ namespace eru
       // NOTE: eFifo is guaranteed to be present,
       // so we use it as a standard value
       auto present_mode{ vk::PresentModeKHR::eFifo };
-      for (auto const avaialble_present_mode : physical_device_.getSurfacePresentModesKHR(surface_))
-         if (avaialble_present_mode == vk::PresentModeKHR::eMailbox)
+      for (auto const available_present_mode : physical_device_.getSurfacePresentModesKHR(surface_))
+         if (available_present_mode == vk::PresentModeKHR::eMailbox)
          {
-            present_mode = avaialble_present_mode;
+            present_mode = available_present_mode;
             break;
          }
 
@@ -203,8 +203,7 @@ namespace eru
          queue_family_indices.resize(2);
          queue_family_indices[0] = graphics_queue_index_;
          queue_family_indices[1] = presentation_queue_index_;
-      }
-      else
+      } else
          sharing_mode = vk::SharingMode::eExclusive;
 
       vk::SurfaceCapabilitiesKHR const surface_capabilities{ physical_device_.getSurfaceCapabilitiesKHR(surface_) };
@@ -505,11 +504,11 @@ namespace eru
 
    void application::draw_frame() const
    {
-      if (device_.waitForFences(1, &in_flight_fence_, true, std::numeric_limits<std::uint64_t>::max()) not_eq
+      if (device_.waitForFences(1, &command_buffer_executed_fence, true, std::numeric_limits<std::uint64_t>::max()) not_eq
          vk::Result::eSuccess)
          throw std::runtime_error("failed to wait for fences!");
 
-      if (device_.resetFences(1, &in_flight_fence_) not_eq vk::Result::eSuccess)
+      if (device_.resetFences(1, &command_buffer_executed_fence) not_eq vk::Result::eSuccess)
          throw std::runtime_error("failed to reset fence!");
 
       auto&& [result, image_index]{
@@ -529,7 +528,7 @@ namespace eru
             .pCommandBuffers{ &command_buffer_ },
             .signalSemaphoreCount{ 1 },
             .pSignalSemaphores{ &render_finished_semaphore_ },
-         }, in_flight_fence_);
+         }, command_buffer_executed_fence);
 
       if (presentation_queue_.presentKHR(
          {

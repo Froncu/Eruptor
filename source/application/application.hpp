@@ -49,7 +49,7 @@ namespace eru
          void draw_frame() const;
 
          unique_pointer<GLFWwindow> const window_{
-            glfwCreateWindow(800, 600, "Vulkan window", nullptr, nullptr),
+            glfwCreateWindow(1280, 720, "Vulkan window", nullptr, nullptr),
             glfwDestroyWindow
          };
 
@@ -79,7 +79,7 @@ namespace eru
          vk::CommandBuffer const command_buffer_{ create_command_buffer() };
          vk::Semaphore const image_available_semaphore_{ device_.createSemaphore({}) };
          vk::Semaphore const render_finished_semaphore_{ device_.createSemaphore({}) };
-         vk::Fence const in_flight_fence_{ device_.createFence({ .flags{ vk::FenceCreateFlagBits::eSignaled } }) };
+         vk::Fence const command_buffer_executed_fence{ device_.createFence({ .flags{ vk::FenceCreateFlagBits::eSignaled } }) };
    };
 }
 
