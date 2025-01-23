@@ -9,28 +9,14 @@ add_executable(${PROJECT_NAME}
 set_target_properties(${PROJECT_NAME} PROPERTIES
    CXX_STANDARD 20
    CXX_STANDARD_REQUIRED ON)
-
 target_compile_options(${PROJECT_NAME} PRIVATE
    $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall -Wextra -Wpedantic -Werror>
    $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>)
-
+target_link_options(${PROJECT_NAME} PRIVATE  $<$<CXX_COMPILER_ID:GNU,Clang>:-static>)
 target_precompile_headers(${PROJECT_NAME} PRIVATE source/erupch.hpp)
 
-find_package(Vulkan REQUIRED)
-
-include(FetchContent)
-
-fetchcontent_declare(glfw
-   GIT_REPOSITORY https://github.com/glfw/glfw.git
-   GIT_TAG 3.4)
-fetchcontent_makeavailable(glfw)
-
-fetchcontent_declare(glm
-   GIT_REPOSITORY https://github.com/g-truc/glm.git
-   GIT_TAG 1.0.1)
-if(NOT glm_POPULATED)
-   fetchcontent_populate(glm)
-endif()
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+include(libraries)
 
 target_include_directories(${PROJECT_NAME} PRIVATE
    ${CMAKE_CURRENT_SOURCE_DIR}/source
