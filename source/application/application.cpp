@@ -1,5 +1,3 @@
-#include "erupch.hpp"
-
 #include "application.hpp"
 #include "shader_compiler/shader_compiler.hpp"
 
