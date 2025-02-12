@@ -143,7 +143,7 @@ namespace eru
       std::vector const available_formats{ physical_device_.getSurfaceFormatsKHR(surface_) };
       for (vk::SurfaceFormatKHR const available_format : available_formats)
          if (available_format.format == vk::Format::eB8G8R8A8Srgb and
-            available_format.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear)
+             available_format.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear)
             return available_format;
 
       return available_formats.front();
@@ -201,7 +201,8 @@ namespace eru
          queue_family_indices.resize(2);
          queue_family_indices[0] = graphics_queue_index_;
          queue_family_indices[1] = presentation_queue_index_;
-      } else
+      }
+      else
          sharing_mode = vk::SharingMode::eExclusive;
 
       vk::SurfaceCapabilitiesKHR const surface_capabilities{ physical_device_.getSurfaceCapabilitiesKHR(surface_) };
@@ -210,8 +211,8 @@ namespace eru
             .surface{ surface_ },
             .minImageCount{
                surface_capabilities.maxImageCount not_eq 0
-               ? std::min(surface_capabilities.minImageCount + 1, surface_capabilities.maxImageCount)
-               : surface_capabilities.minImageCount + 1
+                  ? std::min(surface_capabilities.minImageCount + 1, surface_capabilities.maxImageCount)
+                  : surface_capabilities.minImageCount + 1
             },
             .imageFormat{ swap_chain_format_.format },
             .imageColorSpace{ swap_chain_format_.colorSpace },
@@ -503,7 +504,7 @@ namespace eru
    void application::draw_frame() const
    {
       if (device_.waitForFences(1, &command_buffer_executed_fence, true, std::numeric_limits<std::uint64_t>::max()) not_eq
-         vk::Result::eSuccess)
+          vk::Result::eSuccess)
          throw std::runtime_error("failed to wait for fences!");
 
       if (device_.resetFences(1, &command_buffer_executed_fence) not_eq vk::Result::eSuccess)
@@ -529,13 +530,13 @@ namespace eru
          }, command_buffer_executed_fence);
 
       if (presentation_queue_.presentKHR(
-         {
-            .waitSemaphoreCount{ 1 },
-            .pWaitSemaphores{ &render_finished_semaphore_ },
-            .swapchainCount{ 1 },
-            .pSwapchains{ &swap_chain_ },
-            .pImageIndices{ &image_index }
-         }) not_eq vk::Result::eSuccess)
+             {
+                .waitSemaphoreCount{ 1 },
+                .pWaitSemaphores{ &render_finished_semaphore_ },
+                .swapchainCount{ 1 },
+                .pSwapchains{ &swap_chain_ },
+                .pImageIndices{ &image_index }
+             }) not_eq vk::Result::eSuccess)
          throw std::runtime_error("failed to present!");
    }
 }

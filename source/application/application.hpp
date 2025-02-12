@@ -2,7 +2,6 @@
 #define APPLICATION_HPP
 
 #include "erupch.hpp"
-
 #include "utility/unique_pointer.hpp"
 
 namespace eru

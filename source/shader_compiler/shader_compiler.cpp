@@ -59,7 +59,7 @@ namespace eru
          if (result.GetCompilationStatus() not_eq shaderc_compilation_status_success)
          {
             if (result.GetCompilationStatus() == shaderc_compilation_status_invalid_stage and
-               shader_type == shaderc_glsl_infer_from_source)
+                shader_type == shaderc_glsl_infer_from_source)
                throw std::runtime_error("cannot detect the shader type; specify it in the source code!");
 
             throw std::runtime_error(

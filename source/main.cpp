@@ -1,5 +1,3 @@
-#include "erupch.hpp"
-
 #include "application/application.hpp"
 
 int main()
@@ -11,7 +9,8 @@ int main()
    try
    {
       eru::application{}.run();
-   } catch (std::exception const& exception)
+   }
+   catch (std::exception const& exception)
    {
       std::cout << std::format("exception caught: {}\n", exception.what());
    }
