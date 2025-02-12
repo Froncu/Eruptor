@@ -29,9 +29,22 @@ namespace eru
 
    void application::run() const
    {
-      while (not glfwWindowShouldClose(window_.get()))
+      auto loop{ true };
+      SDL_Event event;
+
+      while (loop)
       {
-         glfwPollEvents();
+         while (SDL_PollEvent(&event))
+            switch (event.type)
+            {
+               case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
+                  loop = false;
+                  break;
+
+               default:
+                  break;
+            }
+
          draw_frame();
       }
 
@@ -47,7 +60,7 @@ namespace eru
       #endif
 
       std::uint32_t extension_count;
-      char const* const* const extension_names{ glfwGetRequiredInstanceExtensions(&extension_count) };
+      char const* const* const extension_names{ SDL_Vulkan_GetInstanceExtensions(&extension_count) };
 
       return vk::createInstance(
          {
@@ -60,7 +73,7 @@ namespace eru
 
    vk::SurfaceKHR application::create_surface() const
    {
-      if (VkSurfaceKHR surface; glfwCreateWindowSurface(instance_, window_.get(), nullptr, &surface) == VK_SUCCESS)
+      if (VkSurfaceKHR surface; SDL_Vulkan_CreateSurface(window_.get(), instance_, nullptr, &surface))
          return surface;
 
       throw std::runtime_error("failed to create window surface!");
@@ -158,7 +171,7 @@ namespace eru
       {
          int width;
          int height;
-         glfwGetFramebufferSize(window_.get(), &width, &height);
+         SDL_GetWindowSizeInPixels(window_.get(), &width, &height);
 
          return {
             .width{

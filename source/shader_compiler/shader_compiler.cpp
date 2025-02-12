@@ -1,6 +1,5 @@
 #include "erupch.hpp"
-
-#include "shader_compiler.hpp"
+#include "shaderc/shaderc.hpp"
 
 namespace eru
 {

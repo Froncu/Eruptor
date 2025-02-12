@@ -47,9 +47,9 @@ namespace eru
          void record_command_buffer(vk::CommandBuffer command_buffer, std::uint32_t image_index) const;
          void draw_frame() const;
 
-         unique_pointer<GLFWwindow> const window_{
-            glfwCreateWindow(1280, 720, "Vulkan window", nullptr, nullptr),
-            glfwDestroyWindow
+         unique_pointer<SDL_Window> const window_{
+            SDL_CreateWindow("Eruptor", 1280, 720, SDL_WINDOW_VULKAN),
+            SDL_DestroyWindow
          };
 
          vk::Instance const instance_{ create_instance() };

@@ -2,9 +2,7 @@
 
 int main()
 {
-   glfwInit();
-   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-   glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+   SDL_Init(SDL_INIT_EVENTS);
 
    try
    {
@@ -15,7 +13,7 @@ int main()
       std::cout << std::format("exception caught: {}\n", exception.what());
    }
 
-   glfwTerminate();
+   SDL_Quit();
 
    return 0;
 }

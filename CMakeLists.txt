@@ -23,7 +23,7 @@ include(libraries)
 target_link_libraries(${PROJECT_NAME} PRIVATE
    Vulkan::Vulkan
    $ENV{VULKAN_SDK}/Lib/shaderc_shared.lib
-   glfw
+   SDL3::SDL3
    glm::glm-header-only)
 
 add_custom_command(
