@@ -14,19 +14,17 @@ target_compile_options(${PROJECT_NAME} PRIVATE
    $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>)
 target_link_options(${PROJECT_NAME} PRIVATE $<$<CXX_COMPILER_ID:GNU,Clang>:-static>)
 target_precompile_headers(${PROJECT_NAME} PRIVATE source/erupch.hpp)
+target_include_directories(${PROJECT_NAME} PRIVATE
+   ${CMAKE_CURRENT_SOURCE_DIR}/source)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 include(libraries)
 
-target_include_directories(${PROJECT_NAME} PRIVATE
-   ${CMAKE_CURRENT_SOURCE_DIR}/source
-   ${Vulkan_INCLUDE_DIRS}
-   ${glm_SOURCE_DIR})
-
 target_link_libraries(${PROJECT_NAME} PRIVATE
-   ${Vulkan_LIBRARIES}
+   Vulkan::Vulkan
    $ENV{VULKAN_SDK}/Lib/shaderc_shared.lib
-   glfw)
+   glfw
+   glm::glm-header-only)
 
 add_custom_command(
    TARGET ${PROJECT_NAME} POST_BUILD
