@@ -78,7 +78,7 @@ namespace eru
          vk::CommandBuffer const command_buffer_{ create_command_buffer() };
          vk::Semaphore const image_available_semaphore_{ device_.createSemaphore({}) };
          vk::Semaphore const render_finished_semaphore_{ device_.createSemaphore({}) };
-         vk::Fence const command_buffer_executed_fence{ device_.createFence({ .flags{ vk::FenceCreateFlagBits::eSignaled } }) };
+         vk::Fence const command_buffer_executed_fence_{ device_.createFence({ .flags{ vk::FenceCreateFlagBits::eSignaled } }) };
    };
 }
 

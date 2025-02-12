@@ -5,7 +5,7 @@ namespace eru
 {
    application::~application()
    {
-      device_.destroyFence(command_buffer_executed_fence);
+      device_.destroyFence(command_buffer_executed_fence_);
       device_.destroySemaphore(render_finished_semaphore_);
       device_.destroySemaphore(image_available_semaphore_);
       device_.destroyCommandPool(command_pool_);
@@ -503,11 +503,11 @@ namespace eru
 
    void application::draw_frame() const
    {
-      if (device_.waitForFences(1, &command_buffer_executed_fence, true, std::numeric_limits<std::uint64_t>::max()) not_eq
+      if (device_.waitForFences(1, &command_buffer_executed_fence_, true, std::numeric_limits<std::uint64_t>::max()) not_eq
           vk::Result::eSuccess)
          throw std::runtime_error("failed to wait for fences!");
 
-      if (device_.resetFences(1, &command_buffer_executed_fence) not_eq vk::Result::eSuccess)
+      if (device_.resetFences(1, &command_buffer_executed_fence_) not_eq vk::Result::eSuccess)
          throw std::runtime_error("failed to reset fence!");
 
       auto&& [result, image_index]{
@@ -527,7 +527,7 @@ namespace eru
             .pCommandBuffers{ &command_buffer_ },
             .signalSemaphoreCount{ 1 },
             .pSignalSemaphores{ &render_finished_semaphore_ },
-         }, command_buffer_executed_fence);
+         }, command_buffer_executed_fence_);
 
       if (presentation_queue_.presentKHR(
              {
