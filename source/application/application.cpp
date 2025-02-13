@@ -203,7 +203,7 @@ namespace eru
          }
 
       vk::SharingMode sharing_mode;
-      std::vector<std::uint32_t> queue_family_indices{};
+      std::array<std::uint32_t, 2> queue_family_indices{};
 
       // ReSharper disable once CppDFAConstantConditions
       // how is this always true? ._.
@@ -211,7 +211,6 @@ namespace eru
       {
          sharing_mode = vk::SharingMode::eConcurrent;
 
-         queue_family_indices.resize(2);
          queue_family_indices[0] = graphics_queue_index_;
          queue_family_indices[1] = presentation_queue_index_;
       }
