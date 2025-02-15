@@ -26,8 +26,8 @@ namespace eru
          [[nodiscard]] vk::SurfaceKHR create_surface() const;
 
          [[nodiscard]] vk::PhysicalDevice pick_physical_device() const;
-         [[nodiscard]] std::uint32_t graphics_queue_index() const;
-         [[nodiscard]] std::uint32_t presentation_queue_index() const;
+         [[nodiscard]] std::uint32_t graphics_queue_family_index() const;
+         [[nodiscard]] std::uint32_t presentation_queue_family_index() const;
          [[nodiscard]] vk::Device create_device() const;
 
          [[nodiscard]] vk::SurfaceFormatKHR pick_swap_chain_format() const;
@@ -58,11 +58,11 @@ namespace eru
          vk::SurfaceKHR const surface_{ create_surface() };
 
          vk::PhysicalDevice const physical_device_{ pick_physical_device() };
-         std::uint32_t const graphics_queue_index_{ graphics_queue_index() };
-         std::uint32_t const presentation_queue_index_{ presentation_queue_index() };
+         std::uint32_t const graphics_queue_family_index_{ graphics_queue_family_index() };
+         std::uint32_t const presentation_queue_family_index_{ presentation_queue_family_index() };
          vk::Device const device_{ create_device() };
-         vk::Queue const graphics_queue_{ device_.getQueue(graphics_queue_index_, 0) };
-         vk::Queue const presentation_queue_{ device_.getQueue(presentation_queue_index_, 0) };
+         vk::Queue const graphics_queue_{ device_.getQueue(graphics_queue_family_index_, 0) };
+         vk::Queue const presentation_queue_{ device_.getQueue(presentation_queue_family_index_, 0) };
 
          vk::SurfaceFormatKHR const swap_chain_format_{ pick_swap_chain_format() };
          vk::Extent2D const swap_chain_extent_{ pick_swap_chain_extent() };

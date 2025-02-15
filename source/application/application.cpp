@@ -107,25 +107,22 @@ namespace eru
       return physical_devices.front();
    }
 
-   std::uint32_t application::graphics_queue_index() const
+   std::uint32_t application::graphics_queue_family_index() const
    {
-      std::uint32_t queue_index{};
-      for (vk::QueueFamilyProperties const& queue : physical_device_.getQueueFamilyProperties())
-      {
-         if (queue.queueFlags & vk::QueueFlagBits::eGraphics)
-            return queue_index;
-
-         ++queue_index;
-      }
+      auto const queue_family_properties{ physical_device_.getQueueFamilyProperties() };
+      for (std::uint32_t queue_family_index{}; queue_family_index < queue_family_properties.size(); ++queue_family_index)
+         if (queue_family_properties[queue_family_index].queueFlags & vk::QueueFlagBits::eGraphics)
+            return queue_family_index;
 
       throw std::runtime_error("no queue with support for graphics operations present!");
    }
 
-   std::uint32_t application::presentation_queue_index() const
+   std::uint32_t application::presentation_queue_family_index() const
    {
-      for (std::uint32_t queue_index{}; queue_index < physical_device_.getQueueFamilyProperties().size(); ++queue_index)
-         if (physical_device_.getSurfaceSupportKHR(queue_index, surface_))
-            return queue_index;
+      auto const queue_family_properties{ physical_device_.getQueueFamilyProperties() };
+      for (std::uint32_t queue_family_index{}; queue_family_index < queue_family_properties.size(); ++queue_family_index)
+         if (physical_device_.getSurfaceSupportKHR(queue_family_index, surface_))
+            return queue_family_index;
 
       throw std::runtime_error("no queue with support for surface presentation present!");
    }
@@ -136,12 +133,12 @@ namespace eru
 
       std::vector queue_infos{
          vk::DeviceQueueCreateInfo{
-            .queueFamilyIndex{ graphics_queue_index_ },
+            .queueFamilyIndex{ graphics_queue_family_index_ },
             .queueCount{ 1 },
             .pQueuePriorities{ queue_priorities.data() }
          },
          vk::DeviceQueueCreateInfo{
-            .queueFamilyIndex{ presentation_queue_index_ },
+            .queueFamilyIndex{ presentation_queue_family_index_ },
             .queueCount{ 1 },
             .pQueuePriorities{ queue_priorities.data() }
          }
@@ -149,7 +146,8 @@ namespace eru
 
       // QUESTION: the queueFamilyIndex member of each element of pQueueCreateInfos must be unique within pQueueCreateInfos,
       // except that two members can share the same queueFamilyIndex if one describes protected-capable queues and one describes
-      // queues that are not protected-capable (graphics_queue_index_ and presentation_queue_index_ are the same on my machines)
+      // queues that are not protected-capable (graphics_queue_family_index_ and presentation_queue_family_index_ are the same
+      // on my machines)
       std::ranges::sort(queue_infos);
       auto const& [new_end, old_end]{ std::ranges::unique(queue_infos) };
       queue_infos.erase(new_end, old_end);
@@ -223,12 +221,12 @@ namespace eru
       vk::SharingMode sharing_mode;
       std::array<std::uint32_t, 2> queue_family_indices{};
 
-      if (graphics_queue_index_ not_eq presentation_queue_index_)
+      if (graphics_queue_family_index_ not_eq presentation_queue_family_index_)
       {
          sharing_mode = vk::SharingMode::eConcurrent;
 
-         queue_family_indices[0] = graphics_queue_index_;
-         queue_family_indices[1] = presentation_queue_index_;
+         queue_family_indices[0] = graphics_queue_family_index_;
+         queue_family_indices[1] = presentation_queue_family_index_;
       }
       else
          sharing_mode = vk::SharingMode::eExclusive;
@@ -476,7 +474,7 @@ namespace eru
       return device_.createCommandPool(
          {
             .flags{ vk::CommandPoolCreateFlagBits::eResetCommandBuffer },
-            .queueFamilyIndex{ graphics_queue_index_ }
+            .queueFamilyIndex{ graphics_queue_family_index_ }
          });
    }
 
