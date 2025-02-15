@@ -30,10 +30,10 @@ namespace eru
    void application::run() const
    {
       auto loop{ true };
-      SDL_Event event;
 
       while (loop)
       {
+         SDL_Event event;
          while (SDL_PollEvent(&event))
             switch (event.type)
             {
@@ -62,13 +62,28 @@ namespace eru
       std::uint32_t extension_count;
       char const* const* const extension_names{ SDL_Vulkan_GetInstanceExtensions(&extension_count) };
 
-      return vk::createInstance(
-         {
-            .enabledLayerCount{ static_cast<std::uint32_t>(validation_layer_names.size()) },
-            .ppEnabledLayerNames{ validation_layer_names.data() },
-            .enabledExtensionCount{ extension_count },
-            .ppEnabledExtensionNames{ extension_names }
-         });
+      try
+      {
+         return vk::createInstance(
+            {
+               .enabledLayerCount{ static_cast<std::uint32_t>(validation_layer_names.size()) },
+               .ppEnabledLayerNames{ validation_layer_names.data() },
+               .enabledExtensionCount{ extension_count },
+               .ppEnabledExtensionNames{ extension_names }
+            });
+      }
+      catch (vk::LayerNotPresentError const&)
+      {
+         std::cout << "failed to find one or more validation layers - continuing without the following:\n";
+         for (std::string_view const validation_layer_name : validation_layer_names)
+            std::cout << std::format("- {}\n", validation_layer_name);
+
+         return vk::createInstance(
+            {
+               .enabledExtensionCount{ extension_count },
+               .ppEnabledExtensionNames{ extension_names }
+            });
+      }
    }
 
    vk::SurfaceKHR application::create_surface() const
@@ -205,8 +220,6 @@ namespace eru
       vk::SharingMode sharing_mode;
       std::array<std::uint32_t, 2> queue_family_indices{};
 
-      // ReSharper disable once CppDFAConstantConditions
-      // how is this always true? ._.
       if (graphics_queue_index_ not_eq presentation_queue_index_)
       {
          sharing_mode = vk::SharingMode::eConcurrent;
