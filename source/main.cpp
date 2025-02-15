@@ -1,6 +1,8 @@
+#include <SDL3/SDL_main.h>
+
 #include "application/application.hpp"
 
-int main()
+int main(int const, char** const)
 {
    SDL_Init(SDL_INIT_EVENTS);
 
