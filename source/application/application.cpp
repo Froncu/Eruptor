@@ -147,6 +147,9 @@ namespace eru
          }
       };
 
+      // QUESTION: the queueFamilyIndex member of each element of pQueueCreateInfos must be unique within pQueueCreateInfos,
+      // except that two members can share the same queueFamilyIndex if one describes protected-capable queues and one describes
+      // queues that are not protected-capable (graphics_queue_index_ and presentation_queue_index_ are the same on my machines)
       std::ranges::sort(queue_infos);
       auto const& [new_end, old_end]{ std::ranges::unique(queue_infos) };
       queue_infos.erase(new_end, old_end);
