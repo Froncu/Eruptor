@@ -20,9 +20,11 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 include(libraries)
 
+# TODO: figure out why Vulkan::shaderc_combined gives linker errors when using MinGW
 target_link_libraries(${PROJECT_NAME} PRIVATE
    Vulkan::Vulkan
-   $ENV{VULKAN_SDK}/Lib/shaderc_shared.lib
+   $<$<CXX_COMPILER_ID:GNU,Clang>:$ENV{VULKAN_SDK}/Lib/shaderc_shared.lib>
+   $<$<CXX_COMPILER_ID:MSVC>:Vulkan::shaderc_combined>
    SDL3::SDL3
    glm::glm-header-only)
 
