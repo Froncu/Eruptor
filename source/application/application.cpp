@@ -1,4 +1,5 @@
 #include "application.hpp"
+#include "constants.hpp"
 #include "shader_compiler/shader_compiler.hpp"
 
 namespace eru
@@ -53,14 +54,23 @@ namespace eru
 
    vk::Instance application::create_instance()
    {
-      #ifdef NDEBUG
-      std::array<char const*, 0> constexpr validation_layer_names{};
-      #else
-      std::array constexpr validation_layer_names{ "VK_LAYER_KHRONOS_validation" };
-      #endif
+      auto constexpr validation_layer_names
+      {
+         []
+         {
+            if constexpr (constants::DEBUG)
+               return std::array{ "VK_LAYER_KHRONOS_validation" };
+            else
+               return std::array<char const*, 0>{};
+         }()
+      };
 
-      std::uint32_t extension_count;
-      char const* const* const extension_names{ SDL_Vulkan_GetInstanceExtensions(&extension_count) };
+      std::uint32_t sdl_extension_count;
+      char const* const* const sdl_extension_names{ SDL_Vulkan_GetInstanceExtensions(&sdl_extension_count) };
+      std::vector<char const*> extension_names{ sdl_extension_names, sdl_extension_names + sdl_extension_count };
+
+      if constexpr (constants::DEBUG)
+         extension_names.push_back(vk::EXTDebugUtilsExtensionName);
 
       try
       {
@@ -68,8 +78,8 @@ namespace eru
             {
                .enabledLayerCount{ static_cast<std::uint32_t>(validation_layer_names.size()) },
                .ppEnabledLayerNames{ validation_layer_names.data() },
-               .enabledExtensionCount{ extension_count },
-               .ppEnabledExtensionNames{ extension_names }
+               .enabledExtensionCount{ static_cast<std::uint32_t>(extension_names.size()) },
+               .ppEnabledExtensionNames{ extension_names.data() }
             });
       }
       catch (vk::LayerNotPresentError const&)
@@ -80,8 +90,8 @@ namespace eru
 
          return vk::createInstance(
             {
-               .enabledExtensionCount{ extension_count },
-               .ppEnabledExtensionNames{ extension_names }
+               .enabledExtensionCount{ static_cast<std::uint32_t>(extension_names.size()) },
+               .ppEnabledExtensionNames{ extension_names.data() }
             });
       }
    }
