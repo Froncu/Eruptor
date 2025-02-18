@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.15)
 project(Eruptor)
 
 # TODO: does this check if we are on Windows or macOS?
-add_executable(${PROJECT_NAME} WIN32 MACOSX_BUNDLE
+add_executable(${PROJECT_NAME}
    source/application/application.cpp
    source/main.cpp
    source/shader_compiler/shader_compiler.cpp)
