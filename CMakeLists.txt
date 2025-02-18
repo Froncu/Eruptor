@@ -32,10 +32,9 @@ else ()
 endif ()
 
 target_link_libraries(${PROJECT_NAME}
-   PRIVATE Vulkan::Vulkan
    PRIVATE ${shaderc_lib}
-   PRIVATE SDL3::SDL3
-   PRIVATE glm::glm-header-only)
+   PRIVATE glm::glm-header-only
+   PRIVATE imgui)
 
 add_custom_command(TARGET POST_BUILD ${PROJECT_NAME}
    COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
