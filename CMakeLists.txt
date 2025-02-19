@@ -15,7 +15,7 @@ target_compile_options(${PROJECT_NAME}
    PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>)
 # TODO: figure out why the following is needed for MinGW
 target_link_options(${PROJECT_NAME}
-   PRIVATE $<$<BOOL:MINGW>:-static-libstdc++>)
+   PRIVATE $<$<BOOL:MINGW>:-static-libgcc -static-libstdc++>)
 target_precompile_headers(${PROJECT_NAME}
    PRIVATE source/erupch.hpp)
 target_include_directories(${PROJECT_NAME}
