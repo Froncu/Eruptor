@@ -84,6 +84,7 @@ namespace eru
       }
       catch (vk::LayerNotPresentError const&)
       {
+         // TODO: the debug messenger as well as the needed for it extension are still enabled
          std::cout << "failed to find one or more validation layers - continuing without the following:\n";
          for (std::string_view const validation_layer_name : validation_layer_names)
             std::cout << std::format("- {}\n", validation_layer_name);
@@ -170,13 +171,13 @@ namespace eru
    {
       std::array constexpr queue_priorities{ 1.0f };
 
-      std::vector queue_infos{
-         vk::DeviceQueueCreateInfo{
+      std::vector<vk::DeviceQueueCreateInfo> queue_infos{
+         {
             .queueFamilyIndex{ graphics_queue_family_index_ },
             .queueCount{ 1 },
             .pQueuePriorities{ queue_priorities.data() }
          },
-         vk::DeviceQueueCreateInfo{
+         {
             .queueFamilyIndex{ presentation_queue_family_index_ },
             .queueCount{ 1 },
             .pQueuePriorities{ queue_priorities.data() }
@@ -208,8 +209,12 @@ namespace eru
    vk::SurfaceFormatKHR application::pick_swap_chain_format() const
    {
       std::vector const available_formats{ physical_device_.getSurfaceFormatsKHR(surface_) };
+
+      if (available_formats.empty())
+         throw std::runtime_error("no surface formats available!");
+
       for (vk::SurfaceFormatKHR const available_format : available_formats)
-         if (available_format.format == vk::Format::eB8G8R8A8Srgb and
+         if (available_format.format == vk::Format::eR8G8B8A8Srgb and
              available_format.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear)
             return available_format;
 
@@ -223,20 +228,23 @@ namespace eru
          return surface_capabilities.currentExtent;
       else
       {
+         // QUESTION: the freedom of chosing the images'
+         // extent between minImageExtent and maxImageExtent
+         // is given by the window manager, why?
+
          int width;
          int height;
-         SDL_GetWindowSizeInPixels(window_.get(), &width, &height);
+         if (not SDL_GetWindowSizeInPixels(window_.get(), &width, &height))
+            throw std::runtime_error(std::format("failed to get window size in pixels: {}\n", SDL_GetError()));
 
          return {
             .width{
-               std::clamp(
-                  static_cast<std::uint32_t>(width),
+               std::clamp(static_cast<std::uint32_t>(width),
                   surface_capabilities.minImageExtent.width,
                   surface_capabilities.maxImageExtent.width)
             },
             .height{
-               std::clamp(
-                  static_cast<std::uint32_t>(height),
+               std::clamp(static_cast<std::uint32_t>(height),
                   surface_capabilities.minImageExtent.height,
                   surface_capabilities.maxImageExtent.height)
             }
@@ -256,6 +264,10 @@ namespace eru
             break;
          }
 
+      // NOTE: determines whether an image is owned by one
+      // queue with explicit ownership transfers (eExclusive)
+      // or can be used across multiple queues without explicit
+      // ownership transfers (eConcurrent)
       vk::SharingMode sharing_mode;
       std::array<std::uint32_t, 2> queue_family_indices{};
 
@@ -270,12 +282,15 @@ namespace eru
          sharing_mode = vk::SharingMode::eExclusive;
 
       vk::SurfaceCapabilitiesKHR const surface_capabilities{ physical_device_.getSurfaceCapabilitiesKHR(surface_) };
+
       return device_.createSwapchainKHR({
          .surface{ surface_ },
+         // QUESTION: why is it recommended to have at least one more image than the minimum?
          .minImageCount{
-            surface_capabilities.maxImageCount not_eq 0
-               ? std::min(surface_capabilities.minImageCount + 1, surface_capabilities.maxImageCount)
-               : surface_capabilities.minImageCount + 1
+            // NOTE: a maxImageCount of 0 means that there is no maximum
+            not surface_capabilities.maxImageCount
+               ? surface_capabilities.minImageCount + 1
+               : std::min(surface_capabilities.minImageCount + 1, surface_capabilities.maxImageCount)
          },
          .imageFormat{ swap_chain_format_.format },
          .imageColorSpace{ swap_chain_format_.colorSpace },
