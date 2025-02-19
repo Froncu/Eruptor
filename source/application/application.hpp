@@ -49,8 +49,7 @@ namespace eru
          void record_command_buffer(vk::CommandBuffer command_buffer, std::uint32_t image_index) const;
          void draw_frame() const;
 
-         unique_pointer<SDL_Window> const window_
-         {
+         unique_pointer<SDL_Window> const window_{
             SDL_CreateWindow("Eruptor", 1280, 720, SDL_WINDOW_VULKAN),
             SDL_DestroyWindow
          };
@@ -85,8 +84,7 @@ namespace eru
          vk::CommandBuffer const command_buffer_{ create_command_buffer() };
          vk::Semaphore const image_available_semaphore_{ device_.createSemaphore({}) };
          vk::Semaphore const render_finished_semaphore_{ device_.createSemaphore({}) };
-         vk::Fence const command_buffer_executed_fence_
-         {
+         vk::Fence const command_buffer_executed_fence_{
             device_.createFence({ .flags{ vk::FenceCreateFlagBits::eSignaled } })
          };
    };

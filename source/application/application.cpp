@@ -53,8 +53,7 @@ namespace eru
 
    vk::Instance application::create_instance()
    {
-      auto constexpr validation_layer_names
-      {
+      auto constexpr validation_layer_names{
          []
          {
             if constexpr (USE_VALIDATION_LAYERS)
@@ -73,13 +72,12 @@ namespace eru
 
       try
       {
-         return vk::createInstance(
-            {
-               .enabledLayerCount{ static_cast<std::uint32_t>(validation_layer_names.size()) },
-               .ppEnabledLayerNames{ validation_layer_names.data() },
-               .enabledExtensionCount{ static_cast<std::uint32_t>(extension_names.size()) },
-               .ppEnabledExtensionNames{ extension_names.data() }
-            });
+         return vk::createInstance({
+            .enabledLayerCount{ static_cast<std::uint32_t>(validation_layer_names.size()) },
+            .ppEnabledLayerNames{ validation_layer_names.data() },
+            .enabledExtensionCount{ static_cast<std::uint32_t>(extension_names.size()) },
+            .ppEnabledExtensionNames{ extension_names.data() }
+         });
       }
       catch (vk::LayerNotPresentError const&)
       {
@@ -87,11 +85,10 @@ namespace eru
          for (std::string_view const validation_layer_name : validation_layer_names)
             std::cout << std::format("- {}\n", validation_layer_name);
 
-         return vk::createInstance(
-            {
-               .enabledExtensionCount{ static_cast<std::uint32_t>(extension_names.size()) },
-               .ppEnabledExtensionNames{ extension_names.data() }
-            });
+         return vk::createInstance({
+            .enabledExtensionCount{ static_cast<std::uint32_t>(extension_names.size()) },
+            .ppEnabledExtensionNames{ extension_names.data() }
+         });
       }
    }
 
@@ -101,32 +98,28 @@ namespace eru
       // that create the debug utils messenger since it's an
       // extension (reason why I'm passing dispatch_loader_dynamic_ here);
       // how come it's not needed in other extension functions?
-      return instance_.createDebugUtilsMessengerEXT(
-         {
-            .messageSeverity
+      return instance_.createDebugUtilsMessengerEXT({
+         .messageSeverity{
+            vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose |
+            vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning |
+            vk::DebugUtilsMessageSeverityFlagBitsEXT::eError
+         },
+         .messageType{
+            vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral |
+            vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation |
+            vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance
+         },
+         .pfnUserCallback{
+            [](VkDebugUtilsMessageSeverityFlagBitsEXT const,
+            VkDebugUtilsMessageTypeFlagsEXT const,
+            VkDebugUtilsMessengerCallbackDataEXT const* const callback_data,
+            void* const) -> vk::Bool32
             {
-               vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose |
-               vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning |
-               vk::DebugUtilsMessageSeverityFlagBitsEXT::eError
-            },
-            .messageType
-            {
-               vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral |
-               vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation |
-               vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance
-            },
-            .pfnUserCallback
-            {
-               [](VkDebugUtilsMessageSeverityFlagBitsEXT const,
-               VkDebugUtilsMessageTypeFlagsEXT const,
-               VkDebugUtilsMessengerCallbackDataEXT const* const callback_data,
-               void* const) -> vk::Bool32
-               {
-                  std::cout << std::format("[VALIDATION LAYER MESSAGE]\n{}\n\n", callback_data->pMessage);
-                  return false;
-               }
+               std::cout << std::format("[VALIDATION LAYER MESSAGE]\n{}\n\n", callback_data->pMessage);
+               return false;
             }
-         }, nullptr, dispatch_loader_dynamic_);
+         }
+      }, nullptr, dispatch_loader_dynamic_);
    }
 
    vk::SurfaceKHR application::create_surface() const
@@ -201,13 +194,12 @@ namespace eru
       // validation layers on each logical device as
       // the ones enabled on the instance from which the
       // logical device is created
-      return physical_device_.createDevice(
-         {
-            .queueCreateInfoCount{ static_cast<std::uint32_t>(queue_infos.size()) },
-            .pQueueCreateInfos{ queue_infos.data() },
-            .enabledExtensionCount{ static_cast<std::uint32_t>(extension_names.size()) },
-            .ppEnabledExtensionNames{ extension_names.data() }
-         });
+      return physical_device_.createDevice({
+         .queueCreateInfoCount{ static_cast<std::uint32_t>(queue_infos.size()) },
+         .pQueueCreateInfos{ queue_infos.data() },
+         .enabledExtensionCount{ static_cast<std::uint32_t>(extension_names.size()) },
+         .ppEnabledExtensionNames{ extension_names.data() }
+      });
    }
 
    vk::SurfaceFormatKHR application::pick_swap_chain_format() const
@@ -275,27 +267,26 @@ namespace eru
          sharing_mode = vk::SharingMode::eExclusive;
 
       vk::SurfaceCapabilitiesKHR const surface_capabilities{ physical_device_.getSurfaceCapabilitiesKHR(surface_) };
-      return device_.createSwapchainKHR(
-         {
-            .surface{ surface_ },
-            .minImageCount{
-               surface_capabilities.maxImageCount not_eq 0
-                  ? std::min(surface_capabilities.minImageCount + 1, surface_capabilities.maxImageCount)
-                  : surface_capabilities.minImageCount + 1
-            },
-            .imageFormat{ swap_chain_format_.format },
-            .imageColorSpace{ swap_chain_format_.colorSpace },
-            .imageExtent{ swap_chain_extent_ },
-            .imageArrayLayers{ 1 },
-            .imageUsage{ vk::ImageUsageFlagBits::eColorAttachment },
-            .imageSharingMode{ sharing_mode },
-            .queueFamilyIndexCount{ static_cast<std::uint32_t>(queue_family_indices.size()) },
-            .pQueueFamilyIndices{ queue_family_indices.data() },
-            .preTransform{ surface_capabilities.currentTransform },
-            .compositeAlpha{ vk::CompositeAlphaFlagBitsKHR::eOpaque },
-            .presentMode{ present_mode },
-            .clipped{ true }
-         });
+      return device_.createSwapchainKHR({
+         .surface{ surface_ },
+         .minImageCount{
+            surface_capabilities.maxImageCount not_eq 0
+               ? std::min(surface_capabilities.minImageCount + 1, surface_capabilities.maxImageCount)
+               : surface_capabilities.minImageCount + 1
+         },
+         .imageFormat{ swap_chain_format_.format },
+         .imageColorSpace{ swap_chain_format_.colorSpace },
+         .imageExtent{ swap_chain_extent_ },
+         .imageArrayLayers{ 1 },
+         .imageUsage{ vk::ImageUsageFlagBits::eColorAttachment },
+         .imageSharingMode{ sharing_mode },
+         .queueFamilyIndexCount{ static_cast<std::uint32_t>(queue_family_indices.size()) },
+         .pQueueFamilyIndices{ queue_family_indices.data() },
+         .preTransform{ surface_capabilities.currentTransform },
+         .compositeAlpha{ vk::CompositeAlphaFlagBitsKHR::eOpaque },
+         .presentMode{ present_mode },
+         .clipped{ true }
+      });
    }
 
    std::vector<vk::ImageView> application::create_image_views() const
@@ -305,34 +296,32 @@ namespace eru
 
       for (vk::Image const image : swap_chain_images_)
          image_views.push_back(
-            device_.createImageView(
-               {
-                  .image{ image },
-                  .viewType{ vk::ImageViewType::e2D },
-                  .format{ swap_chain_format_.format },
-                  .components{
-                     .r{ vk::ComponentSwizzle::eIdentity },
-                     .g{ vk::ComponentSwizzle::eIdentity },
-                     .b{ vk::ComponentSwizzle::eIdentity },
-                     .a{ vk::ComponentSwizzle::eIdentity }
-                  },
-                  .subresourceRange{
-                     .aspectMask{ vk::ImageAspectFlagBits::eColor },
-                     .levelCount{ 1 },
-                     .layerCount{ 1 }
-                  }
-               }));
+            device_.createImageView({
+               .image{ image },
+               .viewType{ vk::ImageViewType::e2D },
+               .format{ swap_chain_format_.format },
+               .components{
+                  .r{ vk::ComponentSwizzle::eIdentity },
+                  .g{ vk::ComponentSwizzle::eIdentity },
+                  .b{ vk::ComponentSwizzle::eIdentity },
+                  .a{ vk::ComponentSwizzle::eIdentity }
+               },
+               .subresourceRange{
+                  .aspectMask{ vk::ImageAspectFlagBits::eColor },
+                  .levelCount{ 1 },
+                  .layerCount{ 1 }
+               }
+            }));
 
       return image_views;
    }
 
    vk::ShaderModule application::create_shader_module(std::vector<std::uint32_t> const& byte_code) const
    {
-      return device_.createShaderModule(
-         {
-            .codeSize{ sizeof(std::uint32_t) * byte_code.size() },
-            .pCode{ byte_code.data() }
-         });
+      return device_.createShaderModule({
+         .codeSize{ sizeof(std::uint32_t) * byte_code.size() },
+         .pCode{ byte_code.data() }
+      });
    }
 
    vk::RenderPass application::create_render_pass() const
@@ -368,15 +357,14 @@ namespace eru
          .dstAccessMask{ vk::AccessFlagBits::eColorAttachmentWrite }
       };
 
-      return device_.createRenderPass(
-         {
-            .attachmentCount{ 1 },
-            .pAttachments{ &color_attachment_description },
-            .subpassCount{ 1 },
-            .pSubpasses{ &subpass_description },
-            .dependencyCount{ 1 },
-            .pDependencies{ &dependency }
-         });
+      return device_.createRenderPass({
+         .attachmentCount{ 1 },
+         .pAttachments{ &color_attachment_description },
+         .subpassCount{ 1 },
+         .pSubpasses{ &subpass_description },
+         .dependencyCount{ 1 },
+         .pDependencies{ &dependency }
+      });
    }
 
    std::vector<vk::Framebuffer> application::create_frame_buffers() const
@@ -386,15 +374,14 @@ namespace eru
 
       for (vk::ImageView const image_view : swap_chain_image_views_)
          framebuffers.push_back(
-            device_.createFramebuffer(
-               {
-                  .renderPass{ render_pass_ },
-                  .attachmentCount{ 1 },
-                  .pAttachments{ &image_view },
-                  .width{ swap_chain_extent_.width },
-                  .height{ swap_chain_extent_.height },
-                  .layers{ 1 }
-               }));
+            device_.createFramebuffer({
+               .renderPass{ render_pass_ },
+               .attachmentCount{ 1 },
+               .pAttachments{ &image_view },
+               .width{ swap_chain_extent_.width },
+               .height{ swap_chain_extent_.height },
+               .layers{ 1 }
+            }));
 
       return framebuffers;
    }
@@ -489,21 +476,20 @@ namespace eru
       };
 
       auto&& [result, pipeline]{
-         device_.createGraphicsPipeline(
-            nullptr, {
-               .stageCount{ static_cast<std::uint32_t>(shader_stage_create_infos.size()) },
-               .pStages{ shader_stage_create_infos.data() },
-               .pVertexInputState{ &vertex_input_state_create_info },
-               .pInputAssemblyState{ &input_assembly_state_create_info },
-               .pViewportState{ &viewport_state_create_info },
-               .pRasterizationState{ &rasterization_state_create_info },
-               .pMultisampleState{ &multisample_state_create_info },
-               .pDepthStencilState{ &depth_stencil_state_create_info },
-               .pColorBlendState{ &color_blend_state_create_info },
-               .pDynamicState{ &dynamic_state_create_info },
-               .layout{ pipeline_layout_ },
-               .renderPass{ render_pass_ }
-            })
+         device_.createGraphicsPipeline(nullptr, {
+            .stageCount{ static_cast<std::uint32_t>(shader_stage_create_infos.size()) },
+            .pStages{ shader_stage_create_infos.data() },
+            .pVertexInputState{ &vertex_input_state_create_info },
+            .pInputAssemblyState{ &input_assembly_state_create_info },
+            .pViewportState{ &viewport_state_create_info },
+            .pRasterizationState{ &rasterization_state_create_info },
+            .pMultisampleState{ &multisample_state_create_info },
+            .pDepthStencilState{ &depth_stencil_state_create_info },
+            .pColorBlendState{ &color_blend_state_create_info },
+            .pDynamicState{ &dynamic_state_create_info },
+            .layout{ pipeline_layout_ },
+            .renderPass{ render_pass_ }
+         })
       };
 
       device_.destroyShaderModule(fragment_shader_module);
@@ -514,21 +500,19 @@ namespace eru
 
    vk::CommandPool application::create_command_pool() const
    {
-      return device_.createCommandPool(
-         {
-            .flags{ vk::CommandPoolCreateFlagBits::eResetCommandBuffer },
-            .queueFamilyIndex{ graphics_queue_family_index_ }
-         });
+      return device_.createCommandPool({
+         .flags{ vk::CommandPoolCreateFlagBits::eResetCommandBuffer },
+         .queueFamilyIndex{ graphics_queue_family_index_ }
+      });
    }
 
    vk::CommandBuffer application::create_command_buffer() const
    {
-      return device_.allocateCommandBuffers(
-         {
-            .commandPool{ command_pool_ },
-            .level{ vk::CommandBufferLevel::ePrimary },
-            .commandBufferCount{ 1 }
-         }).front();
+      return device_.allocateCommandBuffers({
+         .commandPool{ command_pool_ },
+         .level{ vk::CommandBufferLevel::ePrimary },
+         .commandBufferCount{ 1 }
+      }).front();
    }
 
    void application::record_command_buffer(vk::CommandBuffer const command_buffer, std::uint32_t const image_index) const
@@ -538,16 +522,15 @@ namespace eru
          throw std::runtime_error("failed to begin recording command buffer!");
 
       vk::ClearValue constexpr clear_color_value{ { 0.0f, 0.0f, 0.0f, 1.0f } };
-      command_buffer.beginRenderPass(
-         {
-            .renderPass{ render_pass_ },
-            .framebuffer{ swap_chain_framebuffers_[image_index] },
-            .renderArea{
-               .extent{ swap_chain_extent_ }
-            },
-            .clearValueCount{ 1 },
-            .pClearValues{ &clear_color_value }
-         }, vk::SubpassContents::eInline);
+      command_buffer.beginRenderPass({
+         .renderPass{ render_pass_ },
+         .framebuffer{ swap_chain_framebuffers_[image_index] },
+         .renderArea{
+            .extent{ swap_chain_extent_ }
+         },
+         .clearValueCount{ 1 },
+         .pClearValues{ &clear_color_value }
+      }, vk::SubpassContents::eInline);
 
       command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline_);
 
@@ -587,25 +570,23 @@ namespace eru
       record_command_buffer(command_buffer_, image_index);
 
       std::array<vk::PipelineStageFlags, 1> constexpr wait_stages{ vk::PipelineStageFlagBits::eColorAttachmentOutput };
-      graphics_queue_.submit(
-         vk::SubmitInfo{
-            .waitSemaphoreCount{ 1 },
-            .pWaitSemaphores{ &image_available_semaphore_ },
-            .pWaitDstStageMask{ wait_stages.data() },
-            .commandBufferCount{ 1 },
-            .pCommandBuffers{ &command_buffer_ },
-            .signalSemaphoreCount{ 1 },
-            .pSignalSemaphores{ &render_finished_semaphore_ },
-         }, command_buffer_executed_fence_);
+      graphics_queue_.submit(vk::SubmitInfo{
+         .waitSemaphoreCount{ 1 },
+         .pWaitSemaphores{ &image_available_semaphore_ },
+         .pWaitDstStageMask{ wait_stages.data() },
+         .commandBufferCount{ 1 },
+         .pCommandBuffers{ &command_buffer_ },
+         .signalSemaphoreCount{ 1 },
+         .pSignalSemaphores{ &render_finished_semaphore_ },
+      }, command_buffer_executed_fence_);
 
-      if (presentation_queue_.presentKHR(
-             {
-                .waitSemaphoreCount{ 1 },
-                .pWaitSemaphores{ &render_finished_semaphore_ },
-                .swapchainCount{ 1 },
-                .pSwapchains{ &swap_chain_ },
-                .pImageIndices{ &image_index }
-             }) not_eq vk::Result::eSuccess)
+      if (presentation_queue_.presentKHR({
+             .waitSemaphoreCount{ 1 },
+             .pWaitSemaphores{ &render_finished_semaphore_ },
+             .swapchainCount{ 1 },
+             .pSwapchains{ &swap_chain_ },
+             .pImageIndices{ &image_index }
+          }) not_eq vk::Result::eSuccess)
          throw std::runtime_error("failed to present!");
    }
 }
