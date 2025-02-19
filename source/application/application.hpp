@@ -1,6 +1,7 @@
 #ifndef APPLICATION_HPP
 #define APPLICATION_HPP
 
+#include "constants.hpp"
 #include "erupch.hpp"
 #include "utility/unique_pointer.hpp"
 
@@ -22,6 +23,7 @@ namespace eru
 
       private:
          [[nodiscard]] static vk::Instance create_instance();
+         [[nodiscard]] vk::DebugUtilsMessengerEXT create_debug_callback_messenger() const;
 
          [[nodiscard]] vk::SurfaceKHR create_surface() const;
 
@@ -53,7 +55,11 @@ namespace eru
             SDL_DestroyWindow
          };
 
+         static bool constexpr USE_VALIDATION_LAYERS{ constants::DEBUG };
          vk::Instance const instance_{ create_instance() };
+         vk::DispatchLoaderDynamic dispatch_loader_dynamic_{ instance_, vkGetInstanceProcAddr };
+
+         vk::DebugUtilsMessengerEXT debug_messenger_{ USE_VALIDATION_LAYERS ? create_debug_callback_messenger() : nullptr };
 
          vk::SurfaceKHR const surface_{ create_surface() };
 

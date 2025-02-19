@@ -1,5 +1,4 @@
 #include "application.hpp"
-#include "constants.hpp"
 #include "shader_compiler/shader_compiler.hpp"
 
 namespace eru
@@ -58,7 +57,7 @@ namespace eru
       {
          []
          {
-            if constexpr (constants::DEBUG)
+            if constexpr (USE_VALIDATION_LAYERS)
                return std::array{ "VK_LAYER_KHRONOS_validation" };
             else
                return std::array<char const*, 0>{};
@@ -69,7 +68,7 @@ namespace eru
       char const* const* const sdl_extension_names{ SDL_Vulkan_GetInstanceExtensions(&sdl_extension_count) };
       std::vector<char const*> extension_names{ sdl_extension_names, sdl_extension_names + sdl_extension_count };
 
-      if constexpr (constants::DEBUG)
+      if constexpr (USE_VALIDATION_LAYERS)
          extension_names.push_back(vk::EXTDebugUtilsExtensionName);
 
       try
@@ -94,6 +93,40 @@ namespace eru
                .ppEnabledExtensionNames{ extension_names.data() }
             });
       }
+   }
+
+   vk::DebugUtilsMessengerEXT application::create_debug_callback_messenger() const
+   {
+      // QUESTION: it is required to dynamically load the function
+      // that create the debug utils messenger since it's an
+      // extension (reason why I'm passing dispatch_loader_dynamic_ here);
+      // how come it's not needed in other extension functions?
+      return instance_.createDebugUtilsMessengerEXT(
+         {
+            .messageSeverity
+            {
+               vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose |
+               vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning |
+               vk::DebugUtilsMessageSeverityFlagBitsEXT::eError
+            },
+            .messageType
+            {
+               vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral |
+               vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation |
+               vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance
+            },
+            .pfnUserCallback
+            {
+               [](VkDebugUtilsMessageSeverityFlagBitsEXT const,
+               VkDebugUtilsMessageTypeFlagsEXT const,
+               VkDebugUtilsMessengerCallbackDataEXT const* const callback_data,
+               void* const) -> vk::Bool32
+               {
+                  std::cout << std::format("[VALIDATION LAYER MESSAGE]\n{}\n\n", callback_data->pMessage);
+                  return false;
+               }
+            }
+         }, nullptr, dispatch_loader_dynamic_);
    }
 
    vk::SurfaceKHR application::create_surface() const
