@@ -24,6 +24,9 @@ namespace eru
 
       instance_.destroySurfaceKHR(surface_);
 
+      if constexpr (USE_VALIDATION_LAYERS)
+         instance_.destroyDebugUtilsMessengerEXT(debug_messenger_, nullptr, dispatch_loader_dynamic_);
+
       instance_.destroy();
    }
 
