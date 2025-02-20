@@ -192,7 +192,11 @@ namespace eru
       auto const& [new_end, old_end]{ std::ranges::unique(queue_infos) };
       queue_infos.erase(new_end, old_end);
 
-      std::array constexpr extension_names{ vk::KHRSwapchainExtensionName };
+      std::array constexpr extension_names{ vk::KHRSwapchainExtensionName, vk::KHRShaderNonSemanticInfoExtensionName };
+
+      vk::PhysicalDeviceFeatures constexpr device_features{
+         .fillModeNonSolid{ true }
+      };
 
       // TODO: for backwards compatibility, enable the same
       // validation layers on each logical device as
@@ -202,7 +206,8 @@ namespace eru
          .queueCreateInfoCount{ static_cast<std::uint32_t>(queue_infos.size()) },
          .pQueueCreateInfos{ queue_infos.data() },
          .enabledExtensionCount{ static_cast<std::uint32_t>(extension_names.size()) },
-         .ppEnabledExtensionNames{ extension_names.data() }
+         .ppEnabledExtensionNames{ extension_names.data() },
+         .pEnabledFeatures{ &device_features }
       });
    }
 
@@ -441,8 +446,12 @@ namespace eru
 
       vk::PipelineVertexInputStateCreateInfo constexpr vertex_input_state_create_info{};
 
+      // QUESTION: to reconfirm; the type of primitives that will be generated
+      // is specified here and if it's set to one of the line options, it will
+      // not matter if the polygon mode in rasterization state is set to fill
+      // since the assembled primitvies are lines.
       vk::PipelineInputAssemblyStateCreateInfo constexpr input_assembly_state_create_info{
-         .topology{ vk::PrimitiveTopology::eTriangleList },
+         .topology{ vk::PrimitiveTopology::eLineStrip },
          .primitiveRestartEnable{ false }
       };
 
@@ -454,7 +463,7 @@ namespace eru
       vk::PipelineRasterizationStateCreateInfo constexpr rasterization_state_create_info{
          .depthClampEnable{ false },
          .rasterizerDiscardEnable{ false },
-         .polygonMode{ vk::PolygonMode::eFill },
+         .polygonMode{ vk::PolygonMode::eLine },
          .cullMode{ vk::CullModeFlagBits::eBack },
          .frontFace{ vk::FrontFace::eClockwise },
          .depthBiasEnable{ false },
@@ -564,7 +573,7 @@ namespace eru
       };
       command_buffer.setScissor(0, 1, &scissor);
 
-      command_buffer.draw(3, 1, 0, 0);
+      command_buffer.draw(13, 1, 0, 0);
 
       command_buffer.endRenderPass();
 
