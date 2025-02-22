@@ -195,7 +195,8 @@ namespace eru
       std::array constexpr extension_names{ vk::KHRSwapchainExtensionName, vk::KHRShaderNonSemanticInfoExtensionName };
 
       vk::PhysicalDeviceFeatures constexpr device_features{
-         .fillModeNonSolid{ true }
+         .fillModeNonSolid{ true },
+         .wideLines{ true }
       };
 
       // TODO: for backwards compatibility, enable the same
@@ -220,7 +221,7 @@ namespace eru
 
       for (vk::SurfaceFormatKHR const available_format : available_formats)
          if (available_format.format == vk::Format::eR8G8B8A8Srgb and
-             available_format.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear)
+            available_format.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear)
             return available_format;
 
       return available_formats.front();
@@ -341,6 +342,11 @@ namespace eru
 
    vk::ShaderModule application::create_shader_module(std::vector<std::uint32_t> const& byte_code) const
    {
+      // QUESTION: the tutorial states: "...it's possible to
+      // combine multiple fragment shaders into a single shader
+      // module and use different entry points to differentiate
+      // between their behaviors."; how do you put multiple
+      // shaders into a single shader module?
       return device_.createShaderModule({
          .codeSize{ sizeof(std::uint32_t) * byte_code.size() },
          .pCode{ byte_code.data() }
@@ -416,7 +422,11 @@ namespace eru
 
    vk::Pipeline application::create_pipeline() const
    {
-      std::array constexpr dynamic_states{ vk::DynamicState::eViewport, vk::DynamicState::eScissor };
+      std::array constexpr dynamic_states{
+         vk::DynamicState::eViewport,
+         vk::DynamicState::eScissor,
+         vk::DynamicState::eLineWidth
+      };
 
       // ReSharper disable once CppVariableCanBeMadeConstexpr
       // this cannot be constexpr
@@ -431,6 +441,7 @@ namespace eru
       vk::ShaderModule const fragment_shader_module{
          create_shader_module(compile_shader("resources/shaders/shader.frag"))
       };
+
       std::array const shader_stage_create_infos{
          vk::PipelineShaderStageCreateInfo{
             .stage{ vk::ShaderStageFlagBits::eVertex },
@@ -446,13 +457,14 @@ namespace eru
 
       vk::PipelineVertexInputStateCreateInfo constexpr vertex_input_state_create_info{};
 
-      // QUESTION: to reconfirm; the type of primitives that will be generated
+      // QUESTION: the type of primitives that will be generated
       // is specified here and if it's set to one of the line options, it will
       // not matter if the polygon mode in rasterization state is set to fill
-      // since the assembled primitvies are lines.
+      // since the assembled primitvies are lines, however setting the polgyon
+      // mode to point with the topology set to line does not render points but
+      // lines, why?
       vk::PipelineInputAssemblyStateCreateInfo constexpr input_assembly_state_create_info{
-         .topology{ vk::PrimitiveTopology::eLineStrip },
-         .primitiveRestartEnable{ false }
+         .topology{ vk::PrimitiveTopology::eLineStrip }
       };
 
       vk::PipelineViewportStateCreateInfo constexpr viewport_state_create_info{
@@ -461,18 +473,13 @@ namespace eru
       };
 
       vk::PipelineRasterizationStateCreateInfo constexpr rasterization_state_create_info{
-         .depthClampEnable{ false },
-         .rasterizerDiscardEnable{ false },
-         .polygonMode{ vk::PolygonMode::eLine },
+         .polygonMode{ vk::PolygonMode::ePoint },
          .cullMode{ vk::CullModeFlagBits::eBack },
-         .frontFace{ vk::FrontFace::eClockwise },
-         .depthBiasEnable{ false },
-         .lineWidth{ 1.0f }
+         .frontFace{ vk::FrontFace::eClockwise }
       };
 
       vk::PipelineMultisampleStateCreateInfo constexpr multisample_state_create_info{
-         .rasterizationSamples{ vk::SampleCountFlagBits::e1 },
-         .sampleShadingEnable{ false }
+         .rasterizationSamples{ vk::SampleCountFlagBits::e1 }
       };
 
       vk::PipelineDepthStencilStateCreateInfo constexpr depth_stencil_state_create_info{};
@@ -496,13 +503,11 @@ namespace eru
       // ReSharper disable once CppVariableCanBeMadeConstexpr
       // this cannot be constexpr
       vk::PipelineColorBlendStateCreateInfo const color_blend_state_create_info{
-         .logicOpEnable{ false },
-         .logicOp{ vk::LogicOp::eCopy },
          .attachmentCount{ 1 },
          .pAttachments{ &color_blend_attachment_state }
       };
 
-      auto&& [result, pipeline]{
+      auto&& [_, pipeline]{
          device_.createGraphicsPipeline(nullptr, {
             .stageCount{ static_cast<std::uint32_t>(shader_stage_create_infos.size()) },
             .pStages{ shader_stage_create_infos.data() },
@@ -538,7 +543,7 @@ namespace eru
       return device_.allocateCommandBuffers({
          .commandPool{ command_pool_ },
          .level{ vk::CommandBufferLevel::ePrimary },
-         .commandBufferCount{ 1 }
+         .commandBufferCount{ 1 },
       }).front();
    }
 
@@ -573,6 +578,14 @@ namespace eru
       };
       command_buffer.setScissor(0, 1, &scissor);
 
+      static float line_width{};
+      static auto interval{ 0.01f };
+      if (line_width += interval;
+         interval > 0.0f ? line_width >= 10.0f : line_width <= 1.0f)
+         interval = -interval;
+
+      command_buffer.setLineWidth(line_width);
+
       command_buffer.draw(13, 1, 0, 0);
 
       command_buffer.endRenderPass();
@@ -583,7 +596,7 @@ namespace eru
    void application::draw_frame() const
    {
       if (device_.waitForFences(1, &command_buffer_executed_fence_, true, std::numeric_limits<std::uint64_t>::max()) not_eq
-          vk::Result::eSuccess)
+         vk::Result::eSuccess)
          throw std::runtime_error("failed to wait for fences!");
 
       if (device_.resetFences(1, &command_buffer_executed_fence_) not_eq vk::Result::eSuccess)
@@ -608,12 +621,12 @@ namespace eru
       }, command_buffer_executed_fence_);
 
       if (presentation_queue_.presentKHR({
-             .waitSemaphoreCount{ 1 },
-             .pWaitSemaphores{ &render_finished_semaphore_ },
-             .swapchainCount{ 1 },
-             .pSwapchains{ &swap_chain_ },
-             .pImageIndices{ &image_index }
-          }) not_eq vk::Result::eSuccess)
+         .waitSemaphoreCount{ 1 },
+         .pWaitSemaphores{ &render_finished_semaphore_ },
+         .swapchainCount{ 1 },
+         .pSwapchains{ &swap_chain_ },
+         .pImageIndices{ &image_index }
+      }) not_eq vk::Result::eSuccess)
          throw std::runtime_error("failed to present!");
    }
 }
