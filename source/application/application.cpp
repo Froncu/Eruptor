@@ -102,6 +102,8 @@ namespace eru
       // that create the debug utils messenger since it's an
       // extension (reason why I'm passing dispatch_loader_dynamic_ here);
       // how come it's not needed in other extension functions?
+      // ANWSER: that's the way it is, there are libraries that handle this
+      // for you (like VOLK)
       return instance_.createDebugUtilsMessengerEXT({
          .messageSeverity{
             vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose |
@@ -188,6 +190,7 @@ namespace eru
       // except that two members can share the same queueFamilyIndex if one describes protected-capable queues and one describes
       // queues that are not protected-capable (graphics_queue_family_index_ and presentation_queue_family_index_ are the same
       // on my machines)
+      // ANWSER: it probably has to do with memory access
       std::ranges::sort(queue_infos);
       auto const& [new_end, old_end]{ std::ranges::unique(queue_infos) };
       queue_infos.erase(new_end, old_end);
@@ -292,11 +295,12 @@ namespace eru
       return device_.createSwapchainKHR({
          .surface{ surface_ },
          // QUESTION: why is it recommended to have at least one more image than the minimum?
+         // ANWSER: wrong in tutorial lol
          .minImageCount{
             // NOTE: a maxImageCount of 0 means that there is no maximum
             not surface_capabilities.maxImageCount
-               ? surface_capabilities.minImageCount + 1
-               : std::min(surface_capabilities.minImageCount + 1, surface_capabilities.maxImageCount)
+               ? surface_capabilities.minImageCount
+               : std::min(surface_capabilities.minImageCount, surface_capabilities.maxImageCount)
          },
          .imageFormat{ swap_chain_format_.format },
          .imageColorSpace{ swap_chain_format_.colorSpace },
@@ -347,6 +351,9 @@ namespace eru
       // module and use different entry points to differentiate
       // between their behaviors."; how do you put multiple
       // shaders into a single shader module?
+      // ANWSER: by combine they mean combine the bytecode of
+      // both shaders into one and then create a shader module
+      // from with it
       return device_.createShaderModule({
          .codeSize{ sizeof(std::uint32_t) * byte_code.size() },
          .pCode{ byte_code.data() }
