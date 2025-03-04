@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.15)
 project(Eruptor)
 
-# TODO: does this check if we are on Windows or macOS?
 add_executable(${PROJECT_NAME}
    source/application/application.cpp
    source/main.cpp
@@ -10,14 +9,14 @@ add_executable(${PROJECT_NAME}
 set_target_properties(${PROJECT_NAME} PROPERTIES
    CXX_STANDARD 20
    CXX_STANDARD_REQUIRED TRUE)
+
 target_compile_options(${PROJECT_NAME}
    PRIVATE $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall -Wextra -Wpedantic -Werror>
    PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>)
-# TODO: figure out why the following is needed for MinGW
-target_link_options(${PROJECT_NAME}
-   PRIVATE $<$<BOOL:MINGW>:-static-libgcc -static-libstdc++>)
+
 target_precompile_headers(${PROJECT_NAME}
    PRIVATE source/erupch.hpp)
+
 target_include_directories(${PROJECT_NAME}
    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/source)
 
