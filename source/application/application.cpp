@@ -195,11 +195,10 @@ namespace eru
       auto const& [new_end, old_end]{ std::ranges::unique(queue_infos) };
       queue_infos.erase(new_end, old_end);
 
-      std::array constexpr extension_names{ vk::KHRSwapchainExtensionName, vk::KHRShaderNonSemanticInfoExtensionName };
+      std::array constexpr extension_names{ vk::KHRSwapchainExtensionName };
 
       vk::PhysicalDeviceFeatures constexpr device_features{
-         .fillModeNonSolid{ true },
-         .wideLines{ true }
+         .fillModeNonSolid{ true }
       };
 
       // TODO: for backwards compatibility, enable the same
@@ -431,8 +430,7 @@ namespace eru
    {
       std::array constexpr dynamic_states{
          vk::DynamicState::eViewport,
-         vk::DynamicState::eScissor,
-         vk::DynamicState::eLineWidth
+         vk::DynamicState::eScissor
       };
 
       // ReSharper disable once CppVariableCanBeMadeConstexpr
@@ -482,7 +480,8 @@ namespace eru
       vk::PipelineRasterizationStateCreateInfo constexpr rasterization_state_create_info{
          .polygonMode{ vk::PolygonMode::ePoint },
          .cullMode{ vk::CullModeFlagBits::eBack },
-         .frontFace{ vk::FrontFace::eClockwise }
+         .frontFace{ vk::FrontFace::eClockwise },
+         .lineWidth{ 1.0f }
       };
 
       vk::PipelineMultisampleStateCreateInfo constexpr multisample_state_create_info{
@@ -584,14 +583,6 @@ namespace eru
          .extent{ swap_chain_extent_ }
       };
       command_buffer.setScissor(0, 1, &scissor);
-
-      static float line_width{};
-      static auto interval{ 0.01f };
-      if (line_width += interval;
-         interval > 0.0f ? line_width >= 10.0f : line_width <= 1.0f)
-         interval = -interval;
-
-      command_buffer.setLineWidth(line_width);
 
       command_buffer.draw(13, 1, 0, 0);
 
