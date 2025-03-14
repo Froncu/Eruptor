@@ -5,9 +5,15 @@ namespace eru
 {
    application::~application()
    {
-      device_.destroyFence(command_buffer_executed_fence_);
-      device_.destroySemaphore(render_finished_semaphore_);
-      device_.destroySemaphore(image_available_semaphore_);
+      for (vk::Fence const fence : command_buffer_executed_fences_)
+         device_.destroyFence(fence);
+
+      for (vk::Semaphore const semaphore : render_finished_semaphores_)
+         device_.destroySemaphore(semaphore);
+
+      for (vk::Semaphore const semaphore : image_available_semaphores_)
+         device_.destroySemaphore(semaphore);
+
       device_.destroyCommandPool(command_pool_);
 
       device_.destroyPipeline(pipeline_);
@@ -30,11 +36,11 @@ namespace eru
       instance_.destroy();
    }
 
-   void application::run() const
+   void application::run()
    {
       auto loop{ true };
 
-     SDL_InitSubSystem(SDL_INIT_EVENTS);
+      SDL_InitSubSystem(SDL_INIT_EVENTS);
       while (loop)
       {
          SDL_Event event;
@@ -546,13 +552,37 @@ namespace eru
       });
    }
 
-   vk::CommandBuffer application::create_command_buffer() const
+   std::vector<vk::CommandBuffer> application::create_command_buffers() const
    {
       return device_.allocateCommandBuffers({
          .commandPool{ command_pool_ },
          .level{ vk::CommandBufferLevel::ePrimary },
-         .commandBufferCount{ 1 },
-      }).front();
+         .commandBufferCount{ FRAMES_IN_FLIGHT },
+      });
+   }
+
+   std::vector<vk::Semaphore> application::create_semaphores() const
+   {
+      std::vector<vk::Semaphore> semaphores(FRAMES_IN_FLIGHT);
+      std::ranges::generate(semaphores, [this]
+      {
+         return device_.createSemaphore({});
+      });
+
+      return semaphores;
+   }
+
+   std::vector<vk::Fence> application::create_fences() const
+   {
+      std::vector<vk::Fence> fences(FRAMES_IN_FLIGHT);
+      std::ranges::generate(fences, [this]
+      {
+         return device_.createFence({
+            .flags{ vk::FenceCreateFlagBits::eSignaled }
+         });
+      });
+
+      return fences;
    }
 
    void application::record_command_buffer(vk::CommandBuffer const command_buffer, std::uint32_t const image_index) const
@@ -593,40 +623,42 @@ namespace eru
       command_buffer.end();
    }
 
-   void application::draw_frame() const
+   void application::draw_frame()
    {
-      if (device_.waitForFences(1, &command_buffer_executed_fence_, true, std::numeric_limits<std::uint64_t>::max()) not_eq
+      if (device_.waitForFences(1, &command_buffer_executed_fences_[current_frame_], true, std::numeric_limits<std::uint64_t>::max()) not_eq
          vk::Result::eSuccess)
          throw std::runtime_error("failed to wait for fences!");
 
-      if (device_.resetFences(1, &command_buffer_executed_fence_) not_eq vk::Result::eSuccess)
+      if (device_.resetFences(1, &command_buffer_executed_fences_[current_frame_]) not_eq vk::Result::eSuccess)
          throw std::runtime_error("failed to reset fence!");
 
       auto&& [result, image_index]{
-         device_.acquireNextImageKHR(swap_chain_, std::numeric_limits<std::uint64_t>::max(), image_available_semaphore_)
+         device_.acquireNextImageKHR(swap_chain_, std::numeric_limits<std::uint64_t>::max(), image_available_semaphores_[current_frame_])
       };
 
-      command_buffer_.reset();
-      record_command_buffer(command_buffer_, image_index);
+      command_buffers_[current_frame_].reset();
+      record_command_buffer(command_buffers_[current_frame_], image_index);
 
       std::array<vk::PipelineStageFlags, 1> constexpr wait_stages{ vk::PipelineStageFlagBits::eColorAttachmentOutput };
       graphics_queue_.submit(vk::SubmitInfo{
          .waitSemaphoreCount{ 1 },
-         .pWaitSemaphores{ &image_available_semaphore_ },
+         .pWaitSemaphores{ &image_available_semaphores_[current_frame_] },
          .pWaitDstStageMask{ wait_stages.data() },
          .commandBufferCount{ 1 },
-         .pCommandBuffers{ &command_buffer_ },
+         .pCommandBuffers{ &command_buffers_[current_frame_] },
          .signalSemaphoreCount{ 1 },
-         .pSignalSemaphores{ &render_finished_semaphore_ },
-      }, command_buffer_executed_fence_);
+         .pSignalSemaphores{ &render_finished_semaphores_[current_frame_] },
+      }, command_buffer_executed_fences_[current_frame_]);
 
       if (presentation_queue_.presentKHR({
          .waitSemaphoreCount{ 1 },
-         .pWaitSemaphores{ &render_finished_semaphore_ },
+         .pWaitSemaphores{ &render_finished_semaphores_[current_frame_] },
          .swapchainCount{ 1 },
          .pSwapchains{ &swap_chain_ },
          .pImageIndices{ &image_index }
       }) not_eq vk::Result::eSuccess)
          throw std::runtime_error("failed to present!");
+
+      current_frame_ = (current_frame_ + 1) % FRAMES_IN_FLIGHT;
    }
 }

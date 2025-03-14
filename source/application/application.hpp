@@ -19,7 +19,7 @@ namespace eru
          application& operator=(application const&) = delete;
          application& operator=(application&&) = delete;
 
-         void run() const;
+         void run();
 
       private:
          [[nodiscard]] static vk::Instance create_instance();
@@ -44,10 +44,12 @@ namespace eru
          [[nodiscard]] vk::Pipeline create_pipeline() const;
 
          [[nodiscard]] vk::CommandPool create_command_pool() const;
-         [[nodiscard]] vk::CommandBuffer create_command_buffer() const;
+         [[nodiscard]] std::vector<vk::CommandBuffer> create_command_buffers() const;
+         [[nodiscard]] std::vector<vk::Semaphore> create_semaphores() const;
+         [[nodiscard]] std::vector<vk::Fence> create_fences() const;
 
          void record_command_buffer(vk::CommandBuffer command_buffer, std::uint32_t image_index) const;
-         void draw_frame() const;
+         void draw_frame();
 
          unique_pointer<SDL_Window> const window_{
             []
@@ -91,12 +93,12 @@ namespace eru
          vk::Pipeline const pipeline_{ create_pipeline() };
 
          vk::CommandPool const command_pool_{ create_command_pool() };
-         vk::CommandBuffer const command_buffer_{ create_command_buffer() };
-         vk::Semaphore const image_available_semaphore_{ device_.createSemaphore({}) };
-         vk::Semaphore const render_finished_semaphore_{ device_.createSemaphore({}) };
-         vk::Fence const command_buffer_executed_fence_{
-            device_.createFence({ .flags{ vk::FenceCreateFlagBits::eSignaled } })
-         };
+         static std::uint32_t constexpr FRAMES_IN_FLIGHT{ 2 };
+         std::size_t current_frame_{};
+         std::vector<vk::CommandBuffer> const command_buffers_{ create_command_buffers() };
+         std::vector<vk::Semaphore> const image_available_semaphores_{ create_semaphores() };
+         std::vector<vk::Semaphore> const render_finished_semaphores_{ create_semaphores() };
+         std::vector<vk::Fence> const command_buffer_executed_fences_{ create_fences() };
    };
 }
 
