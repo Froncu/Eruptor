@@ -50,8 +50,18 @@ namespace eru
          void draw_frame() const;
 
          unique_pointer<SDL_Window> const window_{
-            SDL_CreateWindow("Eruptor", 1280, 720, SDL_WINDOW_VULKAN),
-            SDL_DestroyWindow
+            []
+            {
+               if (not SDL_Init(SDL_INIT_VIDEO))
+                  throw std::runtime_error(std::format("failed to initialize the video subsystem! -> {}", SDL_GetError()));
+
+               return SDL_CreateWindow("Eruptor", 1280, 720, SDL_WINDOW_VULKAN);
+            }(),
+            [](SDL_Window* const window)
+            {
+               SDL_QuitSubSystem(SDL_INIT_VIDEO);
+               SDL_DestroyWindow(window);
+            }
          };
 
          static bool constexpr USE_VALIDATION_LAYERS{ constants::DEBUG };

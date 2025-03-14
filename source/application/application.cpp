@@ -34,6 +34,7 @@ namespace eru
    {
       auto loop{ true };
 
+     SDL_InitSubSystem(SDL_INIT_EVENTS);
       while (loop)
       {
          SDL_Event event;
@@ -50,6 +51,7 @@ namespace eru
 
          draw_frame();
       }
+      SDL_QuitSubSystem(SDL_INIT_EVENTS);
 
       device_.waitIdle();
    }

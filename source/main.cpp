@@ -4,8 +4,6 @@
 
 int main(int const, char** const)
 {
-   SDL_Init(SDL_INIT_EVENTS);
-
    try
    {
       eru::application{}.run();
@@ -14,8 +12,6 @@ int main(int const, char** const)
    {
       std::cout << std::format("exception caught: {}\n", exception.what());
    }
-
-   SDL_Quit();
 
    return 0;
 }
