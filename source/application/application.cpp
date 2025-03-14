@@ -102,7 +102,7 @@ namespace eru
       // that create the debug utils messenger since it's an
       // extension (reason why I'm passing dispatch_loader_dynamic_ here);
       // how come it's not needed in other extension functions?
-      // ANWSER: that's the way it is, there are libraries that handle this
+      // ANSWER: that's the way it is, there are libraries that handle this
       // for you (like VOLK)
       return instance_.createDebugUtilsMessengerEXT({
          .messageSeverity{
@@ -190,7 +190,7 @@ namespace eru
       // except that two members can share the same queueFamilyIndex if one describes protected-capable queues and one describes
       // queues that are not protected-capable (graphics_queue_family_index_ and presentation_queue_family_index_ are the same
       // on my machines)
-      // ANWSER: it probably has to do with memory access
+      // ANSWER: it probably has to do with memory access
       std::ranges::sort(queue_infos);
       auto const& [new_end, old_end]{ std::ranges::unique(queue_infos) };
       queue_infos.erase(new_end, old_end);
@@ -236,7 +236,7 @@ namespace eru
          return surface_capabilities.currentExtent;
       else
       {
-         // QUESTION: the freedom of chosing the images'
+         // QUESTION: the freedom of choosing the images'
          // extent between minImageExtent and maxImageExtent
          // is given by the window manager, why?
 
@@ -294,7 +294,7 @@ namespace eru
       return device_.createSwapchainKHR({
          .surface{ surface_ },
          // QUESTION: why is it recommended to have at least one more image than the minimum?
-         // ANWSER: wrong in tutorial lol
+         // ANSWER: wrong in tutorial lol
          .minImageCount{
             // NOTE: a maxImageCount of 0 means that there is no maximum
             not surface_capabilities.maxImageCount
@@ -350,7 +350,7 @@ namespace eru
       // module and use different entry points to differentiate
       // between their behaviors."; how do you put multiple
       // shaders into a single shader module?
-      // ANWSER: by combine they mean combine the bytecode of
+      // ANSWER: by combine they mean combine the bytecode of
       // both shaders into one and then create a shader module
       // from with it
       return device_.createShaderModule({
@@ -465,7 +465,7 @@ namespace eru
       // QUESTION: the type of primitives that will be generated
       // is specified here and if it's set to one of the line options, it will
       // not matter if the polygon mode in rasterization state is set to fill
-      // since the assembled primitvies are lines, however setting the polgyon
+      // since the assembled primitives are lines, however setting the polygon
       // mode to point with the topology set to line does not render points but
       // lines, why?
       vk::PipelineInputAssemblyStateCreateInfo constexpr input_assembly_state_create_info{
