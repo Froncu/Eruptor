@@ -51,6 +51,11 @@ namespace eru
                   loop = false;
                   break;
 
+               case SDL_EVENT_WINDOW_MINIMIZED:
+               case SDL_EVENT_WINDOW_RESIZED:
+                  recreate_swapchain();
+                  break;
+
                default:
                   break;
             }
@@ -629,12 +634,12 @@ namespace eru
          vk::Result::eSuccess)
          throw std::runtime_error("failed to wait for fences!");
 
-      if (device_.resetFences(1, &command_buffer_executed_fences_[current_frame_]) not_eq vk::Result::eSuccess)
-         throw std::runtime_error("failed to reset fence!");
-
       auto&& [result, image_index]{
          device_.acquireNextImageKHR(swap_chain_, std::numeric_limits<std::uint64_t>::max(), image_available_semaphores_[current_frame_])
       };
+
+      if (device_.resetFences(1, &command_buffer_executed_fences_[current_frame_]) not_eq vk::Result::eSuccess)
+         throw std::runtime_error("failed to reset fence!");
 
       command_buffers_[current_frame_].reset();
       record_command_buffer(command_buffers_[current_frame_], image_index);
@@ -660,5 +665,33 @@ namespace eru
          throw std::runtime_error("failed to present!");
 
       current_frame_ = (current_frame_ + 1) % FRAMES_IN_FLIGHT;
+   }
+
+   void application::recreate_swapchain()
+   {
+      device_.waitIdle();
+
+      for (vk::Framebuffer const framebuffer : swap_chain_framebuffers_)
+         device_.destroyFramebuffer(framebuffer);
+
+      for (vk::ImageView const image_view : swap_chain_image_views_)
+         device_.destroyImageView(image_view);
+
+      device_.destroySwapchainKHR(swap_chain_);
+
+      swap_chain_format_ = pick_swap_chain_format();
+
+      SDL_Event event;
+      do
+      {
+         swap_chain_extent_ = pick_swap_chain_extent();
+         SDL_WaitEvent(&event);
+      }
+      while (not swap_chain_extent_.width or not swap_chain_extent_.height);
+
+      swap_chain_ = create_swap_chain();
+      swap_chain_images_ = device_.getSwapchainImagesKHR(swap_chain_);
+      swap_chain_image_views_ = create_image_views();
+      swap_chain_framebuffers_ = create_frame_buffers();
    }
 }

@@ -57,7 +57,7 @@ namespace eru
                if (not SDL_Init(SDL_INIT_VIDEO))
                   throw std::runtime_error(std::format("failed to initialize the video subsystem! -> {}", SDL_GetError()));
 
-               return SDL_CreateWindow("Eruptor", 1280, 720, SDL_WINDOW_VULKAN);
+               return SDL_CreateWindow("Eruptor", 1280, 720, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
             }(),
             [](SDL_Window* const window)
             {
@@ -81,11 +81,11 @@ namespace eru
          vk::Queue const graphics_queue_{ device_.getQueue(graphics_queue_family_index_, 0) };
          vk::Queue const presentation_queue_{ device_.getQueue(presentation_queue_family_index_, 0) };
 
-         vk::SurfaceFormatKHR const swap_chain_format_{ pick_swap_chain_format() };
-         vk::Extent2D const swap_chain_extent_{ pick_swap_chain_extent() };
-         vk::SwapchainKHR const swap_chain_{ create_swap_chain() };
-         std::vector<vk::Image> const swap_chain_images_{ device_.getSwapchainImagesKHR(swap_chain_) };
-         std::vector<vk::ImageView> const swap_chain_image_views_{ create_image_views() };
+         vk::SurfaceFormatKHR swap_chain_format_{ pick_swap_chain_format() };
+         vk::Extent2D swap_chain_extent_{ pick_swap_chain_extent() };
+         vk::SwapchainKHR swap_chain_{ create_swap_chain() };
+         std::vector<vk::Image> swap_chain_images_{ device_.getSwapchainImagesKHR(swap_chain_) };
+         std::vector<vk::ImageView> swap_chain_image_views_{ create_image_views() };
 
          vk::RenderPass const render_pass_{ create_render_pass() };
          std::vector<vk::Framebuffer> swap_chain_framebuffers_{ create_frame_buffers() };
@@ -99,6 +99,8 @@ namespace eru
          std::vector<vk::Semaphore> const image_available_semaphores_{ create_semaphores() };
          std::vector<vk::Semaphore> const render_finished_semaphores_{ create_semaphores() };
          std::vector<vk::Fence> const command_buffer_executed_fences_{ create_fences() };
+
+         void recreate_swapchain();
    };
 }
 
