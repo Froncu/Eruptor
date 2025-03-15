@@ -630,12 +630,13 @@ namespace eru
 
    void application::draw_frame()
    {
-      if (device_.waitForFences(1, &command_buffer_executed_fences_[current_frame_], true, std::numeric_limits<std::uint64_t>::max()) not_eq
-         vk::Result::eSuccess)
+      if (device_.waitForFences(1, &command_buffer_executed_fences_[current_frame_], true,
+         std::numeric_limits<std::uint64_t>::max()) not_eq vk::Result::eSuccess)
          throw std::runtime_error("failed to wait for fences!");
 
       auto&& [result, image_index]{
-         device_.acquireNextImageKHR(swap_chain_, std::numeric_limits<std::uint64_t>::max(), image_available_semaphores_[current_frame_])
+         device_.acquireNextImageKHR(swap_chain_, std::numeric_limits<std::uint64_t>::max(),
+            image_available_semaphores_[current_frame_])
       };
 
       if (device_.resetFences(1, &command_buffer_executed_fences_[current_frame_]) not_eq vk::Result::eSuccess)
