@@ -681,14 +681,14 @@ namespace eru
       device_.destroySwapchainKHR(swap_chain_);
 
       swap_chain_format_ = pick_swap_chain_format();
+      swap_chain_extent_ = pick_swap_chain_extent();
 
       SDL_Event event;
-      do
+      while (not swap_chain_extent_.width or not swap_chain_extent_.height)
       {
-         swap_chain_extent_ = pick_swap_chain_extent();
          SDL_WaitEvent(&event);
+         swap_chain_extent_ = pick_swap_chain_extent();
       }
-      while (not swap_chain_extent_.width or not swap_chain_extent_.height);
 
       swap_chain_ = create_swap_chain();
       swap_chain_images_ = device_.getSwapchainImagesKHR(swap_chain_);
