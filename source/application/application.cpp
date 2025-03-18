@@ -398,9 +398,10 @@ namespace eru
          .pColorAttachments{ &color_attachment_reference }
       };
 
+      // QUESTION: setting the srcStageMask to other values has no effect even if they don't make sense, how come?
       vk::SubpassDependency constexpr dependency{
          .srcSubpass{ vk::SubpassExternal },
-         .srcStageMask{ vk::PipelineStageFlagBits::eColorAttachmentOutput },
+         .srcStageMask{ vk::PipelineStageFlagBits::eVertexShader },
          .dstStageMask{ vk::PipelineStageFlagBits::eColorAttachmentOutput },
          .dstAccessMask{ vk::AccessFlagBits::eColorAttachmentWrite }
       };
