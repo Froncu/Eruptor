@@ -15,6 +15,8 @@ namespace eru
          device_.destroySemaphore(semaphore);
 
       device_.destroyCommandPool(command_pool_);
+      device_.freeMemory(vertex_buffer_.second);
+      device_.destroyBuffer(vertex_buffer_.first);
 
       device_.destroyPipeline(pipeline_);
       device_.destroyPipelineLayout(pipeline_layout_);
@@ -398,12 +400,13 @@ namespace eru
          .pColorAttachments{ &color_attachment_reference }
       };
 
-      // QUESTION: setting the srcStageMask to other values has no effect even if they don't make sense, how come?
       vk::SubpassDependency constexpr dependency{
          .srcSubpass{ vk::SubpassExternal },
-         .srcStageMask{ vk::PipelineStageFlagBits::eVertexShader },
+         .dstSubpass{ 0 },
+         .srcStageMask{ vk::PipelineStageFlagBits::eColorAttachmentOutput },
          .dstStageMask{ vk::PipelineStageFlagBits::eColorAttachmentOutput },
-         .dstAccessMask{ vk::AccessFlagBits::eColorAttachmentWrite }
+         .srcAccessMask{ vk::AccessFlagBits::eNone },
+         .dstAccessMask{ vk::AccessFlagBits::eColorAttachmentWrite },
       };
 
       return device_.createRenderPass({
@@ -474,7 +477,12 @@ namespace eru
          }
       };
 
-      vk::PipelineVertexInputStateCreateInfo constexpr vertex_input_state_create_info{};
+      vk::PipelineVertexInputStateCreateInfo constexpr vertex_input_state_create_info{
+         .vertexBindingDescriptionCount{ static_cast<std::uint32_t>(Vertex::BINDING_DESCRIPTIONS.size()) },
+         .pVertexBindingDescriptions{ Vertex::BINDING_DESCRIPTIONS.data() },
+         .vertexAttributeDescriptionCount{ static_cast<std::uint32_t>(Vertex::ATTRIBUTE_DESCRIPTIONS.size()) },
+         .pVertexAttributeDescriptions{ Vertex::ATTRIBUTE_DESCRIPTIONS.data() }
+      };
 
       // QUESTION: the type of primitives that will be generated
       // is specified here and if it's set to one of the line options, it will
@@ -540,7 +548,8 @@ namespace eru
             .pColorBlendState{ &color_blend_state_create_info },
             .pDynamicState{ &dynamic_state_create_info },
             .layout{ pipeline_layout_ },
-            .renderPass{ render_pass_ }
+            .renderPass{ render_pass_ },
+            .subpass{ 0 }
          })
       };
 
@@ -556,6 +565,54 @@ namespace eru
          .flags{ vk::CommandPoolCreateFlagBits::eResetCommandBuffer },
          .queueFamilyIndex{ graphics_queue_family_index_ }
       });
+   }
+
+   std::uint32_t application::find_memory_type_index(std::uint32_t const type_filter,
+      vk::MemoryPropertyFlags const properties) const
+   {
+      vk::PhysicalDeviceMemoryProperties memory_properties;
+      physical_device_.getMemoryProperties(&memory_properties);
+
+      for (std::uint32_t index{}; index < memory_properties.memoryTypeCount; ++index)
+         if (type_filter & 1 << index && (memory_properties.memoryTypes[index].propertyFlags & properties) == properties)
+            return index;
+
+      throw std::runtime_error("failed to find a suitable memory type!");
+   }
+
+   std::pair<vk::Buffer, vk::DeviceMemory> application::create_vertex_buffer() const
+   {
+      vk::BufferCreateInfo const buffer_create_info{
+         .size{ sizeof(decltype(vertices_)::value_type) * vertices_.size() },
+         .usage{ vk::BufferUsageFlagBits::eVertexBuffer },
+         .sharingMode{ vk::SharingMode::eExclusive }
+      };
+
+      vk::Buffer const buffer{ device_.createBuffer(buffer_create_info) };
+
+      vk::MemoryRequirements const memory_requirements{ device_.getBufferMemoryRequirements(buffer) };
+      vk::DeviceMemory const memory
+      {
+         device_.allocateMemory({
+            .allocationSize{ memory_requirements.size },
+            .memoryTypeIndex{
+               find_memory_type_index(memory_requirements.memoryTypeBits,
+                  vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent)
+            }
+         })
+      };
+
+      device_.bindBufferMemory(buffer, memory, 0);
+
+      void* data;
+      if (device_.mapMemory(memory, 0, buffer_create_info.size, {}, &data) not_eq vk::Result::eSuccess)
+         throw std::runtime_error("failed to map memory for the vertex buffer!");
+
+      std::memcpy(data, vertices_.data(), buffer_create_info.size);
+
+      device_.unmapMemory(memory);
+
+      return { buffer, memory };
    }
 
    std::vector<vk::CommandBuffer> application::create_command_buffers() const
@@ -610,6 +667,10 @@ namespace eru
 
       command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline_);
 
+      std::array const vertex_buffers{ vertex_buffer_.first };
+      std::array constexpr offsets{ vk::DeviceSize{ 0 } };
+      command_buffer.bindVertexBuffers(0, 1, vertex_buffers.data(), offsets.data());
+
       vk::Viewport const viewport{
          .width{ static_cast<float>(swap_chain_extent_.width) },
          .height{ static_cast<float>(swap_chain_extent_.height) },
@@ -622,7 +683,7 @@ namespace eru
       };
       command_buffer.setScissor(0, 1, &scissor);
 
-      command_buffer.draw(13, 1, 0, 0);
+      command_buffer.draw(static_cast<std::uint32_t>(vertices_.size()), 1, 0, 0);
 
       command_buffer.endRenderPass();
 

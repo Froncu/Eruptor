@@ -4,6 +4,7 @@ project(Eruptor)
 add_executable(${PROJECT_NAME}
    source/application/application.cpp
    source/main.cpp
+   source/math/vertex.cpp
    source/shader_compiler/shader_compiler.cpp)
 
 set_target_properties(${PROJECT_NAME} PROPERTIES

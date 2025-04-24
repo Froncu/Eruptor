@@ -3,6 +3,7 @@
 
 #include "constants.hpp"
 #include "erupch.hpp"
+#include "math/vertex.hpp"
 #include "utility/unique_pointer.hpp"
 
 namespace eru
@@ -44,6 +45,8 @@ namespace eru
          [[nodiscard]] vk::Pipeline create_pipeline() const;
 
          [[nodiscard]] vk::CommandPool create_command_pool() const;
+         [[nodiscard]] std::uint32_t find_memory_type_index(std::uint32_t type_filter, vk::MemoryPropertyFlags properties) const;
+         [[nodiscard]] std::pair<vk::Buffer, vk::DeviceMemory> create_vertex_buffer() const;
          [[nodiscard]] std::vector<vk::CommandBuffer> create_command_buffers() const;
          [[nodiscard]] std::vector<vk::Semaphore> create_semaphores() const;
          [[nodiscard]] std::vector<vk::Fence> create_fences() const;
@@ -95,6 +98,22 @@ namespace eru
          vk::CommandPool const command_pool_{ create_command_pool() };
          static std::uint32_t constexpr FRAMES_IN_FLIGHT{ 2 };
          std::size_t current_frame_{};
+         std::vector<Vertex> const vertices_{
+            { { -0.25, 0.5 }, { 1.0, 0.1, 0.0 } },
+            { { -0.25, -0.5 }, { 1.0, 0.1, 0.0 } },
+            { { 0.25, -0.5 }, { 1.0, 0.28, 0.0 } },
+            { { 0.25, -0.3 }, { 1.0, 0.46, 0.0 } },
+            { { -0.1, -0.3 }, { 1.0, 0.64, 0.0 } },
+            { { -0.1, -0.1 }, { 1.0, 0.82, 0.0 } },
+            { { 0.25, -0.1 }, { 1.0, 1.0, 0.0 } },
+            { { 0.25, 0.1 }, { 1.0, 1.0, 0.0 } },
+            { { -0.1, 0.1 }, { 1.0, 0.82, 0.0 } },
+            { { -0.1, 0.3 }, { 1.0, 0.64, 0.0 } },
+            { { 0.25, 0.3 }, { 1.0, 0.46, 0.0 } },
+            { { 0.25, 0.5 }, { 1.0, 0.28, 0.0 } },
+            { { -0.25, 0.5 }, { 1.0, 0.1, 0.0 } },
+         };
+         std::pair<vk::Buffer, vk::DeviceMemory> const vertex_buffer_{ create_vertex_buffer() };
          std::vector<vk::CommandBuffer> const command_buffers_{ create_command_buffers() };
          std::vector<vk::Semaphore> const image_available_semaphores_{ create_semaphores() };
          std::vector<vk::Semaphore> const render_finished_semaphores_{ create_semaphores() };
