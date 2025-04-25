@@ -15,8 +15,9 @@ namespace eru
          device_.destroySemaphore(semaphore);
 
       device_.destroyCommandPool(command_pool_);
-      device_.freeMemory(vertex_buffer_.second);
-      device_.destroyBuffer(vertex_buffer_.first);
+
+      vmaDestroyBuffer(allocator_, vertex_buffer_.first, vertex_buffer_.second);
+      vmaDestroyAllocator(allocator_);
 
       device_.destroyPipeline(pipeline_);
       device_.destroyPipelineLayout(pipeline_layout_);
@@ -567,20 +568,30 @@ namespace eru
       });
    }
 
-   std::uint32_t application::find_memory_type_index(std::uint32_t const type_filter,
-      vk::MemoryPropertyFlags const properties) const
+   VmaAllocator application::create_allocator() const
    {
-      vk::PhysicalDeviceMemoryProperties memory_properties;
-      physical_device_.getMemoryProperties(&memory_properties);
+      VmaAllocatorCreateInfo const allocator_create_info{
+         .flags{},
+         .physicalDevice{ physical_device_ },
+         .device{ device_ },
+         .preferredLargeHeapBlockSize{},
+         .pAllocationCallbacks{},
+         .pDeviceMemoryCallbacks{},
+         .pHeapSizeLimit{},
+         .pVulkanFunctions{},
+         .instance{ instance_ },
+         .vulkanApiVersion{},
+         .pTypeExternalMemoryHandleTypes{},
+      };
 
-      for (std::uint32_t index{}; index < memory_properties.memoryTypeCount; ++index)
-         if (type_filter & 1 << index && (memory_properties.memoryTypes[index].propertyFlags & properties) == properties)
-            return index;
+      VmaAllocator allocator;
+      if (vmaCreateAllocator(&allocator_create_info, &allocator) not_eq VK_SUCCESS)
+         throw std::runtime_error("failed to create Vulkan memory allocator!");
 
-      throw std::runtime_error("failed to find a suitable memory type!");
+      return allocator;
    }
 
-   std::pair<vk::Buffer, vk::DeviceMemory> application::create_vertex_buffer() const
+   std::pair<vk::Buffer, VmaAllocation> application::create_vertex_buffer() const
    {
       vk::BufferCreateInfo const buffer_create_info{
          .size{ sizeof(decltype(vertices_)::value_type) * vertices_.size() },
@@ -588,29 +599,26 @@ namespace eru
          .sharingMode{ vk::SharingMode::eExclusive }
       };
 
-      vk::Buffer const buffer{ device_.createBuffer(buffer_create_info) };
-
-      vk::MemoryRequirements const memory_requirements{ device_.getBufferMemoryRequirements(buffer) };
-      vk::DeviceMemory const memory
-      {
-         device_.allocateMemory({
-            .allocationSize{ memory_requirements.size },
-            .memoryTypeIndex{
-               find_memory_type_index(memory_requirements.memoryTypeBits,
-                  vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent)
-            }
-         })
+      VmaAllocationCreateInfo constexpr allocation_create_info{
+         .flags{ VMA_ALLOCATION_CREATE_MAPPED_BIT },
+         .usage{},
+         .requiredFlags{ static_cast<VkMemoryPropertyFlags>(vk::MemoryPropertyFlagBits::eHostVisible) },
+         .preferredFlags{ static_cast<VkMemoryPropertyFlagBits>(vk::MemoryPropertyFlagBits::eDeviceLocal) },
+         .memoryTypeBits{},
+         .pool{},
+         .pUserData{},
+         .priority{}
       };
 
-      device_.bindBufferMemory(buffer, memory, 0);
+      VkBuffer buffer;
+      VmaAllocation memory;
+      VmaAllocationInfo allocation_info;
+      vmaCreateBuffer(allocator_,
+         &static_cast<VkBufferCreateInfo const&>(buffer_create_info), &allocation_create_info,
+         &buffer, &memory,
+         &allocation_info);
 
-      void* data;
-      if (device_.mapMemory(memory, 0, buffer_create_info.size, {}, &data) not_eq vk::Result::eSuccess)
-         throw std::runtime_error("failed to map memory for the vertex buffer!");
-
-      std::memcpy(data, vertices_.data(), buffer_create_info.size);
-
-      device_.unmapMemory(memory);
+      std::memcpy(allocation_info.pMappedData, vertices_.data(), buffer_create_info.size);
 
       return { buffer, memory };
    }

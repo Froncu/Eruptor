@@ -1,7 +1,7 @@
 #ifndef UNIQUE_POINTER_HPP
 #define UNIQUE_POINTER_HPP
 
-#include "erupch.hpp"
+#include "erupch/erupch.hpp"
 
 namespace eru
 {

@@ -2,7 +2,7 @@
 #define APPLICATION_HPP
 
 #include "constants.hpp"
-#include "erupch.hpp"
+#include "erupch/erupch.hpp"
 #include "math/vertex.hpp"
 #include "utility/unique_pointer.hpp"
 
@@ -23,6 +23,8 @@ namespace eru
          void run();
 
       private:
+         static bool constexpr USE_VALIDATION_LAYERS{ constants::DEBUG };
+
          [[nodiscard]] static vk::Instance create_instance();
          [[nodiscard]] vk::DebugUtilsMessengerEXT create_debug_callback_messenger() const;
 
@@ -45,8 +47,8 @@ namespace eru
          [[nodiscard]] vk::Pipeline create_pipeline() const;
 
          [[nodiscard]] vk::CommandPool create_command_pool() const;
-         [[nodiscard]] std::uint32_t find_memory_type_index(std::uint32_t type_filter, vk::MemoryPropertyFlags properties) const;
-         [[nodiscard]] std::pair<vk::Buffer, vk::DeviceMemory> create_vertex_buffer() const;
+         [[nodiscard]] VmaAllocator create_allocator() const;
+         [[nodiscard]] std::pair<vk::Buffer, VmaAllocation> create_vertex_buffer() const;
          [[nodiscard]] std::vector<vk::CommandBuffer> create_command_buffers() const;
          [[nodiscard]] std::vector<vk::Semaphore> create_semaphores() const;
          [[nodiscard]] std::vector<vk::Fence> create_fences() const;
@@ -64,12 +66,11 @@ namespace eru
             }(),
             [](SDL_Window* const window)
             {
-               SDL_QuitSubSystem(SDL_INIT_VIDEO);
                SDL_DestroyWindow(window);
+               SDL_QuitSubSystem(SDL_INIT_VIDEO);
             }
          };
 
-         static bool constexpr USE_VALIDATION_LAYERS{ constants::DEBUG };
          vk::Instance const instance_{ create_instance() };
          vk::DispatchLoaderDynamic dispatch_loader_dynamic_{ instance_, vkGetInstanceProcAddr };
 
@@ -113,7 +114,8 @@ namespace eru
             { { 0.25, 0.5 }, { 1.0, 0.28, 0.0 } },
             { { -0.25, 0.5 }, { 1.0, 0.1, 0.0 } },
          };
-         std::pair<vk::Buffer, vk::DeviceMemory> const vertex_buffer_{ create_vertex_buffer() };
+         VmaAllocator const allocator_{ create_allocator() };
+         std::pair<vk::Buffer, VmaAllocation> const vertex_buffer_{ create_vertex_buffer() };
          std::vector<vk::CommandBuffer> const command_buffers_{ create_command_buffers() };
          std::vector<vk::Semaphore> const image_available_semaphores_{ create_semaphores() };
          std::vector<vk::Semaphore> const render_finished_semaphores_{ create_semaphores() };

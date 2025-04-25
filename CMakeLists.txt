@@ -3,6 +3,7 @@ project(Eruptor)
 
 add_executable(${PROJECT_NAME}
    source/application/application.cpp
+   source/erupch/erupch.cpp
    source/main.cpp
    source/math/vertex.cpp
    source/shader_compiler/shader_compiler.cpp)
@@ -16,7 +17,7 @@ target_compile_options(${PROJECT_NAME}
    PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>)
 
 target_precompile_headers(${PROJECT_NAME}
-   PRIVATE source/erupch.hpp)
+   PRIVATE source/erupch/erupch.hpp)
 
 target_include_directories(${PROJECT_NAME}
    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/source)

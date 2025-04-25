@@ -1,4 +1,4 @@
-#include "erupch.hpp"
+#include "erupch/erupch.hpp"
 #include "shaderc/shaderc.hpp"
 
 namespace eru

@@ -17,6 +17,7 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_vulkan.h>
 #include <shaderc/shaderc.hpp>
+#include <vma/vk_mem_alloc.h>
 #include <vulkan/vulkan.hpp>
 
 #endif

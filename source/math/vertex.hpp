@@ -1,7 +1,7 @@
 #ifndef VERTEX_HPP
 #define VERTEX_HPP
 
-#include "erupch.hpp"
+#include "erupch/erupch.hpp"
 
 namespace eru
 {
