@@ -148,7 +148,7 @@ namespace eru
    vk::SurfaceKHR application::create_surface() const
    {
       if (VkSurfaceKHR surface; SDL_Vulkan_CreateSurface(window_.get(), instance_, nullptr, &surface))
-         return surface;
+         return { surface };
 
       throw std::runtime_error("failed to create window surface!");
    }
@@ -537,7 +537,7 @@ namespace eru
          .pAttachments{ &color_blend_attachment_state }
       };
 
-      auto&& [_, pipeline]{
+      auto&& [result, pipeline]{
          device_.createGraphicsPipeline(nullptr, {
             .stageCount{ static_cast<std::uint32_t>(shader_stage_create_infos.size()) },
             .pStages{ shader_stage_create_infos.data() },
@@ -623,34 +623,32 @@ namespace eru
 
    void application::copy_buffer(vk::Buffer source_buffer, vk::Buffer target_buffer, vk::DeviceSize size) const
    {
-      vk::CommandBufferAllocateInfo const command_buffer_allocate_info{
-         .commandPool{ command_pool_ },
-         .level{ vk::CommandBufferLevel::ePrimary },
-         .commandBufferCount{ 1 }
+      vk::CommandBuffer const command_buffer{
+         device_.allocateCommandBuffers({
+            .commandPool{ command_pool_ },
+            .level{ vk::CommandBufferLevel::ePrimary },
+            .commandBufferCount{ 1 }
+         }).front()
       };
 
-      vk::CommandBuffer command_buffer;
-      if (device_.allocateCommandBuffers(&command_buffer_allocate_info, &command_buffer) not_eq vk::Result::eSuccess)
-         throw std::runtime_error("failed to allocate a command buffer for buffer copy!");
-
-      vk::CommandBufferBeginInfo constexpr command_buffer_begin_info{
+      command_buffer.begin({
          .flags{ vk::CommandBufferUsageFlagBits::eOneTimeSubmit }
-      };
-      if (command_buffer.begin(&command_buffer_begin_info) not_eq vk::Result::eSuccess)
-         throw std::runtime_error("failed to begin recording command buffer for buffer copy!");
+      });
 
-      vk::BufferCopy const copy_region{
-         .size{ size }
-      };
-      command_buffer.copyBuffer(source_buffer, target_buffer, 1, &copy_region);
+      command_buffer.copyBuffer(source_buffer, target_buffer, {
+         {
+            .size{ size }
+         }
+      });
 
       command_buffer.end();
 
-      vk::SubmitInfo const submit_info{
-         .commandBufferCount{ 1 },
-         .pCommandBuffers{ &command_buffer }
-      };
-      graphics_queue_.submit(submit_info);
+      graphics_queue_.submit({
+         {
+            .commandBufferCount{ 1 },
+            .pCommandBuffers{ &command_buffer }
+         }
+      });
       graphics_queue_.waitIdle();
 
       device_.freeCommandBuffers(command_pool_, 1, &command_buffer);
@@ -730,10 +728,11 @@ namespace eru
    std::vector<vk::Semaphore> application::create_semaphores() const
    {
       std::vector<vk::Semaphore> semaphores(FRAMES_IN_FLIGHT);
-      std::ranges::generate(semaphores, [this]
-      {
-         return device_.createSemaphore({});
-      });
+      std::ranges::generate(semaphores,
+         [this]
+         {
+            return device_.createSemaphore({});
+         });
 
       return semaphores;
    }
@@ -741,21 +740,20 @@ namespace eru
    std::vector<vk::Fence> application::create_fences() const
    {
       std::vector<vk::Fence> fences(FRAMES_IN_FLIGHT);
-      std::ranges::generate(fences, [this]
-      {
-         return device_.createFence({
-            .flags{ vk::FenceCreateFlagBits::eSignaled }
+      std::ranges::generate(fences,
+         [this]
+         {
+            return device_.createFence({
+               .flags{ vk::FenceCreateFlagBits::eSignaled }
+            });
          });
-      });
 
       return fences;
    }
 
    void application::record_command_buffer(vk::CommandBuffer const command_buffer, std::uint32_t const image_index) const
    {
-      vk::CommandBufferBeginInfo constexpr begin_info{};
-      if (command_buffer.begin(&begin_info) not_eq vk::Result::eSuccess)
-         throw std::runtime_error("failed to begin recording command buffer!");
+      command_buffer.begin(vk::CommandBufferBeginInfo{});
 
       vk::ClearValue constexpr clear_color_value{ { 0.0f, 0.0f, 0.0f, 1.0f } };
       command_buffer.beginRenderPass({
@@ -770,22 +768,22 @@ namespace eru
 
       command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline_);
 
-      std::array const vertex_buffers{ vertex_buffer_.first };
-      std::array constexpr offsets{ vk::DeviceSize{ 0 } };
-      command_buffer.bindVertexBuffers(0, 1, vertex_buffers.data(), offsets.data());
+      command_buffer.bindVertexBuffers(0, { vertex_buffer_.first }, { {} });
       command_buffer.bindIndexBuffer(index_buffer_.first, 0, vk::IndexType::eUint16);
 
-      vk::Viewport const viewport{
-         .width{ static_cast<float>(swap_chain_extent_.width) },
-         .height{ static_cast<float>(swap_chain_extent_.height) },
-         .maxDepth{ 1.0f }
-      };
-      command_buffer.setViewport(0, 1, &viewport);
+      command_buffer.setViewport(0, {
+         {
+            .width{ static_cast<float>(swap_chain_extent_.width) },
+            .height{ static_cast<float>(swap_chain_extent_.height) },
+            .maxDepth{ 1.0f }
+         }
+      });
 
-      vk::Rect2D const scissor{
-         .extent{ swap_chain_extent_ }
-      };
-      command_buffer.setScissor(0, 1, &scissor);
+      command_buffer.setScissor(0, {
+         {
+            .extent{ swap_chain_extent_ }
+         }
+      });
 
       command_buffer.drawIndexed(static_cast<std::uint32_t>(indices_.size()), 1, 0, 0, 0);
 
@@ -796,7 +794,7 @@ namespace eru
 
    void application::draw_frame()
    {
-      if (device_.waitForFences(1, &command_buffer_executed_fences_[current_frame_], true,
+      if (device_.waitForFences({ command_buffer_executed_fences_[current_frame_] }, true,
          std::numeric_limits<std::uint64_t>::max()) not_eq vk::Result::eSuccess)
          throw std::runtime_error("failed to wait for fences!");
 
@@ -805,21 +803,22 @@ namespace eru
             image_available_semaphores_[current_frame_])
       };
 
-      if (device_.resetFences(1, &command_buffer_executed_fences_[current_frame_]) not_eq vk::Result::eSuccess)
-         throw std::runtime_error("failed to reset fence!");
+      device_.resetFences({ command_buffer_executed_fences_[current_frame_] });
 
       command_buffers_[current_frame_].reset();
       record_command_buffer(command_buffers_[current_frame_], image_index);
 
       std::array<vk::PipelineStageFlags, 1> constexpr wait_stages{ vk::PipelineStageFlagBits::eColorAttachmentOutput };
-      graphics_queue_.submit(vk::SubmitInfo{
-         .waitSemaphoreCount{ 1 },
-         .pWaitSemaphores{ &image_available_semaphores_[current_frame_] },
-         .pWaitDstStageMask{ wait_stages.data() },
-         .commandBufferCount{ 1 },
-         .pCommandBuffers{ &command_buffers_[current_frame_] },
-         .signalSemaphoreCount{ 1 },
-         .pSignalSemaphores{ &render_finished_semaphores_[current_frame_] },
+      graphics_queue_.submit({
+         {
+            .waitSemaphoreCount{ 1 },
+            .pWaitSemaphores{ &image_available_semaphores_[current_frame_] },
+            .pWaitDstStageMask{ wait_stages.data() },
+            .commandBufferCount{ 1 },
+            .pCommandBuffers{ &command_buffers_[current_frame_] },
+            .signalSemaphoreCount{ 1 },
+            .pSignalSemaphores{ &render_finished_semaphores_[current_frame_] },
+         }
       }, command_buffer_executed_fences_[current_frame_]);
 
       if (presentation_queue_.presentKHR({
