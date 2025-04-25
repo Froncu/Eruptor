@@ -16,6 +16,7 @@ namespace eru
 
       device_.destroyCommandPool(command_pool_);
 
+      vmaDestroyBuffer(allocator_, index_buffer_.first, index_buffer_.second);
       vmaDestroyBuffer(allocator_, vertex_buffer_.first, vertex_buffer_.second);
       vmaDestroyAllocator(allocator_);
 
@@ -492,7 +493,7 @@ namespace eru
       // mode to point with the topology set to line does not render points but
       // lines, why?
       vk::PipelineInputAssemblyStateCreateInfo constexpr input_assembly_state_create_info{
-         .topology{ vk::PrimitiveTopology::eLineStrip }
+         .topology{ vk::PrimitiveTopology::eTriangleStrip },
       };
 
       vk::PipelineViewportStateCreateInfo constexpr viewport_state_create_info{
@@ -501,7 +502,7 @@ namespace eru
       };
 
       vk::PipelineRasterizationStateCreateInfo constexpr rasterization_state_create_info{
-         .polygonMode{ vk::PolygonMode::ePoint },
+         .polygonMode{ vk::PolygonMode::eFill },
          .cullMode{ vk::CullModeFlagBits::eBack },
          .frontFace{ vk::FrontFace::eClockwise },
          .lineWidth{ 1.0f }
@@ -686,6 +687,37 @@ namespace eru
       return vertex_buffer;
    }
 
+   std::pair<vk::Buffer, VmaAllocation> application::create_index_buffer() const
+   {
+      std::size_t const buffer_size{ sizeof(decltype(indices_)::value_type) * indices_.size() };
+
+      auto const [staging_buffer, staging_allocation]{
+         create_buffer(buffer_size,
+            vk::BufferUsageFlagBits::eTransferSrc,
+            VMA_ALLOCATION_CREATE_MAPPED_BIT,
+            vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
+            vk::MemoryPropertyFlagBits::eDeviceLocal)
+      };
+
+      VmaAllocationInfo allocation_info;
+      vmaGetAllocationInfo(allocator_, staging_allocation, &allocation_info);
+      std::memcpy(allocation_info.pMappedData, indices_.data(), buffer_size);
+
+      std::pair const index_buffer{
+         create_buffer(buffer_size,
+            vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer,
+            {},
+            vk::MemoryPropertyFlagBits::eDeviceLocal,
+            {})
+      };
+
+      copy_buffer(staging_buffer, index_buffer.first, buffer_size);
+
+      vmaDestroyBuffer(allocator_, staging_buffer, staging_allocation);
+
+      return index_buffer;
+   }
+
    std::vector<vk::CommandBuffer> application::create_command_buffers() const
    {
       return device_.allocateCommandBuffers({
@@ -741,6 +773,7 @@ namespace eru
       std::array const vertex_buffers{ vertex_buffer_.first };
       std::array constexpr offsets{ vk::DeviceSize{ 0 } };
       command_buffer.bindVertexBuffers(0, 1, vertex_buffers.data(), offsets.data());
+      command_buffer.bindIndexBuffer(index_buffer_.first, 0, vk::IndexType::eUint16);
 
       vk::Viewport const viewport{
          .width{ static_cast<float>(swap_chain_extent_.width) },
@@ -754,7 +787,7 @@ namespace eru
       };
       command_buffer.setScissor(0, 1, &scissor);
 
-      command_buffer.draw(static_cast<std::uint32_t>(vertices_.size()), 1, 0, 0);
+      command_buffer.drawIndexed(static_cast<std::uint32_t>(indices_.size()), 1, 0, 0, 0);
 
       command_buffer.endRenderPass();
 

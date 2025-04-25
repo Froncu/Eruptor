@@ -53,6 +53,7 @@ namespace eru
             vk::MemoryPropertyFlags required_properties, vk::MemoryPropertyFlags preferred_properties) const;
          void copy_buffer(vk::Buffer source_buffer, vk::Buffer target_buffer, vk::DeviceSize size) const;
          [[nodiscard]] std::pair<vk::Buffer, VmaAllocation> create_vertex_buffer() const;
+         [[nodiscard]] std::pair<vk::Buffer, VmaAllocation> create_index_buffer() const;
          [[nodiscard]] std::vector<vk::CommandBuffer> create_command_buffers() const;
          [[nodiscard]] std::vector<vk::Semaphore> create_semaphores() const;
          [[nodiscard]] std::vector<vk::Fence> create_fences() const;
@@ -104,22 +105,15 @@ namespace eru
          static std::uint32_t constexpr FRAMES_IN_FLIGHT{ 2 };
          std::size_t current_frame_{};
          std::vector<Vertex> const vertices_{
-            { { -0.25, 0.5 }, { 1.0, 0.1, 0.0 } },
-            { { -0.25, -0.5 }, { 1.0, 0.1, 0.0 } },
-            { { 0.25, -0.5 }, { 1.0, 0.28, 0.0 } },
-            { { 0.25, -0.3 }, { 1.0, 0.46, 0.0 } },
-            { { -0.1, -0.3 }, { 1.0, 0.64, 0.0 } },
-            { { -0.1, -0.1 }, { 1.0, 0.82, 0.0 } },
-            { { 0.25, -0.1 }, { 1.0, 1.0, 0.0 } },
-            { { 0.25, 0.1 }, { 1.0, 1.0, 0.0 } },
-            { { -0.1, 0.1 }, { 1.0, 0.82, 0.0 } },
-            { { -0.1, 0.3 }, { 1.0, 0.64, 0.0 } },
-            { { 0.25, 0.3 }, { 1.0, 0.46, 0.0 } },
-            { { 0.25, 0.5 }, { 1.0, 0.28, 0.0 } },
-            { { -0.25, 0.5 }, { 1.0, 0.1, 0.0 } },
+            { { -0.5f, -0.5f }, { 1.0f, 0.0f, 0.0f } },
+            { { 0.5f, -0.5f }, { 1.0f, 0.25f, 0.0f } },
+            { { 0.5f, 0.5f }, { 1.0f, 1.0f, 0.0f } },
+            { { -0.5f, 0.5f }, { 1.0f, 0.25f, 0.0f } }
          };
+         std::vector<std::uint16_t> const indices_{ 0, 1, 3, 2 };
          VmaAllocator const allocator_{ create_allocator() };
          std::pair<vk::Buffer, VmaAllocation> const vertex_buffer_{ create_vertex_buffer() };
+         std::pair<vk::Buffer, VmaAllocation> const index_buffer_{ create_index_buffer() };
          std::vector<vk::CommandBuffer> const command_buffers_{ create_command_buffers() };
          std::vector<vk::Semaphore> const image_available_semaphores_{ create_semaphores() };
          std::vector<vk::Semaphore> const render_finished_semaphores_{ create_semaphores() };
