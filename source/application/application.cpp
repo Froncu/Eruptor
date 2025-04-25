@@ -591,19 +591,21 @@ namespace eru
       return allocator;
    }
 
-   std::pair<vk::Buffer, VmaAllocation> application::create_vertex_buffer() const
+   std::pair<vk::Buffer, VmaAllocation> application::create_buffer(vk::DeviceSize const size,
+      vk::BufferUsageFlags const usage, VmaAllocationCreateFlags const allocation_flags,
+      vk::MemoryPropertyFlags const required_properties, vk::MemoryPropertyFlags const preferred_properties) const
    {
       vk::BufferCreateInfo const buffer_create_info{
-         .size{ sizeof(decltype(vertices_)::value_type) * vertices_.size() },
-         .usage{ vk::BufferUsageFlagBits::eVertexBuffer },
+         .size{ size },
+         .usage{ usage },
          .sharingMode{ vk::SharingMode::eExclusive }
       };
 
-      VmaAllocationCreateInfo constexpr allocation_create_info{
-         .flags{ VMA_ALLOCATION_CREATE_MAPPED_BIT },
+      VmaAllocationCreateInfo const allocation_create_info{
+         .flags{ allocation_flags },
          .usage{},
-         .requiredFlags{ static_cast<VkMemoryPropertyFlags>(vk::MemoryPropertyFlagBits::eHostVisible) },
-         .preferredFlags{ static_cast<VkMemoryPropertyFlagBits>(vk::MemoryPropertyFlagBits::eDeviceLocal) },
+         .requiredFlags{ static_cast<VkMemoryPropertyFlags>(required_properties) },
+         .preferredFlags{ static_cast<VkMemoryPropertyFlags>(preferred_properties) },
          .memoryTypeBits{},
          .pool{},
          .pUserData{},
@@ -612,15 +614,76 @@ namespace eru
 
       VkBuffer buffer;
       VmaAllocation memory;
-      VmaAllocationInfo allocation_info;
-      vmaCreateBuffer(allocator_,
-         &static_cast<VkBufferCreateInfo const&>(buffer_create_info), &allocation_create_info,
-         &buffer, &memory,
-         &allocation_info);
-
-      std::memcpy(allocation_info.pMappedData, vertices_.data(), buffer_create_info.size);
+      vmaCreateBuffer(allocator_, &static_cast<VkBufferCreateInfo const&>(buffer_create_info), &allocation_create_info,
+         &buffer, &memory, nullptr);
 
       return { buffer, memory };
+   }
+
+   void application::copy_buffer(vk::Buffer source_buffer, vk::Buffer target_buffer, vk::DeviceSize size) const
+   {
+      vk::CommandBufferAllocateInfo const command_buffer_allocate_info{
+         .commandPool{ command_pool_ },
+         .level{ vk::CommandBufferLevel::ePrimary },
+         .commandBufferCount{ 1 }
+      };
+
+      vk::CommandBuffer command_buffer;
+      if (device_.allocateCommandBuffers(&command_buffer_allocate_info, &command_buffer) not_eq vk::Result::eSuccess)
+         throw std::runtime_error("failed to allocate a command buffer for buffer copy!");
+
+      vk::CommandBufferBeginInfo constexpr command_buffer_begin_info{
+         .flags{ vk::CommandBufferUsageFlagBits::eOneTimeSubmit }
+      };
+      if (command_buffer.begin(&command_buffer_begin_info) not_eq vk::Result::eSuccess)
+         throw std::runtime_error("failed to begin recording command buffer for buffer copy!");
+
+      vk::BufferCopy const copy_region{
+         .size{ size }
+      };
+      command_buffer.copyBuffer(source_buffer, target_buffer, 1, &copy_region);
+
+      command_buffer.end();
+
+      vk::SubmitInfo const submit_info{
+         .commandBufferCount{ 1 },
+         .pCommandBuffers{ &command_buffer }
+      };
+      graphics_queue_.submit(submit_info);
+      graphics_queue_.waitIdle();
+
+      device_.freeCommandBuffers(command_pool_, 1, &command_buffer);
+   }
+
+   std::pair<vk::Buffer, VmaAllocation> application::create_vertex_buffer() const
+   {
+      std::size_t const buffer_size{ sizeof(decltype(vertices_)::value_type) * vertices_.size() };
+
+      auto const [staging_buffer, staging_allocation]{
+         create_buffer(buffer_size,
+            vk::BufferUsageFlagBits::eTransferSrc,
+            VMA_ALLOCATION_CREATE_MAPPED_BIT,
+            vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
+            vk::MemoryPropertyFlagBits::eDeviceLocal)
+      };
+
+      VmaAllocationInfo allocation_info;
+      vmaGetAllocationInfo(allocator_, staging_allocation, &allocation_info);
+      std::memcpy(allocation_info.pMappedData, vertices_.data(), buffer_size);
+
+      std::pair const vertex_buffer{
+         create_buffer(buffer_size,
+            vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer,
+            {},
+            vk::MemoryPropertyFlagBits::eDeviceLocal,
+            {})
+      };
+
+      copy_buffer(staging_buffer, vertex_buffer.first, buffer_size);
+
+      vmaDestroyBuffer(allocator_, staging_buffer, staging_allocation);
+
+      return vertex_buffer;
    }
 
    std::vector<vk::CommandBuffer> application::create_command_buffers() const

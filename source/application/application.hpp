@@ -48,6 +48,10 @@ namespace eru
 
          [[nodiscard]] vk::CommandPool create_command_pool() const;
          [[nodiscard]] VmaAllocator create_allocator() const;
+         [[nodiscard]] std::pair<vk::Buffer, VmaAllocation> create_buffer(vk::DeviceSize size,
+            vk::BufferUsageFlags usage, VmaAllocationCreateFlags allocation_flags,
+            vk::MemoryPropertyFlags required_properties, vk::MemoryPropertyFlags preferred_properties) const;
+         void copy_buffer(vk::Buffer source_buffer, vk::Buffer target_buffer, vk::DeviceSize size) const;
          [[nodiscard]] std::pair<vk::Buffer, VmaAllocation> create_vertex_buffer() const;
          [[nodiscard]] std::vector<vk::CommandBuffer> create_command_buffers() const;
          [[nodiscard]] std::vector<vk::Semaphore> create_semaphores() const;
