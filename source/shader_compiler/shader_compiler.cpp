@@ -8,7 +8,7 @@ namespace eru
       static shaderc::Compiler const compiler{};
 
       std::string const file_name{ path.filename().string() };
-      if (not exists(path))
+      if (not std::filesystem::exists(path))
          throw std::runtime_error(std::format("{} does not exist!", file_name));
 
       if (std::ifstream const file{ path, std::ifstream::in }; file.is_open())
