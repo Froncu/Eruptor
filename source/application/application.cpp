@@ -926,7 +926,7 @@ namespace eru
       current_frame_ = (current_frame_ + 1) % FRAMES_IN_FLIGHT;
    }
 
-   void application::update_uniform_buffer(std::uint32_t const current_image) const
+   void application::update_uniform_buffer(std::size_t current_frame) const
    {
       static auto start_time{ std::chrono::high_resolution_clock::now() };
 
@@ -943,7 +943,7 @@ namespace eru
       };
 
       VmaAllocationInfo allocation_info;
-      vmaGetAllocationInfo(allocator_, uniform_buffers_[current_image].second, &allocation_info);
+      vmaGetAllocationInfo(allocator_, uniform_buffers_[current_frame].second, &allocation_info);
       std::memcpy(allocation_info.pMappedData, &uniform_buffer_object, sizeof(uniform_buffer_object));
    }
 

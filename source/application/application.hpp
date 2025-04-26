@@ -64,7 +64,7 @@ namespace eru
 
          void record_command_buffer(vk::CommandBuffer command_buffer, std::uint32_t image_index) const;
          void draw_frame();
-         void update_uniform_buffer(std::uint32_t current_image) const;
+         void update_uniform_buffer(std::size_t current_frame) const;
 
          unique_pointer<SDL_Window> const window_{
             []
