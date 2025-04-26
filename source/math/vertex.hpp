@@ -10,7 +10,7 @@ namespace eru
       static std::array<vk::VertexInputBindingDescription, 1> const BINDING_DESCRIPTIONS;
       static std::array<vk::VertexInputAttributeDescription, 2> const ATTRIBUTE_DESCRIPTIONS;
 
-      glm::vec2 position;
+      glm::vec3 position;
       glm::vec3 color;
    };
 }

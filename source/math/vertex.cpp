@@ -17,7 +17,7 @@ namespace eru
          {
             .location{ 0 },
             .binding{ BINDING_DESCRIPTIONS[0].binding },
-            .format{ vk::Format::eR32G32Sfloat },
+            .format{ vk::Format::eR32G32B32Sfloat },
             .offset{ offsetof(Vertex, position) }
          },
          {

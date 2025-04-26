@@ -43,6 +43,7 @@ namespace eru
 
          [[nodiscard]] vk::RenderPass create_render_pass() const;
          [[nodiscard]] std::vector<vk::Framebuffer> create_frame_buffers() const;
+         [[nodiscard]] vk::DescriptorSetLayout create_descriptor_set_layout() const;
          [[nodiscard]] vk::PipelineLayout create_pipeline_layout() const;
          [[nodiscard]] vk::Pipeline create_pipeline() const;
 
@@ -54,12 +55,16 @@ namespace eru
          void copy_buffer(vk::Buffer source_buffer, vk::Buffer target_buffer, vk::DeviceSize size) const;
          [[nodiscard]] std::pair<vk::Buffer, VmaAllocation> create_vertex_buffer() const;
          [[nodiscard]] std::pair<vk::Buffer, VmaAllocation> create_index_buffer() const;
+         [[nodiscard]] std::vector<std::pair<vk::Buffer, VmaAllocation>> create_uniform_buffers() const;
+         [[nodiscard]] vk::DescriptorPool create_descriptor_pool() const;
+         [[nodiscard]] std::vector<vk::DescriptorSet> create_descriptor_sets() const;
          [[nodiscard]] std::vector<vk::CommandBuffer> create_command_buffers() const;
          [[nodiscard]] std::vector<vk::Semaphore> create_semaphores() const;
          [[nodiscard]] std::vector<vk::Fence> create_fences() const;
 
          void record_command_buffer(vk::CommandBuffer command_buffer, std::uint32_t image_index) const;
          void draw_frame();
+         void update_uniform_buffer(std::uint32_t current_image) const;
 
          unique_pointer<SDL_Window> const window_{
             []
@@ -98,6 +103,7 @@ namespace eru
 
          vk::RenderPass const render_pass_{ create_render_pass() };
          std::vector<vk::Framebuffer> swap_chain_framebuffers_{ create_frame_buffers() };
+         vk::DescriptorSetLayout const descriptor_set_layout_{ create_descriptor_set_layout() };
          vk::PipelineLayout const pipeline_layout_{ create_pipeline_layout() };
          vk::Pipeline const pipeline_{ create_pipeline() };
 
@@ -105,15 +111,18 @@ namespace eru
          static std::uint32_t constexpr FRAMES_IN_FLIGHT{ 2 };
          std::size_t current_frame_{};
          std::vector<Vertex> const vertices_{
-            { { -0.5f, -0.5f }, { 1.0f, 0.0f, 0.0f } },
-            { { 0.5f, -0.5f }, { 1.0f, 0.25f, 0.0f } },
-            { { 0.5f, 0.5f }, { 1.0f, 1.0f, 0.0f } },
-            { { -0.5f, 0.5f }, { 1.0f, 0.25f, 0.0f } }
+            { { -0.5f, 0.0f, 0.5f }, { 1.0f, 0.0f, 0.0f } },
+            { { 0.5f, 0.0f, 0.5f }, { 1.0f, 0.25f, 0.0f } },
+            { { 0.5f, 0.0f, -0.5f }, { 1.0f, 1.0f, 0.0f } },
+            { { -0.5f, 0.0f, -0.5f }, { 1.0f, 0.25f, 0.0f } }
          };
          std::vector<std::uint16_t> const indices_{ 0, 1, 3, 2 };
          VmaAllocator const allocator_{ create_allocator() };
          std::pair<vk::Buffer, VmaAllocation> const vertex_buffer_{ create_vertex_buffer() };
          std::pair<vk::Buffer, VmaAllocation> const index_buffer_{ create_index_buffer() };
+         std::vector<std::pair<vk::Buffer, VmaAllocation>> const uniform_buffers_{ create_uniform_buffers() };
+         vk::DescriptorPool const descriptor_pool_{ create_descriptor_pool() };
+         std::vector<vk::DescriptorSet> const descriptor_sets_{ create_descriptor_sets() };
          std::vector<vk::CommandBuffer> const command_buffers_{ create_command_buffers() };
          std::vector<vk::Semaphore> const image_available_semaphores_{ create_semaphores() };
          std::vector<vk::Semaphore> const render_finished_semaphores_{ create_semaphores() };

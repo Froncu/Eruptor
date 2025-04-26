@@ -1,4 +1,5 @@
 #include "application.hpp"
+#include "math/uniform_buffer_object.hpp"
 #include "shader_compiler/shader_compiler.hpp"
 
 namespace eru
@@ -16,12 +17,17 @@ namespace eru
 
       device_.destroyCommandPool(command_pool_);
 
+      device_.destroyDescriptorPool(descriptor_pool_);
+      for (auto&& [buffer, allocation] : uniform_buffers_)
+         vmaDestroyBuffer(allocator_, buffer, allocation);
+
       vmaDestroyBuffer(allocator_, index_buffer_.first, index_buffer_.second);
       vmaDestroyBuffer(allocator_, vertex_buffer_.first, vertex_buffer_.second);
       vmaDestroyAllocator(allocator_);
 
       device_.destroyPipeline(pipeline_);
       device_.destroyPipelineLayout(pipeline_layout_);
+      device_.destroyDescriptorSetLayout(descriptor_set_layout_);
       for (vk::Framebuffer const framebuffer : swap_chain_framebuffers_)
          device_.destroyFramebuffer(framebuffer);
       device_.destroyRenderPass(render_pass_);
@@ -440,9 +446,27 @@ namespace eru
       return framebuffers;
    }
 
+   vk::DescriptorSetLayout application::create_descriptor_set_layout() const
+   {
+      vk::DescriptorSetLayoutBinding constexpr uniform_buffer_layout_binding{
+         .binding{ 0 },
+         .descriptorType{ vk::DescriptorType::eUniformBuffer },
+         .descriptorCount{ 1 },
+         .stageFlags{ vk::ShaderStageFlagBits::eVertex },
+      };
+
+      return device_.createDescriptorSetLayout({
+         .bindingCount{ 1 },
+         .pBindings{ &uniform_buffer_layout_binding }
+      });
+   }
+
    vk::PipelineLayout application::create_pipeline_layout() const
    {
-      return device_.createPipelineLayout({});
+      return device_.createPipelineLayout({
+         .setLayoutCount{ 1 },
+         .pSetLayouts{ &descriptor_set_layout_ },
+      });
    }
 
    vk::Pipeline application::create_pipeline() const
@@ -656,7 +680,7 @@ namespace eru
 
    std::pair<vk::Buffer, VmaAllocation> application::create_vertex_buffer() const
    {
-      std::size_t const buffer_size{ sizeof(decltype(vertices_)::value_type) * vertices_.size() };
+      vk::DeviceSize const buffer_size{ sizeof(decltype(vertices_)::value_type) * vertices_.size() };
 
       auto const [staging_buffer, staging_allocation]{
          create_buffer(buffer_size,
@@ -687,7 +711,7 @@ namespace eru
 
    std::pair<vk::Buffer, VmaAllocation> application::create_index_buffer() const
    {
-      std::size_t const buffer_size{ sizeof(decltype(indices_)::value_type) * indices_.size() };
+      vk::DeviceSize const buffer_size{ sizeof(decltype(indices_)::value_type) * indices_.size() };
 
       auto const [staging_buffer, staging_allocation]{
          create_buffer(buffer_size,
@@ -714,6 +738,71 @@ namespace eru
       vmaDestroyBuffer(allocator_, staging_buffer, staging_allocation);
 
       return index_buffer;
+   }
+
+   std::vector<std::pair<vk::Buffer, VmaAllocation>> application::create_uniform_buffers() const
+   {
+      vk::DeviceSize constexpr buffer_size{ sizeof(UniformBufferObject) };
+
+      std::vector<std::pair<vk::Buffer, VmaAllocation>> uniform_buffers(FRAMES_IN_FLIGHT);
+      std::ranges::generate(uniform_buffers,
+         [this, buffer_size]
+         {
+            return create_buffer(buffer_size,
+               vk::BufferUsageFlagBits::eUniformBuffer,
+               VMA_ALLOCATION_CREATE_MAPPED_BIT,
+               vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
+               {});
+         });
+
+      return uniform_buffers;
+   }
+
+   vk::DescriptorPool application::create_descriptor_pool() const
+   {
+      vk::DescriptorPoolSize constexpr descriptor_pool_size{
+         .type{ vk::DescriptorType::eUniformBuffer },
+         .descriptorCount{ FRAMES_IN_FLIGHT }
+      };
+
+      return device_.createDescriptorPool({
+         .maxSets{ FRAMES_IN_FLIGHT },
+         .poolSizeCount{ 1 },
+         .pPoolSizes{ &descriptor_pool_size }
+      });
+   }
+
+   std::vector<vk::DescriptorSet> application::create_descriptor_sets() const
+   {
+      std::vector const descriptor_sets{
+         device_.allocateDescriptorSets({
+            .descriptorPool{ descriptor_pool_ },
+            .descriptorSetCount{ FRAMES_IN_FLIGHT },
+            .pSetLayouts{ std::vector{ FRAMES_IN_FLIGHT, descriptor_set_layout_ }.data() }
+         })
+      };
+
+      for (std::size_t index{}; index < FRAMES_IN_FLIGHT; ++index)
+      {
+         vk::DescriptorBufferInfo const buffer_info{
+            .buffer{ uniform_buffers_[index].first },
+            .offset{ 0 },
+            .range{ sizeof(UniformBufferObject) }
+         };
+
+         device_.updateDescriptorSets({
+            {
+               .dstSet{ descriptor_sets[index] },
+               .dstBinding{ 0 },
+               .dstArrayElement{ 0 },
+               .descriptorCount{ 1 },
+               .descriptorType{ vk::DescriptorType::eUniformBuffer },
+               .pBufferInfo{ &buffer_info }
+            }
+         }, {});
+      }
+
+      return descriptor_sets;
    }
 
    std::vector<vk::CommandBuffer> application::create_command_buffers() const
@@ -770,6 +859,8 @@ namespace eru
 
       command_buffer.bindVertexBuffers(0, { vertex_buffer_.first }, { {} });
       command_buffer.bindIndexBuffer(index_buffer_.first, 0, vk::IndexType::eUint16);
+      command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline_layout_, 0,
+         { descriptor_sets_[image_index] }, {});
 
       command_buffer.setViewport(0, {
          {
@@ -808,6 +899,8 @@ namespace eru
       command_buffers_[current_frame_].reset();
       record_command_buffer(command_buffers_[current_frame_], image_index);
 
+      update_uniform_buffer(current_frame_);
+
       std::array<vk::PipelineStageFlags, 1> constexpr wait_stages{ vk::PipelineStageFlagBits::eColorAttachmentOutput };
       graphics_queue_.submit({
          {
@@ -831,6 +924,27 @@ namespace eru
          throw std::runtime_error("failed to present!");
 
       current_frame_ = (current_frame_ + 1) % FRAMES_IN_FLIGHT;
+   }
+
+   void application::update_uniform_buffer(std::uint32_t const current_image) const
+   {
+      static auto start_time{ std::chrono::high_resolution_clock::now() };
+
+      auto const current_time{ std::chrono::high_resolution_clock::now() };
+      float const time{ std::chrono::duration<float>(current_time - start_time).count() };
+
+      UniformBufferObject const uniform_buffer_object{
+         .model{ glm::rotate<float, glm::defaultp>({ 1.0f }, time * glm::half_pi<float>(), { 0.0f, 1.0f, 0.0f }) },
+         .view{ glm::lookAt<float, glm::defaultp>({ 0.0f, 2.0f, -2.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, -1.0f, 0.0f }) },
+         .projection{
+            glm::perspective(glm::radians(45.0f), swap_chain_extent_.width / static_cast<float>(swap_chain_extent_.height),
+               0.1f, 10.0f)
+         }
+      };
+
+      VmaAllocationInfo allocation_info;
+      vmaGetAllocationInfo(allocator_, uniform_buffers_[current_image].second, &allocation_info);
+      std::memcpy(allocation_info.pMappedData, &uniform_buffer_object, sizeof(uniform_buffer_object));
    }
 
    void application::recreate_swapchain()
