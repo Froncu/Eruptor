@@ -23,6 +23,9 @@ namespace eru
 
       vmaDestroyBuffer(allocator_, static_cast<VkBuffer>(index_buffer_.first), index_buffer_.second);
       vmaDestroyBuffer(allocator_, static_cast<VkBuffer>(vertex_buffer_.first), vertex_buffer_.second);
+      device_.destroySampler(texture_sampler_);
+      device_.destroyImageView(texture_image_view_);
+      vmaDestroyImage(allocator_, static_cast<VkImage>(texture_image_.first), texture_image_.second);
       vmaDestroyAllocator(allocator_);
 
       device_.destroyPipeline(pipeline_);
@@ -140,7 +143,7 @@ namespace eru
          },
          .pfnUserCallback{
             [](VkDebugUtilsMessageSeverityFlagBitsEXT, VkDebugUtilsMessageTypeFlagsEXT,
-               VkDebugUtilsMessengerCallbackDataEXT const* callback_data, void*) -> VkBool32
+            VkDebugUtilsMessengerCallbackDataEXT const* callback_data, void*) -> VkBool32
             {
                std::cout << std::format("[VALIDATION LAYER MESSAGE]\n{}\n\n", callback_data->pMessage);
                return false;
@@ -219,7 +222,8 @@ namespace eru
       std::array constexpr extension_names{ vk::KHRSwapchainExtensionName };
 
       vk::PhysicalDeviceFeatures constexpr device_features{
-         .fillModeNonSolid{ true }
+         .fillModeNonSolid{ true },
+         .samplerAnisotropy{ true }
       };
 
       // TODO: for backwards compatibility, enable the same
@@ -446,16 +450,26 @@ namespace eru
 
    vk::DescriptorSetLayout application::create_descriptor_set_layout() const
    {
-      vk::DescriptorSetLayoutBinding constexpr uniform_buffer_layout_binding{
-         .binding{ 0 },
-         .descriptorType{ vk::DescriptorType::eUniformBuffer },
-         .descriptorCount{ 1 },
-         .stageFlags{ vk::ShaderStageFlagBits::eVertex },
+      std::array<vk::DescriptorSetLayoutBinding, 2> constexpr descriptor_set_layout_bindings{
+         {
+            {
+               .binding{ 0 },
+               .descriptorType{ vk::DescriptorType::eUniformBuffer },
+               .descriptorCount{ 1 },
+               .stageFlags{ vk::ShaderStageFlagBits::eVertex },
+            },
+            {
+               .binding{ 1 },
+               .descriptorType{ vk::DescriptorType::eCombinedImageSampler },
+               .descriptorCount{ 1 },
+               .stageFlags{ vk::ShaderStageFlagBits::eFragment },
+            }
+         }
       };
 
       return device_.createDescriptorSetLayout({
-         .bindingCount{ 1 },
-         .pBindings{ &uniform_buffer_layout_binding }
+         .bindingCount{ static_cast<std::uint32_t>(descriptor_set_layout_bindings.size()) },
+         .pBindings{ descriptor_set_layout_bindings.data() }
       });
    }
 
@@ -643,19 +657,45 @@ namespace eru
       return { static_cast<vk::Buffer>(buffer), memory };
    }
 
-   void application::copy_buffer(vk::Buffer source_buffer, vk::Buffer target_buffer, vk::DeviceSize size) const
+   std::pair<vk::Image, VmaAllocation> application::create_image(vk::Format const format, vk::ImageTiling const tiling,
+      vk::Extent3D const extent, vk::ImageUsageFlags const usage, VmaAllocationCreateFlags const allocation_flags,
+      vk::MemoryPropertyFlags const required_properties, vk::MemoryPropertyFlags const preferred_properties) const
    {
-      vk::CommandBuffer const command_buffer{
-         device_.allocateCommandBuffers({
-            .commandPool{ command_pool_ },
-            .level{ vk::CommandBufferLevel::ePrimary },
-            .commandBufferCount{ 1 }
-         }).front()
+      vk::ImageCreateInfo const image_create_info{
+         .imageType{ vk::ImageType::e2D },
+         .format{ format },
+         .extent{ extent },
+         .mipLevels{ 1 },
+         .arrayLayers{ 1 },
+         .samples{ vk::SampleCountFlagBits::e1 },
+         .tiling{ tiling },
+         .usage{ usage },
+         .sharingMode{ vk::SharingMode::eExclusive },
+         .initialLayout{ vk::ImageLayout::eUndefined }
       };
 
-      command_buffer.begin({
-         .flags{ vk::CommandBufferUsageFlagBits::eOneTimeSubmit }
-      });
+      VmaAllocationCreateInfo const allocation_create_info{
+         .flags{ allocation_flags },
+         .usage{},
+         .requiredFlags{ static_cast<VkMemoryPropertyFlags>(required_properties) },
+         .preferredFlags{ static_cast<VkMemoryPropertyFlags>(preferred_properties) },
+         .memoryTypeBits{},
+         .pool{},
+         .pUserData{},
+         .priority{}
+      };
+
+      VkImage image;
+      VmaAllocation memory;
+      vmaCreateImage(allocator_, &static_cast<VkImageCreateInfo const&>(image_create_info), &allocation_create_info,
+         &image, &memory, nullptr);
+
+      return { static_cast<vk::Image>(image), memory };
+   }
+
+   void application::copy_buffer(vk::Buffer const source_buffer, vk::Buffer const target_buffer, vk::DeviceSize size) const
+   {
+      vk::CommandBuffer const command_buffer{ begin_single_time_commands() };
 
       command_buffer.copyBuffer(source_buffer, target_buffer, {
          {
@@ -663,17 +703,105 @@ namespace eru
          }
       });
 
-      command_buffer.end();
+      end_single_time_commands(command_buffer);
+   }
 
-      graphics_queue_.submit({
+   void application::copy_buffer(vk::Buffer const buffer, vk::Image const image, vk::Extent3D const extent) const
+   {
+      vk::CommandBuffer const command_buffer{ begin_single_time_commands() };
+
+      command_buffer.copyBufferToImage(buffer, image, vk::ImageLayout::eTransferDstOptimal, {
          {
-            .commandBufferCount{ 1 },
-            .pCommandBuffers{ &command_buffer }
+            .imageSubresource{
+               .aspectMask{ vk::ImageAspectFlagBits::eColor },
+               .layerCount{ 1 }
+            },
+            .imageExtent{ extent }
          }
       });
-      graphics_queue_.waitIdle();
 
-      device_.freeCommandBuffers(command_pool_, 1, &command_buffer);
+      end_single_time_commands(command_buffer);
+   }
+
+   std::pair<vk::Image, VmaAllocation> application::create_texture_image() const
+   {
+      std::filesystem::path const texture_path{ "resources/textures/eruptor.png" };
+      if (not std::filesystem::exists(texture_path))
+         throw std::runtime_error("failed to find image file!");
+
+      unique_pointer<SDL_Surface> texture{ IMG_Load(texture_path.string().c_str()), SDL_DestroySurface };
+      texture.reset(SDL_ConvertSurface(texture.get(), SDL_PIXELFORMAT_RGBA32));
+
+      auto const image_size{ static_cast<vk::DeviceSize>(texture->pitch * texture->h) };
+      vk::Extent3D const image_extent{
+         .width{ static_cast<std::uint32_t>(texture->w) },
+         .height{ static_cast<std::uint32_t>(texture->h) },
+         .depth{ 1 }
+      };
+
+      auto const [staging_buffer, staging_allocation]{
+         create_buffer(image_size,
+            vk::BufferUsageFlagBits::eTransferSrc,
+            VMA_ALLOCATION_CREATE_MAPPED_BIT,
+            vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
+            {})
+      };
+
+      VmaAllocationInfo staging_allocation_info;
+      vmaGetAllocationInfo(allocator_, staging_allocation, &staging_allocation_info);
+      std::memcpy(staging_allocation_info.pMappedData, texture->pixels, static_cast<std::size_t>(image_size));
+
+      std::pair const texture_image{
+         create_image(vk::Format::eR8G8B8A8Srgb, vk::ImageTiling::eOptimal, image_extent,
+            vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled,
+            {},
+            vk::MemoryPropertyFlagBits::eDeviceLocal, {})
+      };
+
+      transition_image_layout(texture_image.first, vk::Format::eR8G8B8A8Srgb, vk::ImageLayout::eUndefined,
+         vk::ImageLayout::eTransferDstOptimal);
+      copy_buffer(staging_buffer, texture_image.first, image_extent);
+      vmaDestroyBuffer(allocator_, static_cast<VkBuffer>(staging_buffer), staging_allocation);
+
+      transition_image_layout(texture_image.first, vk::Format::eR8G8B8A8Srgb, vk::ImageLayout::eTransferDstOptimal,
+         vk::ImageLayout::eShaderReadOnlyOptimal);
+      return texture_image;
+   }
+
+   vk::ImageView application::create_texture_image_view() const
+   {
+      return device_.createImageView({
+         .image{ texture_image_.first },
+         .viewType{ vk::ImageViewType::e2D },
+         .format{ vk::Format::eR8G8B8A8Srgb },
+         .components{
+            .r{ vk::ComponentSwizzle::eIdentity },
+            .g{ vk::ComponentSwizzle::eIdentity },
+            .b{ vk::ComponentSwizzle::eIdentity },
+            .a{ vk::ComponentSwizzle::eIdentity }
+         },
+         .subresourceRange{
+            .aspectMask{ vk::ImageAspectFlagBits::eColor },
+            .levelCount{ 1 },
+            .layerCount{ 1 }
+         }
+      });
+   }
+
+   vk::Sampler application::create_texture_sampler() const
+   {
+      return device_.createSampler({
+         .magFilter{ vk::Filter::eLinear },
+         .minFilter{ vk::Filter::eLinear },
+         .mipmapMode{ vk::SamplerMipmapMode::eLinear },
+         .addressModeU{ vk::SamplerAddressMode::eRepeat },
+         .addressModeV{ vk::SamplerAddressMode::eRepeat },
+         .addressModeW{ vk::SamplerAddressMode::eRepeat },
+         .anisotropyEnable{ true },
+         .maxAnisotropy{ physical_device_.getProperties().limits.maxSamplerAnisotropy },
+         .compareOp{ vk::CompareOp::eAlways },
+         .borderColor{ vk::BorderColor::eIntOpaqueBlack },
+      });
    }
 
    std::pair<vk::Buffer, VmaAllocation> application::create_vertex_buffer() const
@@ -758,25 +886,34 @@ namespace eru
 
    vk::DescriptorPool application::create_descriptor_pool() const
    {
-      vk::DescriptorPoolSize constexpr descriptor_pool_size{
-         .type{ vk::DescriptorType::eUniformBuffer },
-         .descriptorCount{ FRAMES_IN_FLIGHT }
+      std::array<vk::DescriptorPoolSize, 2> constexpr descriptor_pool_sizes{
+         {
+            {
+               .type{ vk::DescriptorType::eUniformBuffer },
+               .descriptorCount{ FRAMES_IN_FLIGHT }
+            },
+            {
+               .type{ vk::DescriptorType::eCombinedImageSampler },
+               .descriptorCount{ FRAMES_IN_FLIGHT }
+            }
+         }
       };
 
       return device_.createDescriptorPool({
          .maxSets{ FRAMES_IN_FLIGHT },
-         .poolSizeCount{ 1 },
-         .pPoolSizes{ &descriptor_pool_size }
+         .poolSizeCount{ static_cast<std::uint32_t>(descriptor_pool_sizes.size()) },
+         .pPoolSizes{ descriptor_pool_sizes.data() }
       });
    }
 
    std::vector<vk::DescriptorSet> application::create_descriptor_sets() const
    {
+      std::vector const descriptor_set_layouts{ FRAMES_IN_FLIGHT, descriptor_set_layout_ };
       std::vector const descriptor_sets{
          device_.allocateDescriptorSets({
             .descriptorPool{ descriptor_pool_ },
-            .descriptorSetCount{ FRAMES_IN_FLIGHT },
-            .pSetLayouts{ std::vector{ FRAMES_IN_FLIGHT, descriptor_set_layout_ }.data() }
+            .descriptorSetCount{ static_cast<std::uint32_t>(descriptor_set_layouts.size()) },
+            .pSetLayouts{ descriptor_set_layouts.data() }
          })
       };
 
@@ -788,6 +925,12 @@ namespace eru
             .range{ sizeof(UniformBufferObject) }
          };
 
+         vk::DescriptorImageInfo const image_info{
+            .sampler{ texture_sampler_ },
+            .imageView{ texture_image_view_ },
+            .imageLayout{ vk::ImageLayout::eShaderReadOnlyOptimal }
+         };
+
          device_.updateDescriptorSets({
             {
                .dstSet{ descriptor_sets[index] },
@@ -796,6 +939,14 @@ namespace eru
                .descriptorCount{ 1 },
                .descriptorType{ vk::DescriptorType::eUniformBuffer },
                .pBufferInfo{ &buffer_info }
+            },
+            {
+               .dstSet{ descriptor_sets[index] },
+               .dstBinding{ 1 },
+               .dstArrayElement{ 0 },
+               .descriptorCount{ 1 },
+               .descriptorType{ vk::DescriptorType::eCombinedImageSampler },
+               .pImageInfo{ &image_info }
             }
          }, {});
       }
@@ -836,6 +987,88 @@ namespace eru
          });
 
       return fences;
+   }
+
+   vk::CommandBuffer application::begin_single_time_commands() const
+   {
+      vk::CommandBuffer const command_buffer{
+         device_.allocateCommandBuffers({
+            .commandPool{ command_pool_ },
+            .level{ vk::CommandBufferLevel::ePrimary },
+            .commandBufferCount{ 1 }
+         }).front()
+      };
+
+      command_buffer.begin({
+         .flags{ vk::CommandBufferUsageFlagBits::eOneTimeSubmit }
+      });
+
+      return command_buffer;
+   }
+
+   void application::end_single_time_commands(vk::CommandBuffer command_buffer) const
+   {
+      command_buffer.end();
+
+      graphics_queue_.submit({
+         {
+            .commandBufferCount{ 1 },
+            .pCommandBuffers{ &command_buffer }
+         }
+      });
+      graphics_queue_.waitIdle();
+
+      device_.freeCommandBuffers(command_pool_, 1, &command_buffer);
+   }
+
+   void application::transition_image_layout(vk::Image image, vk::Format, vk::ImageLayout old_layout,
+      vk::ImageLayout new_layout) const
+   {
+      vk::CommandBuffer const command_buffer{ begin_single_time_commands() };
+
+      vk::AccessFlags source_access_mask;
+      vk::AccessFlags destination_access_mask;
+      vk::PipelineStageFlags source_stage_mask;
+      vk::PipelineStageFlags destination_stage_mask;
+      if (old_layout == vk::ImageLayout::eUndefined and new_layout == vk::ImageLayout::eTransferDstOptimal)
+      {
+         source_access_mask = vk::AccessFlagBits::eNone;
+         destination_access_mask = vk::AccessFlagBits::eTransferWrite;
+
+         source_stage_mask = vk::PipelineStageFlagBits::eTopOfPipe;
+         destination_stage_mask = vk::PipelineStageFlagBits::eTransfer;
+      }
+      else if (old_layout == vk::ImageLayout::eTransferDstOptimal and new_layout == vk::ImageLayout::eShaderReadOnlyOptimal)
+      {
+         source_access_mask = vk::AccessFlagBits::eTransferWrite;
+         destination_access_mask = vk::AccessFlagBits::eShaderRead;
+
+         source_stage_mask = vk::PipelineStageFlagBits::eTransfer;
+         destination_stage_mask = vk::PipelineStageFlagBits::eFragmentShader;
+      }
+      else
+         throw std::invalid_argument("unsupported layout transition!");
+
+      vk::ImageMemoryBarrier const image_memory_barrier{
+         .srcAccessMask{ source_access_mask },
+         .dstAccessMask{ destination_access_mask },
+         .oldLayout{ old_layout },
+         .newLayout{ new_layout },
+         .srcQueueFamilyIndex{ vk::QueueFamilyIgnored },
+         .dstQueueFamilyIndex{ vk::QueueFamilyIgnored },
+         .image{ image },
+         .subresourceRange{
+            .aspectMask{ vk::ImageAspectFlagBits::eColor },
+            .baseMipLevel{ 0 },
+            .levelCount{ 1 },
+            .baseArrayLayer{ 0 },
+            .layerCount{ 1 }
+         }
+      };
+
+      command_buffer.pipelineBarrier(source_stage_mask, destination_stage_mask, {}, {}, {}, { image_memory_barrier });
+
+      end_single_time_commands(command_buffer);
    }
 
    void application::record_command_buffer(vk::CommandBuffer const command_buffer, std::uint32_t const image_index) const

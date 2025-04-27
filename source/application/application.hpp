@@ -49,10 +49,17 @@ namespace eru
 
          [[nodiscard]] vk::CommandPool create_command_pool() const;
          [[nodiscard]] VmaAllocator create_allocator() const;
-         [[nodiscard]] std::pair<vk::Buffer, VmaAllocation> create_buffer(vk::DeviceSize size,
-            vk::BufferUsageFlags usage, VmaAllocationCreateFlags allocation_flags,
+         [[nodiscard]] std::pair<vk::Buffer, VmaAllocation> create_buffer(vk::DeviceSize size, vk::BufferUsageFlags usage,
+            VmaAllocationCreateFlags allocation_flags, vk::MemoryPropertyFlags required_properties,
+            vk::MemoryPropertyFlags preferred_properties) const;
+         [[nodiscard]] std::pair<vk::Image, VmaAllocation> create_image(vk::Format format, vk::ImageTiling tiling,
+            vk::Extent3D extent, vk::ImageUsageFlags usage, VmaAllocationCreateFlags allocation_flags,
             vk::MemoryPropertyFlags required_properties, vk::MemoryPropertyFlags preferred_properties) const;
          void copy_buffer(vk::Buffer source_buffer, vk::Buffer target_buffer, vk::DeviceSize size) const;
+         void copy_buffer(vk::Buffer buffer, vk::Image image, vk::Extent3D extent) const;
+         [[nodiscard]] std::pair<vk::Image, VmaAllocation> create_texture_image() const;
+         [[nodiscard]] vk::ImageView create_texture_image_view() const;
+         [[nodiscard]] vk::Sampler create_texture_sampler() const;
          [[nodiscard]] std::pair<vk::Buffer, VmaAllocation> create_vertex_buffer() const;
          [[nodiscard]] std::pair<vk::Buffer, VmaAllocation> create_index_buffer() const;
          [[nodiscard]] std::vector<std::pair<vk::Buffer, VmaAllocation>> create_uniform_buffers() const;
@@ -62,6 +69,10 @@ namespace eru
          [[nodiscard]] std::vector<vk::Semaphore> create_semaphores() const;
          [[nodiscard]] std::vector<vk::Fence> create_fences() const;
 
+         [[nodiscard]] vk::CommandBuffer begin_single_time_commands() const;
+         void end_single_time_commands(vk::CommandBuffer command_buffer) const;
+         void transition_image_layout(vk::Image image, vk::Format format, vk::ImageLayout old_layout,
+            vk::ImageLayout new_layout) const;
          void record_command_buffer(vk::CommandBuffer command_buffer, std::uint32_t image_index) const;
          void draw_frame();
          void update_uniform_buffer(std::size_t current_frame) const;
@@ -111,13 +122,16 @@ namespace eru
          static std::uint32_t constexpr FRAMES_IN_FLIGHT{ 2 };
          std::size_t current_frame_{};
          std::vector<Vertex> const vertices_{
-            { { -0.5f, 0.0f, 0.5f }, { 1.0f, 0.0f, 0.0f } },
-            { { 0.5f, 0.0f, 0.5f }, { 1.0f, 0.25f, 0.0f } },
-            { { 0.5f, 0.0f, -0.5f }, { 1.0f, 1.0f, 0.0f } },
-            { { -0.5f, 0.0f, -0.5f }, { 1.0f, 0.25f, 0.0f } }
+            { { -0.5f, 0.0f, 0.5f }, { 1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f } },
+            { { 0.5f, 0.0f, 0.5f }, { 1.0f, 0.25f, 0.0f }, { 1.0f, 0.0f } },
+            { { 0.5f, 0.0f, -0.5f }, { 1.0f, 1.0f, 0.0f }, { 1.0f, 1.0f } },
+            { { -0.5f, 0.0f, -0.5f }, { 1.0f, 0.25f, 0.0f }, { 0.0f, 1.0f } }
          };
          std::vector<std::uint16_t> const indices_{ 0, 1, 3, 2 };
          VmaAllocator const allocator_{ create_allocator() };
+         std::pair<vk::Image, VmaAllocation> const texture_image_{ create_texture_image() };
+         vk::ImageView const texture_image_view_{ create_texture_image_view() };
+         vk::Sampler const texture_sampler_{ create_texture_sampler() };
          std::pair<vk::Buffer, VmaAllocation> const vertex_buffer_{ create_vertex_buffer() };
          std::pair<vk::Buffer, VmaAllocation> const index_buffer_{ create_index_buffer() };
          std::vector<std::pair<vk::Buffer, VmaAllocation>> const uniform_buffers_{ create_uniform_buffers() };
