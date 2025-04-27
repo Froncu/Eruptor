@@ -26,6 +26,8 @@ namespace eru
       device_.destroySampler(texture_sampler_);
       device_.destroyImageView(texture_image_view_);
       vmaDestroyImage(allocator_, static_cast<VkImage>(texture_image_.first), texture_image_.second);
+      device_.destroyImageView(depth_image_view_);
+      vmaDestroyImage(allocator_, static_cast<VkImage>(depth_image_.first), depth_image_.second);
       vmaDestroyAllocator(allocator_);
 
       device_.destroyPipeline(pipeline_);
@@ -386,42 +388,63 @@ namespace eru
 
    vk::RenderPass application::create_render_pass() const
    {
-      vk::AttachmentDescription const color_attachment_description{
-         .format{ swap_chain_format_.format },
-         .samples{ vk::SampleCountFlagBits::e1 },
-         .loadOp{ vk::AttachmentLoadOp::eClear },
-         .storeOp{ vk::AttachmentStoreOp::eStore },
-         .stencilLoadOp{ vk::AttachmentLoadOp::eDontCare },
-         .stencilStoreOp{ vk::AttachmentStoreOp::eDontCare },
-         .initialLayout{ vk::ImageLayout::eUndefined },
-         .finalLayout{ vk::ImageLayout::ePresentSrcKHR }
+      std::array<vk::AttachmentDescription, 2> const attachment_descriptions{
+         {
+            {
+               .format{ swap_chain_format_.format },
+               .samples{ vk::SampleCountFlagBits::e1 },
+               .loadOp{ vk::AttachmentLoadOp::eClear },
+               .storeOp{ vk::AttachmentStoreOp::eStore },
+               .stencilLoadOp{ vk::AttachmentLoadOp::eDontCare },
+               .stencilStoreOp{ vk::AttachmentStoreOp::eDontCare },
+               .initialLayout{ vk::ImageLayout::eUndefined },
+               .finalLayout{ vk::ImageLayout::ePresentSrcKHR }
+            },
+            {
+               .format{ vk::Format::eD32Sfloat },
+               .samples{ vk::SampleCountFlagBits::e1 },
+               .loadOp{ vk::AttachmentLoadOp::eClear },
+               .storeOp{ vk::AttachmentStoreOp::eDontCare },
+               .stencilLoadOp{ vk::AttachmentLoadOp::eDontCare },
+               .stencilStoreOp{ vk::AttachmentStoreOp::eDontCare },
+               .initialLayout{ vk::ImageLayout::eUndefined },
+               .finalLayout{ vk::ImageLayout::eDepthStencilAttachmentOptimal }
+            }
+         }
       };
 
-      vk::AttachmentReference constexpr color_attachment_reference{
-         .attachment{ 0 },
-         .layout{ vk::ImageLayout::eColorAttachmentOptimal }
+      std::array<vk::AttachmentReference, 2> constexpr attachment_references{
+         {
+            {
+               .attachment{ 0 },
+               .layout{ vk::ImageLayout::eColorAttachmentOptimal }
+            },
+            {
+               .attachment{ 1 },
+               .layout{ vk::ImageLayout::eDepthStencilAttachmentOptimal }
+            }
+         }
       };
 
-      // ReSharper disable once CppVariableCanBeMadeConstexpr
-      // this cannot be constexpr
       vk::SubpassDescription const subpass_description{
          .pipelineBindPoint{ vk::PipelineBindPoint::eGraphics },
          .colorAttachmentCount{ 1 },
-         .pColorAttachments{ &color_attachment_reference }
+         .pColorAttachments{ &attachment_references[0] },
+         .pDepthStencilAttachment{ &attachment_references[1] }
       };
 
       vk::SubpassDependency constexpr dependency{
          .srcSubpass{ vk::SubpassExternal },
          .dstSubpass{ 0 },
-         .srcStageMask{ vk::PipelineStageFlagBits::eColorAttachmentOutput },
-         .dstStageMask{ vk::PipelineStageFlagBits::eColorAttachmentOutput },
+         .srcStageMask{ vk::PipelineStageFlagBits::eColorAttachmentOutput | vk::PipelineStageFlagBits::eEarlyFragmentTests },
+         .dstStageMask{ vk::PipelineStageFlagBits::eColorAttachmentOutput | vk::PipelineStageFlagBits::eEarlyFragmentTests },
          .srcAccessMask{ vk::AccessFlagBits::eNone },
-         .dstAccessMask{ vk::AccessFlagBits::eColorAttachmentWrite },
+         .dstAccessMask{ vk::AccessFlagBits::eColorAttachmentWrite | vk::AccessFlagBits::eDepthStencilAttachmentWrite },
       };
 
       return device_.createRenderPass({
-         .attachmentCount{ 1 },
-         .pAttachments{ &color_attachment_description },
+         .attachmentCount{ static_cast<std::uint32_t>(attachment_descriptions.size()) },
+         .pAttachments{ attachment_descriptions.data() },
          .subpassCount{ 1 },
          .pSubpasses{ &subpass_description },
          .dependencyCount{ 1 },
@@ -435,15 +458,19 @@ namespace eru
       framebuffers.reserve(swap_chain_image_views_.size());
 
       for (vk::ImageView const image_view : swap_chain_image_views_)
+      {
+         std::array const attachments{ image_view, depth_image_view_ };
+
          framebuffers.push_back(
             device_.createFramebuffer({
                .renderPass{ render_pass_ },
-               .attachmentCount{ 1 },
-               .pAttachments{ &image_view },
+               .attachmentCount{ static_cast<std::uint32_t>(attachments.size()) },
+               .pAttachments{ attachments.data() },
                .width{ swap_chain_extent_.width },
                .height{ swap_chain_extent_.height },
                .layers{ 1 }
             }));
+      }
 
       return framebuffers;
    }
@@ -548,7 +575,11 @@ namespace eru
          .rasterizationSamples{ vk::SampleCountFlagBits::e1 }
       };
 
-      vk::PipelineDepthStencilStateCreateInfo constexpr depth_stencil_state_create_info{};
+      vk::PipelineDepthStencilStateCreateInfo constexpr depth_stencil_state_create_info{
+         .depthTestEnable{ true },
+         .depthWriteEnable{ true },
+         .depthCompareOp{ vk::CompareOp::eLess },
+      };
 
       vk::PipelineColorBlendAttachmentState constexpr color_blend_attachment_state{
          .blendEnable{ true },
@@ -721,6 +752,34 @@ namespace eru
       });
 
       end_single_time_commands(command_buffer);
+   }
+
+   std::pair<vk::Image, VmaAllocation> application::create_depth_image() const
+   {
+      return create_image(vk::Format::eD32Sfloat, vk::ImageTiling::eOptimal,
+         {
+            .width{ swap_chain_extent_.width },
+            .height{ swap_chain_extent_.height },
+            .depth{ 1 }
+         },
+         vk::ImageUsageFlagBits::eDepthStencilAttachment,
+         {},
+         vk::MemoryPropertyFlagBits::eDeviceLocal,
+         {});
+   }
+
+   vk::ImageView application::create_depth_image_view() const
+   {
+      return device_.createImageView({
+         .image{ depth_image_.first },
+         .viewType{ vk::ImageViewType::e2D },
+         .format{ vk::Format::eD32Sfloat },
+         .subresourceRange{
+            .aspectMask{ vk::ImageAspectFlagBits::eDepth },
+            .levelCount{ 1 },
+            .layerCount{ 1 }
+         }
+      });
    }
 
    std::pair<vk::Image, VmaAllocation> application::create_texture_image() const
@@ -1075,15 +1134,25 @@ namespace eru
    {
       command_buffer.begin(vk::CommandBufferBeginInfo{});
 
-      vk::ClearValue constexpr clear_color_value{ { 0.0f, 0.0f, 0.0f, 1.0f } };
+      std::array<vk::ClearValue, 2> constexpr clear_color_values{
+         {
+            { vk::ClearColorValue{ std::array{ 0.0f, 0.0f, 0.0f, 1.0f } } },
+            {
+               vk::ClearDepthStencilValue{
+                  .depth{ 1.0f }
+               }
+            }
+         }
+      };
+
       command_buffer.beginRenderPass({
          .renderPass{ render_pass_ },
          .framebuffer{ swap_chain_framebuffers_[image_index] },
          .renderArea{
             .extent{ swap_chain_extent_ }
          },
-         .clearValueCount{ 1 },
-         .pClearValues{ &clear_color_value }
+         .clearValueCount{ static_cast<std::uint32_t>(clear_color_values.size()) },
+         .pClearValues{ clear_color_values.data() }
       }, vk::SubpassContents::eInline);
 
       command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline_);
@@ -1157,7 +1226,7 @@ namespace eru
       current_frame_ = (current_frame_ + 1) % FRAMES_IN_FLIGHT;
    }
 
-   void application::update_uniform_buffer(std::size_t current_frame) const
+   void application::update_uniform_buffer(std::size_t const current_frame) const
    {
       static auto start_time{ std::chrono::high_resolution_clock::now() };
 
@@ -1185,6 +1254,9 @@ namespace eru
       for (vk::Framebuffer const framebuffer : swap_chain_framebuffers_)
          device_.destroyFramebuffer(framebuffer);
 
+      device_.destroyImageView(depth_image_view_);
+      vmaDestroyImage(allocator_, depth_image_.first, depth_image_.second);
+
       for (vk::ImageView const image_view : swap_chain_image_views_)
          device_.destroyImageView(image_view);
 
@@ -1203,6 +1275,8 @@ namespace eru
       swap_chain_ = create_swap_chain();
       swap_chain_images_ = device_.getSwapchainImagesKHR(swap_chain_);
       swap_chain_image_views_ = create_image_views();
+      depth_image_ = create_depth_image();
+      depth_image_view_ = create_depth_image_view();
       swap_chain_framebuffers_ = create_frame_buffers();
    }
 }

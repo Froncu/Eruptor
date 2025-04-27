@@ -57,6 +57,8 @@ namespace eru
             vk::MemoryPropertyFlags required_properties, vk::MemoryPropertyFlags preferred_properties) const;
          void copy_buffer(vk::Buffer source_buffer, vk::Buffer target_buffer, vk::DeviceSize size) const;
          void copy_buffer(vk::Buffer buffer, vk::Image image, vk::Extent3D extent) const;
+         [[nodiscard]] std::pair<vk::Image, VmaAllocation> create_depth_image() const;
+         [[nodiscard]] vk::ImageView create_depth_image_view() const;
          [[nodiscard]] std::pair<vk::Image, VmaAllocation> create_texture_image() const;
          [[nodiscard]] vk::ImageView create_texture_image_view() const;
          [[nodiscard]] vk::Sampler create_texture_sampler() const;
@@ -113,7 +115,6 @@ namespace eru
          std::vector<vk::ImageView> swap_chain_image_views_{ create_image_views() };
 
          vk::RenderPass const render_pass_{ create_render_pass() };
-         std::vector<vk::Framebuffer> swap_chain_framebuffers_{ create_frame_buffers() };
          vk::DescriptorSetLayout const descriptor_set_layout_{ create_descriptor_set_layout() };
          vk::PipelineLayout const pipeline_layout_{ create_pipeline_layout() };
          vk::Pipeline const pipeline_{ create_pipeline() };
@@ -125,10 +126,18 @@ namespace eru
             { { -0.5f, 0.0f, 0.5f }, { 1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f } },
             { { 0.5f, 0.0f, 0.5f }, { 1.0f, 0.25f, 0.0f }, { 1.0f, 0.0f } },
             { { 0.5f, 0.0f, -0.5f }, { 1.0f, 1.0f, 0.0f }, { 1.0f, 1.0f } },
-            { { -0.5f, 0.0f, -0.5f }, { 1.0f, 0.25f, 0.0f }, { 0.0f, 1.0f } }
+            { { -0.5f, 0.0f, -0.5f }, { 1.0f, 0.25f, 0.0f }, { 0.0f, 1.0f } },
+
+            { { -0.5f, -0.5f, 0.5f }, { 1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f } },
+            { { 0.5f, -0.5f, 0.5f }, { 1.0f, 0.25f, 0.0f }, { 1.0f, 0.0f } },
+            { { 0.5f, -0.5f, -0.5f }, { 1.0f, 1.0f, 0.0f }, { 1.0f, 1.0f } },
+            { { -0.5f, -0.5f, -0.5f }, { 1.0f, 0.25f, 0.0f }, { 0.0f, 1.0f }}
          };
-         std::vector<std::uint16_t> const indices_{ 0, 1, 3, 2 };
+         std::vector<std::uint16_t> const indices_{ 0, 1, 3, 2, 4, 5, 7, 6 };
          VmaAllocator const allocator_{ create_allocator() };
+         std::pair<vk::Image, VmaAllocation> depth_image_{ create_depth_image() };
+         vk::ImageView depth_image_view_{ create_depth_image_view() };
+         std::vector<vk::Framebuffer> swap_chain_framebuffers_{ create_frame_buffers() };
          std::pair<vk::Image, VmaAllocation> const texture_image_{ create_texture_image() };
          vk::ImageView const texture_image_view_{ create_texture_image_view() };
          vk::Sampler const texture_sampler_{ create_texture_sampler() };
