@@ -556,7 +556,7 @@ namespace eru
       // mode to point with the topology set to line does not render points but
       // lines, why?
       vk::PipelineInputAssemblyStateCreateInfo constexpr input_assembly_state_create_info{
-         .topology{ vk::PrimitiveTopology::eTriangleStrip },
+         .topology{ vk::PrimitiveTopology::eTriangleList },
       };
 
       vk::PipelineViewportStateCreateInfo constexpr viewport_state_create_info{
@@ -634,6 +634,44 @@ namespace eru
          .flags{ vk::CommandPoolCreateFlagBits::eResetCommandBuffer },
          .queueFamilyIndex{ graphics_queue_family_index_ }
       });
+   }
+
+   std::pair<std::vector<Vertex>, std::vector<std::uint32_t>> application::load_model()
+   {
+      Assimp::Importer importer{};
+      aiScene const* const scene{
+         importer.ReadFile("resources/models/viking_room.obj",
+            aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_FlipWindingOrder | aiProcess_GenNormals)
+      };
+
+      if (not scene or scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE or not scene->mRootNode)
+         throw std::runtime_error("failed to load model!");
+
+      std::vector<Vertex> vertices{};
+      std::vector<std::uint32_t> indices{};
+      for (aiMesh const* const mesh : std::vector<aiMesh*>{ scene->mMeshes, scene->mMeshes + scene->mNumMeshes })
+      {
+         if (mesh->mPrimitiveTypes not_eq aiPrimitiveType_TRIANGLE)
+            throw std::runtime_error("model is not triangulated!");
+
+         vertices.reserve(vertices.size() + mesh->mNumVertices);
+         indices.reserve(indices.size() + mesh->mNumFaces * 3);
+
+         for (unsigned int index{}; index < mesh->mNumVertices; ++index)
+            vertices.push_back({
+               .position{ mesh->mVertices[index].x, mesh->mVertices[index].z, mesh->mVertices[index].y },
+               .color{ 1.0f, 1.0f, 1.0f },
+               .uv{ mesh->mTextureCoords[0][index].x, mesh->mTextureCoords[0][index].y }
+            });
+
+         for (unsigned int index{}; index < mesh->mNumFaces; ++index)
+         {
+            aiFace const face{ mesh->mFaces[index] };
+            indices.insert(indices.end(), face.mIndices, face.mIndices + face.mNumIndices);
+         }
+      }
+
+      return { vertices, indices };
    }
 
    VmaAllocator application::create_allocator() const
@@ -784,7 +822,7 @@ namespace eru
 
    std::pair<vk::Image, VmaAllocation> application::create_texture_image() const
    {
-      std::filesystem::path const texture_path{ "resources/textures/eruptor.png" };
+      std::filesystem::path const texture_path{ "resources/textures/viking_room.png" };
       if (not std::filesystem::exists(texture_path))
          throw std::runtime_error("failed to find image file!");
 
@@ -865,7 +903,7 @@ namespace eru
 
    std::pair<vk::Buffer, VmaAllocation> application::create_vertex_buffer() const
    {
-      vk::DeviceSize const buffer_size{ sizeof(decltype(vertices_)::value_type) * vertices_.size() };
+      vk::DeviceSize const buffer_size{ sizeof(decltype(model_.first)::value_type) * model_.first.size() };
 
       auto const [staging_buffer, staging_allocation]{
          create_buffer(buffer_size,
@@ -877,7 +915,7 @@ namespace eru
 
       VmaAllocationInfo allocation_info;
       vmaGetAllocationInfo(allocator_, staging_allocation, &allocation_info);
-      std::memcpy(allocation_info.pMappedData, vertices_.data(), static_cast<std::size_t>(buffer_size));
+      std::memcpy(allocation_info.pMappedData, model_.first.data(), static_cast<std::size_t>(buffer_size));
 
       std::pair const vertex_buffer{
          create_buffer(buffer_size,
@@ -896,7 +934,7 @@ namespace eru
 
    std::pair<vk::Buffer, VmaAllocation> application::create_index_buffer() const
    {
-      vk::DeviceSize const buffer_size{ sizeof(decltype(indices_)::value_type) * indices_.size() };
+      vk::DeviceSize const buffer_size{ sizeof(decltype(model_.second)::value_type) * model_.second.size() };
 
       auto const [staging_buffer, staging_allocation]{
          create_buffer(buffer_size,
@@ -908,7 +946,7 @@ namespace eru
 
       VmaAllocationInfo allocation_info;
       vmaGetAllocationInfo(allocator_, staging_allocation, &allocation_info);
-      std::memcpy(allocation_info.pMappedData, indices_.data(), static_cast<std::size_t>(buffer_size));
+      std::memcpy(allocation_info.pMappedData, model_.second.data(), static_cast<std::size_t>(buffer_size));
 
       std::pair const index_buffer{
          create_buffer(buffer_size,
@@ -1158,7 +1196,7 @@ namespace eru
       command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline_);
 
       command_buffer.bindVertexBuffers(0, { vertex_buffer_.first }, { {} });
-      command_buffer.bindIndexBuffer(index_buffer_.first, 0, vk::IndexType::eUint16);
+      command_buffer.bindIndexBuffer(index_buffer_.first, 0, vk::IndexType::eUint32);
       command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline_layout_, 0,
          { descriptor_sets_[image_index] }, {});
 
@@ -1176,7 +1214,7 @@ namespace eru
          }
       });
 
-      command_buffer.drawIndexed(static_cast<std::uint32_t>(indices_.size()), 1, 0, 0, 0);
+      command_buffer.drawIndexed(static_cast<std::uint32_t>(model_.second.size()), 1, 0, 0, 0);
 
       command_buffer.endRenderPass();
 
@@ -1235,10 +1273,10 @@ namespace eru
 
       UniformBufferObject const uniform_buffer_object{
          .model{ glm::rotate<float, glm::defaultp>({ 1.0f }, time * glm::half_pi<float>(), { 0.0f, 1.0f, 0.0f }) },
-         .view{ glm::lookAt<float, glm::defaultp>({ 0.0f, 2.0f, -2.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, -1.0f, 0.0f }) },
+         .view{ glm::lookAt<float, glm::defaultp>({ 0.0f, 2.0f, -2.0 }, { 0.0f, 0.0f, 0.0f }, { 0.0f, -1.0f, 0.0f }) },
          .projection{
             glm::perspective(glm::radians(45.0f), swap_chain_extent_.width / static_cast<float>(swap_chain_extent_.height),
-               0.1f, 10.0f)
+               0.1f, 8.0f)
          }
       };
 

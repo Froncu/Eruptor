@@ -48,6 +48,7 @@ namespace eru
          [[nodiscard]] vk::Pipeline create_pipeline() const;
 
          [[nodiscard]] vk::CommandPool create_command_pool() const;
+         [[nodiscard]] static std::pair<std::vector<Vertex>, std::vector<std::uint32_t>> load_model();
          [[nodiscard]] VmaAllocator create_allocator() const;
          [[nodiscard]] std::pair<vk::Buffer, VmaAllocation> create_buffer(vk::DeviceSize size, vk::BufferUsageFlags usage,
             VmaAllocationCreateFlags allocation_flags, vk::MemoryPropertyFlags required_properties,
@@ -122,18 +123,7 @@ namespace eru
          vk::CommandPool const command_pool_{ create_command_pool() };
          static std::uint32_t constexpr FRAMES_IN_FLIGHT{ 2 };
          std::size_t current_frame_{};
-         std::vector<Vertex> const vertices_{
-            { { -0.5f, 0.0f, 0.5f }, { 1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f } },
-            { { 0.5f, 0.0f, 0.5f }, { 1.0f, 0.25f, 0.0f }, { 1.0f, 0.0f } },
-            { { 0.5f, 0.0f, -0.5f }, { 1.0f, 1.0f, 0.0f }, { 1.0f, 1.0f } },
-            { { -0.5f, 0.0f, -0.5f }, { 1.0f, 0.25f, 0.0f }, { 0.0f, 1.0f } },
-
-            { { -0.5f, -0.5f, 0.5f }, { 1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f } },
-            { { 0.5f, -0.5f, 0.5f }, { 1.0f, 0.25f, 0.0f }, { 1.0f, 0.0f } },
-            { { 0.5f, -0.5f, -0.5f }, { 1.0f, 1.0f, 0.0f }, { 1.0f, 1.0f } },
-            { { -0.5f, -0.5f, -0.5f }, { 1.0f, 0.25f, 0.0f }, { 0.0f, 1.0f }}
-         };
-         std::vector<std::uint16_t> const indices_{ 0, 1, 3, 2, 4, 5, 7, 6 };
+         std::pair<std::vector<Vertex>, std::vector<std::uint32_t>> model_{ load_model() };
          VmaAllocator const allocator_{ create_allocator() };
          std::pair<vk::Image, VmaAllocation> depth_image_{ create_depth_image() };
          vk::ImageView depth_image_view_{ create_depth_image_view() };
