@@ -30,7 +30,8 @@ target_link_libraries(${PROJECT_NAME}
    PRIVATE Vulkan::shaderc_combined
    PRIVATE SDL3::SDL3
    PRIVATE SDL3_image::SDL3_image
-   PRIVATE glm::glm-header-only)
+   PRIVATE glm::glm-header-only
+   PRIVATE assimp::assimp)
 
 add_custom_command(POST_BUILD TARGET ${PROJECT_NAME}
    COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different

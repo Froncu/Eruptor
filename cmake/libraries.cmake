@@ -24,7 +24,14 @@ FetchContent_Declare(glm
    GIT_PROGRESS TRUE
    GIT_SHALLOW TRUE)
 
+FetchContent_Declare(assimp
+   GIT_REPOSITORY https://github.com/assimp/assimp
+   GIT_TAG v5.4.3
+   GIT_PROGRESS TRUE
+   GIT_SHALLOW TRUE)
+
 FetchContent_Makeavailable(
    SDL
    SDL_image
-   glm)
+   glm
+   assimp)
