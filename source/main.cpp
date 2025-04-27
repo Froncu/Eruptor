@@ -6,7 +6,7 @@ int main(int const, char** const)
 {
    try
    {
-      eru::application{}.run();
+      eru::Application{}.run();
    }
    catch (std::exception const& exception)
    {

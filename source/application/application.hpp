@@ -8,17 +8,17 @@
 
 namespace eru
 {
-   class application final
+   class Application final
    {
       public:
-         application() = default;
-         application(application const&) = delete;
-         application(application&&) = delete;
+         Application() = default;
+         Application(Application const&) = delete;
+         Application(Application&&) = delete;
 
-         ~application();
+         ~Application();
 
-         application& operator=(application const&) = delete;
-         application& operator=(application&&) = delete;
+         Application& operator=(Application const&) = delete;
+         Application& operator=(Application&&) = delete;
 
          void run();
 
@@ -80,7 +80,7 @@ namespace eru
          void draw_frame();
          void update_uniform_buffer(std::size_t current_frame) const;
 
-         unique_pointer<SDL_Window> const window_{
+         UniquePointer<SDL_Window> const window_{
             []
             {
                if (not SDL_Init(SDL_INIT_VIDEO))

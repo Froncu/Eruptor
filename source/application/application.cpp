@@ -4,7 +4,7 @@
 
 namespace eru
 {
-   application::~application()
+   Application::~Application()
    {
       for (vk::Fence const fence : command_buffer_executed_fences_)
          device_.destroyFence(fence);
@@ -51,7 +51,7 @@ namespace eru
       instance_.destroy();
    }
 
-   void application::run()
+   void Application::run()
    {
       auto loop{ true };
 
@@ -82,7 +82,7 @@ namespace eru
       device_.waitIdle();
    }
 
-   vk::Instance application::create_instance()
+   vk::Instance Application::create_instance()
    {
       auto constexpr validation_layer_names{
          []
@@ -124,7 +124,7 @@ namespace eru
       }
    }
 
-   vk::DebugUtilsMessengerEXT application::create_debug_callback_messenger() const
+   vk::DebugUtilsMessengerEXT Application::create_debug_callback_messenger() const
    {
       // QUESTION: it is required to dynamically load the function
       // that create the debug utils messenger since it's an
@@ -154,7 +154,7 @@ namespace eru
       }, nullptr, dispatch_loader_dynamic_);
    }
 
-   vk::SurfaceKHR application::create_surface() const
+   vk::SurfaceKHR Application::create_surface() const
    {
       if (VkSurfaceKHR surface; SDL_Vulkan_CreateSurface(window_.get(), instance_, nullptr, &surface))
          return static_cast<vk::SurfaceKHR>(surface);
@@ -162,7 +162,7 @@ namespace eru
       throw std::runtime_error("failed to create window surface!");
    }
 
-   vk::PhysicalDevice application::pick_physical_device() const
+   vk::PhysicalDevice Application::pick_physical_device() const
    {
       std::vector const physical_devices{ instance_.enumeratePhysicalDevices() };
       if (physical_devices.empty())
@@ -175,7 +175,7 @@ namespace eru
       return physical_devices.front();
    }
 
-   std::uint32_t application::graphics_queue_family_index() const
+   std::uint32_t Application::graphics_queue_family_index() const
    {
       auto const queue_family_properties{ physical_device_.getQueueFamilyProperties() };
       for (std::uint32_t queue_family_index{}; queue_family_index < queue_family_properties.size(); ++queue_family_index)
@@ -185,7 +185,7 @@ namespace eru
       throw std::runtime_error("no queue with support for graphics operations present!");
    }
 
-   std::uint32_t application::presentation_queue_family_index() const
+   std::uint32_t Application::presentation_queue_family_index() const
    {
       auto const queue_family_properties{ physical_device_.getQueueFamilyProperties() };
       for (std::uint32_t queue_family_index{}; queue_family_index < queue_family_properties.size(); ++queue_family_index)
@@ -195,7 +195,7 @@ namespace eru
       throw std::runtime_error("no queue with support for surface presentation present!");
    }
 
-   vk::Device application::create_device() const
+   vk::Device Application::create_device() const
    {
       std::array constexpr queue_priorities{ 1.0f };
 
@@ -241,7 +241,7 @@ namespace eru
       });
    }
 
-   vk::SurfaceFormatKHR application::pick_swap_chain_format() const
+   vk::SurfaceFormatKHR Application::pick_swap_chain_format() const
    {
       std::vector const available_formats{ physical_device_.getSurfaceFormatsKHR(surface_) };
 
@@ -256,7 +256,7 @@ namespace eru
       return available_formats.front();
    }
 
-   vk::Extent2D application::pick_swap_chain_extent() const
+   vk::Extent2D Application::pick_swap_chain_extent() const
    {
       if (vk::SurfaceCapabilitiesKHR const surface_capabilities{ physical_device_.getSurfaceCapabilitiesKHR(surface_) };
          surface_capabilities.currentExtent.width not_eq std::numeric_limits<std::uint32_t>::max())
@@ -287,7 +287,7 @@ namespace eru
       }
    }
 
-   vk::SwapchainKHR application::create_swap_chain() const
+   vk::SwapchainKHR Application::create_swap_chain() const
    {
       // NOTE: eFifo is guaranteed to be present,
       // so we use it as a standard value
@@ -343,7 +343,7 @@ namespace eru
       });
    }
 
-   std::vector<vk::ImageView> application::create_image_views() const
+   std::vector<vk::ImageView> Application::create_image_views() const
    {
       std::vector<vk::ImageView> image_views{};
       image_views.reserve(swap_chain_images_.size());
@@ -370,7 +370,7 @@ namespace eru
       return image_views;
    }
 
-   vk::ShaderModule application::create_shader_module(std::vector<std::uint32_t> const& byte_code) const
+   vk::ShaderModule Application::create_shader_module(std::vector<std::uint32_t> const& byte_code) const
    {
       // QUESTION: the tutorial states: "...it's possible to
       // combine multiple fragment shaders into a single shader
@@ -386,7 +386,7 @@ namespace eru
       });
    }
 
-   vk::RenderPass application::create_render_pass() const
+   vk::RenderPass Application::create_render_pass() const
    {
       std::array<vk::AttachmentDescription, 2> const attachment_descriptions{
          {
@@ -452,7 +452,7 @@ namespace eru
       });
    }
 
-   std::vector<vk::Framebuffer> application::create_frame_buffers() const
+   std::vector<vk::Framebuffer> Application::create_frame_buffers() const
    {
       std::vector<vk::Framebuffer> framebuffers{};
       framebuffers.reserve(swap_chain_image_views_.size());
@@ -475,7 +475,7 @@ namespace eru
       return framebuffers;
    }
 
-   vk::DescriptorSetLayout application::create_descriptor_set_layout() const
+   vk::DescriptorSetLayout Application::create_descriptor_set_layout() const
    {
       std::array<vk::DescriptorSetLayoutBinding, 2> constexpr descriptor_set_layout_bindings{
          {
@@ -500,7 +500,7 @@ namespace eru
       });
    }
 
-   vk::PipelineLayout application::create_pipeline_layout() const
+   vk::PipelineLayout Application::create_pipeline_layout() const
    {
       return device_.createPipelineLayout({
          .setLayoutCount{ 1 },
@@ -508,7 +508,7 @@ namespace eru
       });
    }
 
-   vk::Pipeline application::create_pipeline() const
+   vk::Pipeline Application::create_pipeline() const
    {
       std::array constexpr dynamic_states{
          vk::DynamicState::eViewport,
@@ -628,7 +628,7 @@ namespace eru
       return pipeline;
    }
 
-   vk::CommandPool application::create_command_pool() const
+   vk::CommandPool Application::create_command_pool() const
    {
       return device_.createCommandPool({
          .flags{ vk::CommandPoolCreateFlagBits::eResetCommandBuffer },
@@ -636,7 +636,7 @@ namespace eru
       });
    }
 
-   std::pair<std::vector<Vertex>, std::vector<std::uint32_t>> application::load_model()
+   std::pair<std::vector<Vertex>, std::vector<std::uint32_t>> Application::load_model()
    {
       Assimp::Importer importer{};
       aiScene const* const scene{
@@ -674,7 +674,7 @@ namespace eru
       return { vertices, indices };
    }
 
-   VmaAllocator application::create_allocator() const
+   VmaAllocator Application::create_allocator() const
    {
       VmaAllocatorCreateInfo const allocator_create_info{
          .flags{},
@@ -697,7 +697,7 @@ namespace eru
       return allocator;
    }
 
-   std::pair<vk::Buffer, VmaAllocation> application::create_buffer(vk::DeviceSize const size, vk::BufferUsageFlags const usage,
+   std::pair<vk::Buffer, VmaAllocation> Application::create_buffer(vk::DeviceSize const size, vk::BufferUsageFlags const usage,
       VmaAllocationCreateFlags const allocation_flags, vk::MemoryPropertyFlags const required_properties,
       vk::MemoryPropertyFlags const preferred_properties) const
    {
@@ -726,7 +726,7 @@ namespace eru
       return { static_cast<vk::Buffer>(buffer), memory };
    }
 
-   std::pair<vk::Image, VmaAllocation> application::create_image(vk::Format const format, vk::ImageTiling const tiling,
+   std::pair<vk::Image, VmaAllocation> Application::create_image(vk::Format const format, vk::ImageTiling const tiling,
       vk::Extent3D const extent, vk::ImageUsageFlags const usage, VmaAllocationCreateFlags const allocation_flags,
       vk::MemoryPropertyFlags const required_properties, vk::MemoryPropertyFlags const preferred_properties) const
    {
@@ -762,7 +762,7 @@ namespace eru
       return { static_cast<vk::Image>(image), memory };
    }
 
-   void application::copy_buffer(vk::Buffer const source_buffer, vk::Buffer const target_buffer, vk::DeviceSize size) const
+   void Application::copy_buffer(vk::Buffer const source_buffer, vk::Buffer const target_buffer, vk::DeviceSize size) const
    {
       vk::CommandBuffer const command_buffer{ begin_single_time_commands() };
 
@@ -775,7 +775,7 @@ namespace eru
       end_single_time_commands(command_buffer);
    }
 
-   void application::copy_buffer(vk::Buffer const buffer, vk::Image const image, vk::Extent3D const extent) const
+   void Application::copy_buffer(vk::Buffer const buffer, vk::Image const image, vk::Extent3D const extent) const
    {
       vk::CommandBuffer const command_buffer{ begin_single_time_commands() };
 
@@ -792,7 +792,7 @@ namespace eru
       end_single_time_commands(command_buffer);
    }
 
-   std::pair<vk::Image, VmaAllocation> application::create_depth_image() const
+   std::pair<vk::Image, VmaAllocation> Application::create_depth_image() const
    {
       return create_image(vk::Format::eD32Sfloat, vk::ImageTiling::eOptimal,
          {
@@ -806,7 +806,7 @@ namespace eru
          {});
    }
 
-   vk::ImageView application::create_depth_image_view() const
+   vk::ImageView Application::create_depth_image_view() const
    {
       return device_.createImageView({
          .image{ depth_image_.first },
@@ -820,13 +820,13 @@ namespace eru
       });
    }
 
-   std::pair<vk::Image, VmaAllocation> application::create_texture_image() const
+   std::pair<vk::Image, VmaAllocation> Application::create_texture_image() const
    {
       std::filesystem::path const texture_path{ "resources/textures/viking_room.png" };
       if (not std::filesystem::exists(texture_path))
          throw std::runtime_error("failed to find image file!");
 
-      unique_pointer<SDL_Surface> texture{ IMG_Load(texture_path.string().c_str()), SDL_DestroySurface };
+      UniquePointer<SDL_Surface> texture{ IMG_Load(texture_path.string().c_str()), SDL_DestroySurface };
       texture.reset(SDL_ConvertSurface(texture.get(), SDL_PIXELFORMAT_RGBA32));
 
       auto const image_size{ static_cast<vk::DeviceSize>(texture->pitch * texture->h) };
@@ -865,7 +865,7 @@ namespace eru
       return texture_image;
    }
 
-   vk::ImageView application::create_texture_image_view() const
+   vk::ImageView Application::create_texture_image_view() const
    {
       return device_.createImageView({
          .image{ texture_image_.first },
@@ -885,7 +885,7 @@ namespace eru
       });
    }
 
-   vk::Sampler application::create_texture_sampler() const
+   vk::Sampler Application::create_texture_sampler() const
    {
       return device_.createSampler({
          .magFilter{ vk::Filter::eLinear },
@@ -901,7 +901,7 @@ namespace eru
       });
    }
 
-   std::pair<vk::Buffer, VmaAllocation> application::create_vertex_buffer() const
+   std::pair<vk::Buffer, VmaAllocation> Application::create_vertex_buffer() const
    {
       vk::DeviceSize const buffer_size{ sizeof(decltype(model_.first)::value_type) * model_.first.size() };
 
@@ -932,7 +932,7 @@ namespace eru
       return vertex_buffer;
    }
 
-   std::pair<vk::Buffer, VmaAllocation> application::create_index_buffer() const
+   std::pair<vk::Buffer, VmaAllocation> Application::create_index_buffer() const
    {
       vk::DeviceSize const buffer_size{ sizeof(decltype(model_.second)::value_type) * model_.second.size() };
 
@@ -963,7 +963,7 @@ namespace eru
       return index_buffer;
    }
 
-   std::vector<std::pair<vk::Buffer, VmaAllocation>> application::create_uniform_buffers() const
+   std::vector<std::pair<vk::Buffer, VmaAllocation>> Application::create_uniform_buffers() const
    {
       vk::DeviceSize constexpr buffer_size{ sizeof(UniformBufferObject) };
 
@@ -981,7 +981,7 @@ namespace eru
       return uniform_buffers;
    }
 
-   vk::DescriptorPool application::create_descriptor_pool() const
+   vk::DescriptorPool Application::create_descriptor_pool() const
    {
       std::array<vk::DescriptorPoolSize, 2> constexpr descriptor_pool_sizes{
          {
@@ -1003,7 +1003,7 @@ namespace eru
       });
    }
 
-   std::vector<vk::DescriptorSet> application::create_descriptor_sets() const
+   std::vector<vk::DescriptorSet> Application::create_descriptor_sets() const
    {
       std::vector const descriptor_set_layouts{ FRAMES_IN_FLIGHT, descriptor_set_layout_ };
       std::vector const descriptor_sets{
@@ -1051,7 +1051,7 @@ namespace eru
       return descriptor_sets;
    }
 
-   std::vector<vk::CommandBuffer> application::create_command_buffers() const
+   std::vector<vk::CommandBuffer> Application::create_command_buffers() const
    {
       return device_.allocateCommandBuffers({
          .commandPool{ command_pool_ },
@@ -1060,7 +1060,7 @@ namespace eru
       });
    }
 
-   std::vector<vk::Semaphore> application::create_semaphores() const
+   std::vector<vk::Semaphore> Application::create_semaphores() const
    {
       std::vector<vk::Semaphore> semaphores(FRAMES_IN_FLIGHT);
       std::ranges::generate(semaphores,
@@ -1072,7 +1072,7 @@ namespace eru
       return semaphores;
    }
 
-   std::vector<vk::Fence> application::create_fences() const
+   std::vector<vk::Fence> Application::create_fences() const
    {
       std::vector<vk::Fence> fences(FRAMES_IN_FLIGHT);
       std::ranges::generate(fences,
@@ -1086,7 +1086,7 @@ namespace eru
       return fences;
    }
 
-   vk::CommandBuffer application::begin_single_time_commands() const
+   vk::CommandBuffer Application::begin_single_time_commands() const
    {
       vk::CommandBuffer const command_buffer{
          device_.allocateCommandBuffers({
@@ -1103,7 +1103,7 @@ namespace eru
       return command_buffer;
    }
 
-   void application::end_single_time_commands(vk::CommandBuffer command_buffer) const
+   void Application::end_single_time_commands(vk::CommandBuffer command_buffer) const
    {
       command_buffer.end();
 
@@ -1118,7 +1118,7 @@ namespace eru
       device_.freeCommandBuffers(command_pool_, 1, &command_buffer);
    }
 
-   void application::transition_image_layout(vk::Image image, vk::Format, vk::ImageLayout old_layout,
+   void Application::transition_image_layout(vk::Image image, vk::Format, vk::ImageLayout old_layout,
       vk::ImageLayout new_layout) const
    {
       vk::CommandBuffer const command_buffer{ begin_single_time_commands() };
@@ -1168,7 +1168,7 @@ namespace eru
       end_single_time_commands(command_buffer);
    }
 
-   void application::record_command_buffer(vk::CommandBuffer const command_buffer, std::uint32_t const image_index) const
+   void Application::record_command_buffer(vk::CommandBuffer const command_buffer, std::uint32_t const image_index) const
    {
       command_buffer.begin(vk::CommandBufferBeginInfo{});
 
@@ -1221,7 +1221,7 @@ namespace eru
       command_buffer.end();
    }
 
-   void application::draw_frame()
+   void Application::draw_frame()
    {
       if (device_.waitForFences({ command_buffer_executed_fences_[current_frame_] }, true,
          std::numeric_limits<std::uint64_t>::max()) not_eq vk::Result::eSuccess)
@@ -1264,7 +1264,7 @@ namespace eru
       current_frame_ = (current_frame_ + 1) % FRAMES_IN_FLIGHT;
    }
 
-   void application::update_uniform_buffer(std::size_t const current_frame) const
+   void Application::update_uniform_buffer(std::size_t const current_frame) const
    {
       static auto start_time{ std::chrono::high_resolution_clock::now() };
 
@@ -1285,7 +1285,7 @@ namespace eru
       std::memcpy(allocation_info.pMappedData, &uniform_buffer_object, sizeof(uniform_buffer_object));
    }
 
-   void application::recreate_swapchain()
+   void Application::recreate_swapchain()
    {
       device_.waitIdle();
 
