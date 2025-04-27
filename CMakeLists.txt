@@ -27,7 +27,11 @@ include(libraries)
 
 # TODO: figure out why Vulkan::shaderc_combined gives linker errors when using MinGW
 if (MINGW)
-   set(shaderc_lib $ENV{VULKAN_SDK}/Lib/shaderc_shared.lib)
+   if (CMAKE_SIZEOF_VOID_P EQUAL 4)
+      set(shaderc_lib $ENV{VULKAN_SDK}/Lib32/shaderc_shared.lib)
+   else ()
+      set(shaderc_lib $ENV{VULKAN_SDK}/Lib/shaderc_shared.lib)
+   endif ()
 else ()
    set(shaderc_lib Vulkan::shaderc_combined)
 endif ()

@@ -19,10 +19,10 @@ namespace eru
 
       device_.destroyDescriptorPool(descriptor_pool_);
       for (auto&& [buffer, allocation] : uniform_buffers_)
-         vmaDestroyBuffer(allocator_, buffer, allocation);
+         vmaDestroyBuffer(allocator_, static_cast<VkBuffer>(buffer), allocation);
 
-      vmaDestroyBuffer(allocator_, index_buffer_.first, index_buffer_.second);
-      vmaDestroyBuffer(allocator_, vertex_buffer_.first, vertex_buffer_.second);
+      vmaDestroyBuffer(allocator_, static_cast<VkBuffer>(index_buffer_.first), index_buffer_.second);
+      vmaDestroyBuffer(allocator_, static_cast<VkBuffer>(vertex_buffer_.first), vertex_buffer_.second);
       vmaDestroyAllocator(allocator_);
 
       device_.destroyPipeline(pipeline_);
@@ -127,7 +127,7 @@ namespace eru
       // how come it's not needed in other extension functions?
       // ANSWER: that's the way it is, there are libraries that handle this
       // for you (like VOLK)
-      return instance_.createDebugUtilsMessengerEXT({
+      return instance_.createDebugUtilsMessengerEXT(vk::DebugUtilsMessengerCreateInfoEXT{
          .messageSeverity{
             vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose |
             vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning |
@@ -139,10 +139,8 @@ namespace eru
             vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance
          },
          .pfnUserCallback{
-            [](VkDebugUtilsMessageSeverityFlagBitsEXT const,
-            VkDebugUtilsMessageTypeFlagsEXT const,
-            VkDebugUtilsMessengerCallbackDataEXT const* const callback_data,
-            void* const) -> vk::Bool32
+            [](VkDebugUtilsMessageSeverityFlagBitsEXT, VkDebugUtilsMessageTypeFlagsEXT,
+               VkDebugUtilsMessengerCallbackDataEXT const* callback_data, void*) -> VkBool32
             {
                std::cout << std::format("[VALIDATION LAYER MESSAGE]\n{}\n\n", callback_data->pMessage);
                return false;
@@ -154,7 +152,7 @@ namespace eru
    vk::SurfaceKHR application::create_surface() const
    {
       if (VkSurfaceKHR surface; SDL_Vulkan_CreateSurface(window_.get(), instance_, nullptr, &surface))
-         return { surface };
+         return static_cast<vk::SurfaceKHR>(surface);
 
       throw std::runtime_error("failed to create window surface!");
    }
@@ -616,9 +614,9 @@ namespace eru
       return allocator;
    }
 
-   std::pair<vk::Buffer, VmaAllocation> application::create_buffer(vk::DeviceSize const size,
-      vk::BufferUsageFlags const usage, VmaAllocationCreateFlags const allocation_flags,
-      vk::MemoryPropertyFlags const required_properties, vk::MemoryPropertyFlags const preferred_properties) const
+   std::pair<vk::Buffer, VmaAllocation> application::create_buffer(vk::DeviceSize const size, vk::BufferUsageFlags const usage,
+      VmaAllocationCreateFlags const allocation_flags, vk::MemoryPropertyFlags const required_properties,
+      vk::MemoryPropertyFlags const preferred_properties) const
    {
       vk::BufferCreateInfo const buffer_create_info{
          .size{ size },
@@ -642,7 +640,7 @@ namespace eru
       vmaCreateBuffer(allocator_, &static_cast<VkBufferCreateInfo const&>(buffer_create_info), &allocation_create_info,
          &buffer, &memory, nullptr);
 
-      return { buffer, memory };
+      return { static_cast<vk::Buffer>(buffer), memory };
    }
 
    void application::copy_buffer(vk::Buffer source_buffer, vk::Buffer target_buffer, vk::DeviceSize size) const
@@ -692,7 +690,7 @@ namespace eru
 
       VmaAllocationInfo allocation_info;
       vmaGetAllocationInfo(allocator_, staging_allocation, &allocation_info);
-      std::memcpy(allocation_info.pMappedData, vertices_.data(), buffer_size);
+      std::memcpy(allocation_info.pMappedData, vertices_.data(), static_cast<std::size_t>(buffer_size));
 
       std::pair const vertex_buffer{
          create_buffer(buffer_size,
@@ -704,7 +702,7 @@ namespace eru
 
       copy_buffer(staging_buffer, vertex_buffer.first, buffer_size);
 
-      vmaDestroyBuffer(allocator_, staging_buffer, staging_allocation);
+      vmaDestroyBuffer(allocator_, static_cast<VkBuffer>(staging_buffer), staging_allocation);
 
       return vertex_buffer;
    }
@@ -723,7 +721,7 @@ namespace eru
 
       VmaAllocationInfo allocation_info;
       vmaGetAllocationInfo(allocator_, staging_allocation, &allocation_info);
-      std::memcpy(allocation_info.pMappedData, indices_.data(), buffer_size);
+      std::memcpy(allocation_info.pMappedData, indices_.data(), static_cast<std::size_t>(buffer_size));
 
       std::pair const index_buffer{
          create_buffer(buffer_size,
@@ -735,7 +733,7 @@ namespace eru
 
       copy_buffer(staging_buffer, index_buffer.first, buffer_size);
 
-      vmaDestroyBuffer(allocator_, staging_buffer, staging_allocation);
+      vmaDestroyBuffer(allocator_, static_cast<VkBuffer>(staging_buffer), staging_allocation);
 
       return index_buffer;
    }
