@@ -13,6 +13,8 @@
 #include <iostream>
 #include <optional>
 #include <ranges>
+#include <set>
+#include <variant>
 
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
@@ -25,6 +27,6 @@
 #include <SDL3_image/SDL_image.h>
 #include <shaderc/shaderc.hpp>
 #include <vma/vk_mem_alloc.h>
-#include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_raii.hpp>
 
 #endif

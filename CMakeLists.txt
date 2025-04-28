@@ -3,10 +3,18 @@ project(Eruptor)
 
 add_executable(${PROJECT_NAME}
    source/application/application.cpp
+   source/context/context.cpp
+   source/context/context_builder.cpp
    source/erupch/erupch.cpp
+   source/eruptor/eruptor.cpp
    source/main.cpp
-   source/math/vertex.cpp
-   source/shader_compiler/shader_compiler.cpp)
+   source/mesh/vertex.cpp
+   source/renderer/device/device.cpp
+   source/renderer/device/device_builder.cpp
+   source/renderer/renderer.cpp
+   source/scene/scene.cpp
+   source/shader_compiler/shader_compiler.cpp
+   source/window/window.cpp)
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
    CXX_STANDARD 20

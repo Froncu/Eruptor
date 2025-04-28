@@ -3,7 +3,7 @@
 
 #include "constants.hpp"
 #include "erupch/erupch.hpp"
-#include "math/vertex.hpp"
+#include "mesh/vertex.hpp"
 #include "utility/unique_pointer.hpp"
 
 namespace eru
