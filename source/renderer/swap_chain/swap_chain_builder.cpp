@@ -112,6 +112,7 @@ namespace eru
                   .layerCount{ 1 }
                }
             }),
+            format_.format,
             vk::ImageLayout::eUndefined
          });
 

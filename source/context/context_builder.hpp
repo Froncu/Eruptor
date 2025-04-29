@@ -18,9 +18,9 @@ namespace eru
          ContextBuilder& operator=(ContextBuilder&&) = delete;
 
          ContextBuilder& enable_validation_layer(std::string validation_layer_name);
-         ContextBuilder& enable_validation_layers(std::span<std::string> validation_layer_names);
+         ContextBuilder& enable_validation_layers(std::initializer_list<std::string> validation_layer_names);
          ContextBuilder& enable_extension(std::string extenion_name);
-         ContextBuilder& enable_extensions(std::span<std::string> extenion_names);
+         ContextBuilder& enable_extensions(std::initializer_list<std::string> extenion_names);
 
          [[nodiscard]] Context build();
 

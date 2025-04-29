@@ -10,8 +10,6 @@ namespace eru
 {
    class DeviceBuilder final
    {
-      using RequiredQueueInfo = std::pair<vk::QueueFlags, vk::SurfaceKHR>;
-
       struct QueueInfo final
       {
          std::unordered_map<std::uint32_t, std::uint32_t> family_create_counts{};
@@ -19,6 +17,8 @@ namespace eru
       };
 
       public:
+         using RequiredQueueInfo = std::pair<vk::QueueFlags, vk::SurfaceKHR>;
+
          DeviceBuilder() = default;
          DeviceBuilder(DeviceBuilder const&) = delete;
          DeviceBuilder(DeviceBuilder&&) = delete;
@@ -29,7 +29,7 @@ namespace eru
          DeviceBuilder& operator=(DeviceBuilder&&) = delete;
 
          DeviceBuilder& enable_extension(std::string extension_name);
-         DeviceBuilder& enable_extensions(std::span<std::string> extension_names);
+         DeviceBuilder& enable_extensions(std::initializer_list<std::string> extension_names);
          DeviceBuilder& enable_features(vk::PhysicalDeviceFeatures const& features);
          DeviceBuilder& add_queues(RequiredQueueInfo const& info, std::uint32_t count = 1);
          DeviceBuilder& add_queues(vk::QueueFlags flags, std::uint32_t count = 1);

@@ -7,6 +7,8 @@ namespace eru
 {
    class RenderPass final
    {
+      friend class RenderPassBuilder;
+
       public:
          RenderPass(RenderPass const&) = delete;
          RenderPass(RenderPass&&) = delete;
@@ -17,6 +19,8 @@ namespace eru
          RenderPass& operator=(RenderPass&&) = delete;
 
       private:
+         explicit(false) RenderPass(vk::raii::RenderPass render_pass);
+
          vk::raii::RenderPass render_pass_;
    };
 }

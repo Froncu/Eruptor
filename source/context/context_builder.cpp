@@ -8,9 +8,11 @@ namespace eru
       return *this;
    }
 
-   ContextBuilder& ContextBuilder::enable_validation_layers(std::span<std::string> const validation_layer_names)
+   ContextBuilder& ContextBuilder::enable_validation_layers(std::initializer_list<std::string> const validation_layer_names)
    {
-      validation_layer_names_.insert(validation_layer_names.begin(), validation_layer_names.end());
+      validation_layer_names_.insert(
+         std::make_move_iterator(validation_layer_names.begin()),
+         std::make_move_iterator(validation_layer_names.end()));
       return *this;
    }
 
@@ -20,9 +22,11 @@ namespace eru
       return *this;
    }
 
-   ContextBuilder& ContextBuilder::enable_extensions(std::span<std::string> const extenion_names)
+   ContextBuilder& ContextBuilder::enable_extensions(std::initializer_list<std::string> const extenion_names)
    {
-      extension_names_.insert(extenion_names.begin(), extenion_names.end());
+      extension_names_.insert(
+         std::make_move_iterator(extenion_names.begin()),
+         std::make_move_iterator(extenion_names.end()));
       return *this;
    }
 

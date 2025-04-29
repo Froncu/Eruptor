@@ -8,9 +8,9 @@ namespace eru
       return *this;
    }
 
-   DeviceBuilder& DeviceBuilder::enable_extensions(std::span<std::string> const extension_names)
+   DeviceBuilder& DeviceBuilder::enable_extensions(std::initializer_list<std::string> const extension_names)
    {
-      extension_names_.insert(extension_names.begin(), extension_names.end());
+      extension_names_.insert(std::make_move_iterator(extension_names.begin()), std::make_move_iterator(extension_names.end()));
       return *this;
    }
 

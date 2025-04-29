@@ -417,7 +417,7 @@ namespace eru
          {
             {
                .attachment{ 0 },
-               .layout{ vk::ImageLayout::eColorAttachmentOptimal }
+               .layout{ vk::ImageLayout::eColorAttachmentOptimal },
             },
             {
                .attachment{ 1 },
@@ -439,7 +439,7 @@ namespace eru
          .srcStageMask{ vk::PipelineStageFlagBits::eColorAttachmentOutput | vk::PipelineStageFlagBits::eEarlyFragmentTests },
          .dstStageMask{ vk::PipelineStageFlagBits::eColorAttachmentOutput | vk::PipelineStageFlagBits::eEarlyFragmentTests },
          .srcAccessMask{ vk::AccessFlagBits::eNone },
-         .dstAccessMask{ vk::AccessFlagBits::eColorAttachmentWrite | vk::AccessFlagBits::eDepthStencilAttachmentWrite },
+         .dstAccessMask{ vk::AccessFlagBits::eColorAttachmentWrite | vk::AccessFlagBits::eDepthStencilAttachmentWrite }
       };
 
       return device_.createRenderPass({
