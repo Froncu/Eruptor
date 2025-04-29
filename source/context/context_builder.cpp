@@ -36,8 +36,6 @@ namespace eru
       if (not validation_layer_names_.empty())
          extension_names_.insert(vk::EXTDebugUtilsExtensionName);
 
-      vk::raii::Context context{};
-
       auto validation_layer_names_view{
          std::views::transform(validation_layer_names_,
             [](std::string const& validation_layer_name) -> char const*
@@ -56,6 +54,7 @@ namespace eru
       };
       std::vector<char const*> extension_names{ extension_names_view.begin(), extension_names_view.end() };
 
+      vk::raii::Context context{};
       vk::raii::Instance instance{
          context, {
             .enabledLayerCount{ static_cast<std::uint32_t>(validation_layer_names.size()) },

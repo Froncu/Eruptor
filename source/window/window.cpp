@@ -3,7 +3,7 @@
 namespace eru
 {
    Window::Window(Context const& context, std::string_view const title, vk::Extent2D const extent)
-      : native_window_{
+      : window_{
          [title, extent]
          {
             if (not SDL_Init(SDL_INIT_VIDEO))
@@ -19,11 +19,11 @@ namespace eru
          }
       }
       , surface_{
-         context.instance_,
+         context.instance(),
          [this, &context]
          {
-            if (VkSurfaceKHR surface; SDL_Vulkan_CreateSurface(native_window_.get(),
-               *context.instance_, nullptr, &surface))
+            if (VkSurfaceKHR surface; SDL_Vulkan_CreateSurface(window_.get(),
+               *context.instance(), nullptr, &surface))
                return surface;
 
             throw std::runtime_error(std::format("failed to create window surface ({})", SDL_GetError()));
@@ -32,13 +32,23 @@ namespace eru
    {
    }
 
-   SDL_Window* Window::native_window() const
+   SDL_Window* Window::window() const
    {
-      return native_window_.get();
+      return window_.get();
    }
 
    vk::raii::SurfaceKHR const& Window::surface() const
    {
       return surface_;
+   }
+
+   vk::Extent2D Window::extent() const
+   {
+      int width;
+      int height;
+      if (not SDL_GetWindowSizeInPixels(window_.get(), &width, &height))
+         throw std::runtime_error(std::format("failed to get window size in pixels: {}\n", SDL_GetError()));
+
+      return { static_cast<std::uint32_t>(width), static_cast<std::uint32_t>(height) };
    }
 }

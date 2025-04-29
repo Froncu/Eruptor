@@ -11,7 +11,13 @@ add_executable(${PROJECT_NAME}
    source/mesh/vertex.cpp
    source/renderer/device/device.cpp
    source/renderer/device/device_builder.cpp
+   source/renderer/device/device_queue.cpp
+   source/renderer/image/image.cpp
+   source/renderer/render_pass/render_pass.cpp
+   source/renderer/render_pass/render_pass_builder.cpp
    source/renderer/renderer.cpp
+   source/renderer/swap_chain/swap_chain.cpp
+   source/renderer/swap_chain/swap_chain_builder.cpp
    source/scene/scene.cpp
    source/shader_compiler/shader_compiler.cpp
    source/window/window.cpp)

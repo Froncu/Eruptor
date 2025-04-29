@@ -1056,7 +1056,7 @@ namespace eru
       return device_.allocateCommandBuffers({
          .commandPool{ command_pool_ },
          .level{ vk::CommandBufferLevel::ePrimary },
-         .commandBufferCount{ FRAMES_IN_FLIGHT },
+         .commandBufferCount{ FRAMES_IN_FLIGHT }
       });
    }
 
@@ -1174,7 +1174,11 @@ namespace eru
 
       std::array<vk::ClearValue, 2> constexpr clear_color_values{
          {
-            { vk::ClearColorValue{ std::array{ 0.0f, 0.0f, 0.0f, 1.0f } } },
+            {
+               vk::ClearColorValue{
+                  std::array{ 0.0f, 0.0f, 0.0f, 1.0f }
+               }
+            },
             {
                vk::ClearDepthStencilValue{
                   .depth{ 1.0f }

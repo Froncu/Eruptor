@@ -8,7 +8,6 @@ namespace eru
    class Context final
    {
       friend class ContextBuilder;
-      friend class Window;
 
       public:
          Context(Context const&) = delete;

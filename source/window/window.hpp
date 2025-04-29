@@ -19,11 +19,12 @@ namespace eru
          Window& operator=(Window const&) = delete;
          Window& operator=(Window&&) = delete;
 
-         [[nodiscard]] SDL_Window* native_window() const;
+         [[nodiscard]] SDL_Window* window() const;
          [[nodiscard]] vk::raii::SurfaceKHR const& surface() const;
+         [[nodiscard]] vk::Extent2D extent() const;
 
       private:
-         UniquePointer<SDL_Window> const native_window_;
+         UniquePointer<SDL_Window> const window_;
          vk::raii::SurfaceKHR const surface_;
    };
 }

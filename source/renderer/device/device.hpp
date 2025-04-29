@@ -1,5 +1,6 @@
 #ifndef DEVICE_HPP
 #define DEVICE_HPP
+#include "device_queue.hpp"
 
 namespace eru
 {
@@ -18,14 +19,16 @@ namespace eru
 
          [[nodiscard]] vk::raii::PhysicalDevice const& physical_device() const;
          [[nodiscard]] vk::raii::Device const& device() const;
-         [[nodiscard]] std::vector<vk::raii::Queue> const& queues() const;
+         [[nodiscard]] std::vector<DeviceQueue> const& queues() const;
 
       private:
-         Device(vk::raii::PhysicalDevice physical_device, vk::raii::Device device, std::vector<vk::raii::Queue> queues);
+         Device(vk::raii::PhysicalDevice physical_device, vk::raii::Device device, std::vector<DeviceQueue> queues,
+            std::unordered_map<std::uint32_t, vk::raii::CommandPool> command_pools);
 
          vk::raii::PhysicalDevice physical_device_;
          vk::raii::Device device_;
-         std::vector<vk::raii::Queue> queues_;
+         std::vector<DeviceQueue> queues_;
+         std::unordered_map<std::uint32_t, vk::raii::CommandPool> command_pools_;
    };
 }
 

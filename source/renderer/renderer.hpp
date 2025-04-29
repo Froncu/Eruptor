@@ -2,6 +2,8 @@
 #define RENDERER_HPP
 
 #include "device/device_builder.hpp"
+#include "swap_chain/swap_chain_builder.hpp"
+#include "window/window.hpp"
 
 namespace eru
 {
@@ -21,7 +23,9 @@ namespace eru
 
       private:
          Device device_;
-         vk::raii::Queue queue_{ device_.queues().front() };
+         DeviceQueue const& queue_{ device_.queues().front() };
+         SwapChainBuilder swap_chain_builder_{};
+         SwapChain swap_chain_;
    };
 }
 

@@ -3,6 +3,7 @@
 
 #include "context/context.hpp"
 #include "device.hpp"
+#include "device_queue.hpp"
 #include "erupch/erupch.hpp"
 
 namespace eru
@@ -18,7 +19,7 @@ namespace eru
       };
 
       public:
-         explicit DeviceBuilder(Context const& context);
+         DeviceBuilder() = default;
          DeviceBuilder(DeviceBuilder const&) = delete;
          DeviceBuilder(DeviceBuilder&&) = delete;
 
@@ -34,15 +35,15 @@ namespace eru
          DeviceBuilder& add_queues(vk::QueueFlags flags, std::uint32_t count = 1);
          DeviceBuilder& add_queues(vk::raii::SurfaceKHR surface, std::uint32_t count = 1);
 
-         [[nodiscard]] Device build();
+         [[nodiscard]] Device build(Context const& context);
 
       private:
-         [[nodiscard]] vk::raii::PhysicalDevice pick_physical_device();
+         [[nodiscard]] vk::raii::PhysicalDevice pick_physical_device(Context const& context);
          [[nodiscard]] vk::raii::Device create_device(vk::raii::PhysicalDevice const& physical_device);
-         [[nodiscard]] std::vector<vk::raii::Queue> retrieve_queues(vk::raii::PhysicalDevice const& physical_device,
+         [[nodiscard]] std::vector<DeviceQueue> retrieve_queues(vk::raii::PhysicalDevice const& physical_device,
             vk::raii::Device const& device);
-
-         Context const& context_;
+         [[nodiscard]] std::unordered_map<std::uint32_t, vk::raii::CommandPool> create_command_pools(
+            vk::raii::PhysicalDevice const& physical_device, vk::raii::Device const& device);
 
          std::set<std::string> extension_names_{};
          vk::PhysicalDeviceFeatures features_{};

@@ -2,11 +2,6 @@
 
 namespace eru
 {
-   DeviceBuilder::DeviceBuilder(Context const& context)
-      : context_{ context }
-   {
-   }
-
    DeviceBuilder& DeviceBuilder::enable_extension(std::string extension_name)
    {
       extension_names_.insert(std::move(extension_name));
@@ -53,18 +48,22 @@ namespace eru
       return *this;
    }
 
-   Device DeviceBuilder::build()
+   Device DeviceBuilder::build(Context const& context)
    {
       queue_infos_.clear();
 
-      vk::raii::PhysicalDevice physical_device{ pick_physical_device() };
+      vk::raii::PhysicalDevice physical_device{ pick_physical_device(context) };
       vk::raii::Device device{ create_device(physical_device) };
-      return { std::move(physical_device), std::move(device), retrieve_queues(physical_device, device) };
+      return {
+         std::move(physical_device), std::move(device),
+         retrieve_queues(physical_device, device),
+         create_command_pools(physical_device, device)
+      };
    }
 
-   vk::raii::PhysicalDevice DeviceBuilder::pick_physical_device()
+   vk::raii::PhysicalDevice DeviceBuilder::pick_physical_device(Context const& context)
    {
-      std::vector physical_devices{ context_.instance().enumeratePhysicalDevices() };
+      std::vector physical_devices{ context.instance().enumeratePhysicalDevices() };
       if (physical_devices.empty())
          throw std::runtime_error("no physical device with Vulkan support found!");
 
@@ -196,7 +195,7 @@ namespace eru
       });
    }
 
-   std::vector<vk::raii::Queue> DeviceBuilder::retrieve_queues(vk::raii::PhysicalDevice const& physical_device,
+   std::vector<DeviceQueue> DeviceBuilder::retrieve_queues(vk::raii::PhysicalDevice const& physical_device,
       vk::raii::Device const& device)
    {
       auto& [family_create_counts, retrieval_infos]{ queue_infos_[*physical_device] };
@@ -204,10 +203,26 @@ namespace eru
       for (std::uint32_t& family_create_count : std::views::values(family_create_counts))
          family_create_count = 0;
 
-      std::vector<vk::raii::Queue> queues{};
+      std::vector<DeviceQueue> queues{};
       for (std::uint32_t family_index : retrieval_infos)
-         queues.emplace_back(device.getQueue(family_index, family_create_counts[family_index]++));
+         queues.push_back(DeviceQueue{
+            family_index,
+            device.getQueue(family_index, family_create_counts[family_index]++)
+         });
 
       return queues;
+   }
+
+   std::unordered_map<std::uint32_t, vk::raii::CommandPool> DeviceBuilder::create_command_pools(
+      vk::raii::PhysicalDevice const& physical_device, vk::raii::Device const& device)
+   {
+      std::unordered_map<std::uint32_t, vk::raii::CommandPool> command_pools{};
+      for (std::uint32_t const family_index : std::views::keys(queue_infos_[*physical_device].family_create_counts))
+         command_pools.emplace(family_index, device.createCommandPool({
+            .flags{ vk::CommandPoolCreateFlagBits::eResetCommandBuffer },
+            .queueFamilyIndex{ family_index }
+         }));
+
+      return command_pools;
    }
 }

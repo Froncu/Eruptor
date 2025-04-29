@@ -2,10 +2,12 @@
 
 namespace eru
 {
-   Device::Device(vk::raii::PhysicalDevice physical_device, vk::raii::Device device, std::vector<vk::raii::Queue> queues)
+   Device::Device(vk::raii::PhysicalDevice physical_device, vk::raii::Device device, std::vector<DeviceQueue> queues,
+      std::unordered_map<std::uint32_t, vk::raii::CommandPool> command_pools)
       : physical_device_{ std::move(physical_device) }
       , device_{ std::move(device) }
       , queues_{ std::move(queues) }
+      , command_pools_{ std::move(command_pools) }
    {
    }
 
@@ -19,7 +21,7 @@ namespace eru
       return device_;
    }
 
-   std::vector<vk::raii::Queue> const& Device::queues() const
+   std::vector<DeviceQueue> const& Device::queues() const
    {
       return queues_;
    }
