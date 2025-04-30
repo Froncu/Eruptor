@@ -1,26 +1,8 @@
 cmake_minimum_required(VERSION 3.15)
 project(Eruptor)
 
-add_executable(${PROJECT_NAME}
-   source/application/application.cpp
-   source/context/context.cpp
-   source/context/context_builder.cpp
-   source/erupch/erupch.cpp
-   source/eruptor/eruptor.cpp
-   source/main.cpp
-   source/mesh/vertex.cpp
-   source/renderer/device/device.cpp
-   source/renderer/device/device_builder.cpp
-   source/renderer/device/device_queue.cpp
-   source/renderer/image/image.cpp
-   source/renderer/render_pass/render_pass.cpp
-   source/renderer/render_pass/render_pass_builder.cpp
-   source/renderer/renderer.cpp
-   source/renderer/swap_chain/swap_chain.cpp
-   source/renderer/swap_chain/swap_chain_builder.cpp
-   source/scene/scene.cpp
-   source/shader_compiler/shader_compiler.cpp
-   source/window/window.cpp)
+file(GLOB_RECURSE ERU_SOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/source/*.cpp)
+add_executable(${PROJECT_NAME} ${ERU_SOURCE_FILES})
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
    CXX_STANDARD 20
@@ -45,7 +27,8 @@ target_link_libraries(${PROJECT_NAME}
    PRIVATE SDL3::SDL3
    PRIVATE SDL3_image::SDL3_image
    PRIVATE glm::glm-header-only
-   PRIVATE assimp::assimp)
+   PRIVATE assimp::assimp
+   PRIVATE spdlog::spdlog)
 
 add_custom_command(POST_BUILD TARGET ${PROJECT_NAME}
    COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different

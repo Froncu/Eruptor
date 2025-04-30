@@ -1,31 +1,75 @@
 #ifndef WINDOW_HPP
 #define WINDOW_HPP
 
-#include "context/context.hpp"
+#include "events/observer/event_dispatcher.hpp"
+#include "events/window_event.hpp"
 #include "erupch/erupch.hpp"
+#include "reference/reference.hpp"
+#include "reference/referenceable.hpp"
+#include "services/locator.hpp"
+#include "services/system_event_dispatcher/system_event_dispatcher.hpp"
 #include "utility/unique_pointer.hpp"
+#include "utility/variant_visitor.hpp"
+
+struct SDL_Window;
 
 namespace eru
 {
-   class Window
+   class Window final : public Referenceable
    {
       public:
-         explicit Window(Context const& context, std::string_view title = "Eruptor", vk::Extent2D extent = { 1280, 720 });
-         Window(Window const&) = delete;
-         Window(Window&&) = delete;
+         explicit Window(std::string_view title = "Application", vk::Extent2D extent = { 640, 480 });
 
-         ~Window() = default;
+         Window(Window const& other);
+         Window(Window&&) = default;
 
-         Window& operator=(Window const&) = delete;
-         Window& operator=(Window&&) = delete;
+         virtual ~Window() override = default;
 
-         [[nodiscard]] SDL_Window* window() const;
-         [[nodiscard]] vk::raii::SurfaceKHR const& surface() const;
+         Window& operator=(Window const& other);
+         Window& operator=(Window&&) = default;
+
+         void change_title(std::string_view title);
+         void change_extent(vk::Extent2D size);
+         void change_position(glm::ivec2 position);
+         void center();
+         void change_fullscreen_mode(bool fullscreen);
+         void change_resizability(bool resizable);
+         void change_visibility(bool show);
+
+         [[nodiscard]] ID::InternalValue id() const;
+         [[nodiscard]] std::string_view title() const;
          [[nodiscard]] vk::Extent2D extent() const;
+         [[nodiscard]] glm::ivec2 position() const;
+         [[nodiscard]] bool fullscreen() const;
+         [[nodiscard]] bool resizable() const;
+         [[nodiscard]] bool visible() const;
+
+         EventDispatcher<> close_event{};
+         EventListener<WindowEvent const> on_render_context_event
+         {
+            VariantVisitor
+            {
+               [smart_this = Reference<Window>{ this }](WindowCloseEvent const& event)
+               {
+                  if (smart_this->id() not_eq event.id)
+                     return false;
+
+                  smart_this->close_event.notify();
+                  return true;
+               },
+
+               [](auto)
+               {
+                  return false;
+               }
+            },
+            Locator::get<SystemEventDispatcher>().render_context_event
+         };
 
       private:
-         UniquePointer<SDL_Window> const window_;
-         vk::raii::SurfaceKHR const surface_;
+         Window(std::string_view title, vk::Extent2D size, std::optional<glm::ivec2> const& position, std::uint64_t flags);
+
+         UniquePointer<SDL_Window> native_window_;
    };
 }
 

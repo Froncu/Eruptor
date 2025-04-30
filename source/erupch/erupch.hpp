@@ -14,6 +14,8 @@
 #include <optional>
 #include <ranges>
 #include <set>
+#include <typeindex>
+#include <utility>
 #include <variant>
 
 #include <assimp/Importer.hpp>
@@ -22,10 +24,12 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/mat4x4.hpp>
 #include <glm/vec4.hpp>
+#include <glm/vec4.hpp>
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_vulkan.h>
 #include <SDL3_image/SDL_image.h>
 #include <shaderc/shaderc.hpp>
+#include <spdlog/spdlog.h>
 #include <vma/vk_mem_alloc.h>
 #include <vulkan/vulkan_raii.hpp>
 

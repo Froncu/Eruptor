@@ -30,8 +30,15 @@ FetchContent_Declare(assimp
    GIT_PROGRESS TRUE
    GIT_SHALLOW TRUE)
 
+FetchContent_Declare(spdlog
+   GIT_REPOSITORY https://github.com/gabime/spdlog
+   GIT_TAG v1.15.2
+   GIT_PROGRESS TRUE
+   GIT_SHALLOW TRUE)
+
 FetchContent_Makeavailable(
    SDL
    SDL_image
    glm
-   assimp)
+   assimp
+   spdlog)

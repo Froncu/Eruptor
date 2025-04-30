@@ -4,7 +4,13 @@
 
 int main(int const, char** const)
 {
-   SDL_InitSubSystem(SDL_INIT_VIDEO);
+   SDL_InitFlags constexpr initialization_flags{
+      SDL_INIT_EVENTS |
+      SDL_INIT_VIDEO |
+      SDL_INIT_GAMEPAD
+   };
+
+   SDL_InitSubSystem(initialization_flags);
 
    try
    {
@@ -15,7 +21,7 @@ int main(int const, char** const)
       std::cout << std::format("exception caught: {}\n", exception.what());
    }
 
-   SDL_QuitSubSystem(SDL_INIT_VIDEO);
+   SDL_QuitSubSystem(initialization_flags);
 
    return 0;
 }
