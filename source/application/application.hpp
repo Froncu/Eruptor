@@ -1,7 +1,7 @@
 #ifndef APPLICATION_HPP
 #define APPLICATION_HPP
 
-#include "../constants.hpp"
+#include "constants.hpp"
 #include "erupch/erupch.hpp"
 #include "mesh/vertex.hpp"
 #include "utility/unique_pointer.hpp"

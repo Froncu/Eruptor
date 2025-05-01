@@ -1,8 +1,8 @@
 #ifndef SWAP_CHAIN_BUILDER_HPP
 #define SWAP_CHAIN_BUILDER_HPP
 
-#include "renderer/device/device.hpp"
-#include "swap_chain.hpp"
+#include "renderer/device.hpp"
+#include "renderer/swap_chain.hpp"
 #include "window/window.hpp"
 
 namespace eru

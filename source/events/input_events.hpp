@@ -53,7 +53,7 @@ namespace eru
    {
       ID::InternalValue const id;
       GamepadAxis const axis;
-      double const value;
+      float const value;
    };
 
    using MouseButtonEvent = std::variant<

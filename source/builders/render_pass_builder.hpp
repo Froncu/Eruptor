@@ -1,8 +1,8 @@
 #ifndef RENDER_PASS_BUILDER_HPP
 #define RENDER_PASS_BUILDER_HPP
 
-#include "renderer/device/device.hpp"
-#include "render_pass.hpp"
+#include "renderer/device.hpp"
+#include "renderer/render_pass.hpp"
 
 namespace eru
 {

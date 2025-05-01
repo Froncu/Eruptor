@@ -1,7 +1,7 @@
 #ifndef CONTEXT_BUILDER_HPP
 #define CONTEXT_BUILDER_HPP
 
-#include "context.hpp"
+#include "context/context.hpp"
 
 namespace eru
 {

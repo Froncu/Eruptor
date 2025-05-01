@@ -2,8 +2,8 @@
 #define DEVICE_BUILDER_HPP
 
 #include "context/context.hpp"
-#include "device.hpp"
-#include "device_queue.hpp"
+#include "renderer/device.hpp"
+#include "renderer/device_queue.hpp"
 #include "erupch/erupch.hpp"
 
 namespace eru

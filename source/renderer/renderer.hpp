@@ -1,9 +1,7 @@
 #ifndef RENDERER_HPP
 #define RENDERER_HPP
 
-#include "device/device_builder.hpp"
-#include "render_pass/render_pass.hpp"
-#include "swap_chain/swap_chain_builder.hpp"
+#include "builders/device_builder.hpp"
 #include "window/window.hpp"
 
 namespace eru
@@ -21,13 +19,6 @@ namespace eru
          Renderer& operator=(Renderer&&) = delete;
 
          void render();
-
-      private:
-         Device device_;
-         DeviceQueue const& queue_{ device_.queues().front() };
-         SwapChainBuilder swap_chain_builder_{};
-         SwapChain swap_chain_;
-         RenderPass render_pass_;
    };
 }
 

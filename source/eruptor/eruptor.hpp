@@ -1,7 +1,7 @@
 #ifndef ERUPTOR_HPP
 #define ERUPTOR_HPP
 
-#include "context/context_builder.hpp"
+#include "../builders/context_builder.hpp"
 #include "renderer/renderer.hpp"
 #include "window/window.hpp"
 
@@ -27,8 +27,8 @@ namespace eru
             .enable_validation_layer("VK_LAYER_KHRONOS_validation")
             .build()
          };
-         Window window_{ context_ };
-         Renderer renderer_{ context_, window_ };
+         //Window window_{ context_ };
+         //Renderer renderer_{ context_, window_ };
    };
 }
 

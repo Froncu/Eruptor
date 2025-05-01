@@ -4,7 +4,7 @@ namespace eru
 {
    float UserInput::deadzoned_strength(float const strength, float const deadzone)
    {
-      return strength < deadzone ? 0.0 : (strength - deadzone) / (1.0 - deadzone);
+      return strength < deadzone ? 0.0f : (strength - deadzone) / (1.0f - deadzone);
    }
 
    float UserInput::highest_strength(std::unordered_set<Input> const& inputs,

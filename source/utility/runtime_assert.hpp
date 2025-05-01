@@ -8,7 +8,7 @@ namespace eru
 {
    template <typename... Arguments>
    void runtime_assert([[maybe_unused]] bool const condition,
-      [[maybe_unused]] std::format_string<Arguments...> const format,
+      [[maybe_unused]] spdlog::format_string_t<Arguments...> const format,
       [[maybe_unused]] Arguments&&... arguments)
    {
       if constexpr (constants::DEBUG)
