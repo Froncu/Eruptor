@@ -1,7 +1,8 @@
 #ifndef RENDERER_HPP
 #define RENDERER_HPP
 
-#include "builders/device_builder.hpp"
+#include "device.hpp"
+#include "swap_chain.hpp"
 #include "window/window.hpp"
 
 namespace eru
@@ -9,7 +10,7 @@ namespace eru
    class Renderer final
    {
       public:
-         Renderer(Context const& context, Window const& window);
+         explicit Renderer(Window const& window);
          Renderer(Renderer const&) = delete;
          Renderer(Renderer&&) = delete;
 
@@ -19,6 +20,10 @@ namespace eru
          Renderer& operator=(Renderer&&) = delete;
 
          void render();
+
+      private:
+         Device device_;
+         SwapChain swap_chain_;
    };
 }
 

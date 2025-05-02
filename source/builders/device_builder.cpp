@@ -1,16 +1,51 @@
 #include "device_builder.hpp"
+#include "services/context/context.hpp"
+#include "services/locator.hpp"
 
 namespace eru
 {
+   UniquePointer<VmaAllocator_T> DeviceBuilder::create_allocator(vk::raii::PhysicalDevice const& physical_device,
+      vk::raii::Device const& device)
+   {
+      VmaAllocatorCreateInfo const allocator_create_info{
+         .flags{},
+         .physicalDevice{ *physical_device },
+         .device{ *device },
+         .preferredLargeHeapBlockSize{},
+         .pAllocationCallbacks{},
+         .pDeviceMemoryCallbacks{},
+         .pHeapSizeLimit{},
+         .pVulkanFunctions{},
+         .instance{ *Locator::get<Context>()->instance() },
+         .vulkanApiVersion{},
+         .pTypeExternalMemoryHandleTypes{},
+      };
+
+      VmaAllocator allocator;
+      if (vmaCreateAllocator(&allocator_create_info, &allocator) not_eq VK_SUCCESS)
+         throw std::runtime_error("failed to create Vulkan memory allocator!");
+
+      return { allocator, vmaDestroyAllocator };
+   }
+
    DeviceBuilder& DeviceBuilder::enable_extension(std::string extension_name)
    {
+      if (extension_name.empty())
+         return *this;
+
+      if (extension_name == vk::KHRDynamicRenderingExtensionName)
+         dynamic_rendering_ = true;
+
       extension_names_.insert(std::move(extension_name));
+
       return *this;
    }
 
-   DeviceBuilder& DeviceBuilder::enable_extensions(std::initializer_list<std::string> const extension_names)
+   DeviceBuilder& DeviceBuilder::enable_extensions(std::vector<std::string> extension_names)
    {
-      extension_names_.insert(std::make_move_iterator(extension_names.begin()), std::make_move_iterator(extension_names.end()));
+      for (std::string& extension_name : extension_names)
+         enable_extension(std::move(extension_name));
+
       return *this;
    }
 
@@ -48,22 +83,23 @@ namespace eru
       return *this;
    }
 
-   Device DeviceBuilder::build(Context const& context)
+   Device DeviceBuilder::build()
    {
       queue_infos_.clear();
 
-      vk::raii::PhysicalDevice physical_device{ pick_physical_device(context) };
+      vk::raii::PhysicalDevice physical_device{ pick_physical_device() };
       vk::raii::Device device{ create_device(physical_device) };
       return {
          std::move(physical_device), std::move(device),
          retrieve_queues(physical_device, device),
-         create_command_pools(physical_device, device)
+         create_command_pools(physical_device, device),
+         create_allocator(physical_device, device)
       };
    }
 
-   vk::raii::PhysicalDevice DeviceBuilder::pick_physical_device(Context const& context)
+   vk::raii::PhysicalDevice DeviceBuilder::pick_physical_device()
    {
-      std::vector physical_devices{ context.instance().enumeratePhysicalDevices() };
+      std::vector physical_devices{ Locator::get<Context>()->instance().enumeratePhysicalDevices() };
       if (physical_devices.empty())
          throw std::runtime_error("no physical device with Vulkan support found!");
 
@@ -182,11 +218,16 @@ namespace eru
       };
       std::vector<char const*> extension_names{ extension_names_view.begin(), extension_names_view.end() };
 
+      vk::PhysicalDeviceDynamicRenderingFeaturesKHR const dynamic_rendering_features{
+         .dynamicRendering{ dynamic_rendering_ }
+      };
+
       // TODO: for backwards compatibility, enable the same
       // validation layers on each logical device as
       // the ones enabled on the instance from which the
       // logical device is created
       return physical_device.createDevice({
+         .pNext{ &dynamic_rendering_features },
          .queueCreateInfoCount{ static_cast<std::uint32_t>(queue_infos.size()) },
          .pQueueCreateInfos{ queue_infos.data() },
          .enabledExtensionCount{ static_cast<std::uint32_t>(extension_names.size()) },

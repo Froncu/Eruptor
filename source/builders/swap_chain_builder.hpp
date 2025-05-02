@@ -24,11 +24,11 @@ namespace eru
          SwapChainBuilder& change_old_swap_chain(SwapChain const* old_swap_chain);
 
          [[nodiscard]] SwapChain build(Device const& device, Window const& window,
-            std::initializer_list<std::reference_wrapper<DeviceQueue const>> queues);
+            std::span<DeviceQueue const> queues);
 
       private:
          [[nodiscard]] vk::raii::SwapchainKHR create_swap_chain(Device const& device, Window const& window,
-            std::initializer_list<std::reference_wrapper<DeviceQueue const>> queues);
+            std::span<DeviceQueue const> queues);
          [[nodiscard]] std::vector<Image> create_images(Device const& device, vk::raii::SwapchainKHR const& swap_chain);
 
          vk::SurfaceFormatKHR format_{ vk::Format::eB8G8R8A8Unorm, vk::ColorSpaceKHR::eSrgbNonlinear };

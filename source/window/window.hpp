@@ -11,8 +11,6 @@
 #include "utility/unique_pointer.hpp"
 #include "utility/variant_visitor.hpp"
 
-struct SDL_Window;
-
 namespace eru
 {
    class Window final : public Referenceable
@@ -44,8 +42,17 @@ namespace eru
          [[nodiscard]] bool resizable() const;
          [[nodiscard]] bool visible() const;
 
+         [[nodiscard]] vk::raii::SurfaceKHR const& surface() const;
+
          EventDispatcher<> close_event{};
-         EventListener<WindowEvent const> on_render_context_event
+         EventDispatcher<vk::Extent2D const> resize_event{};
+
+      private:
+         Window(std::string_view title, vk::Extent2D size, std::optional<glm::ivec2> const& position, std::uint64_t flags);
+
+         UniquePointer<SDL_Window> native_window_;
+         vk::raii::SurfaceKHR surface_;
+         EventListener<WindowEvent const> on_window_event_
          {
             VariantVisitor
             {
@@ -58,18 +65,22 @@ namespace eru
                   return true;
                },
 
+               [smart_this = Reference<Window>{ this }](WindowResizeEvent const& event)
+               {
+                  if (smart_this->id() not_eq event.id)
+                     return false;
+
+                  smart_this->resize_event.notify(event.extent);
+                  return true;
+               },
+
                [](auto)
                {
                   return false;
                }
             },
-            Locator::get<SystemEventDispatcher>().render_context_event
+            Locator::get<SystemEventDispatcher>().window_event
          };
-
-      private:
-         Window(std::string_view title, vk::Extent2D size, std::optional<glm::ivec2> const& position, std::uint64_t flags);
-
-         UniquePointer<SDL_Window> native_window_;
    };
 }
 

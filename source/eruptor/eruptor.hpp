@@ -1,7 +1,6 @@
 #ifndef ERUPTOR_HPP
 #define ERUPTOR_HPP
 
-#include "../builders/context_builder.hpp"
 #include "renderer/renderer.hpp"
 #include "window/window.hpp"
 
@@ -22,13 +21,17 @@ namespace eru
          void run();
 
       private:
-         Context context_{
-            ContextBuilder{}
-            .enable_validation_layer("VK_LAYER_KHRONOS_validation")
-            .build()
+         Window window_{ "Eruptor" };
+         Renderer renderer_{ window_ };
+         EventListener<> on_window_close_{
+            [this]
+            {
+               is_running_ = false;
+               return true;
+            },
+            window_.close_event
          };
-         //Window window_{ context_ };
-         //Renderer renderer_{ context_, window_ };
+         bool is_running_{ true };
    };
 }
 

@@ -4,13 +4,23 @@
 
 namespace eru
 {
-   void SystemEventDispatcher::poll_events(){
+   void SystemEventDispatcher::poll_events()
+   {
       SDL_Event native_event;
       while (SDL_PollEvent(&native_event))
          switch (native_event.type)
          {
             case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
-               render_context_event.notify(WindowCloseEvent{ .id{ native_event.window.windowID } });
+               window_event.notify(WindowCloseEvent{ .id{ native_event.window.windowID } });
+               break;
+
+            case SDL_EVENT_WINDOW_RESIZED:
+               window_event.notify(WindowResizeEvent{
+                  .extent{
+                     .width{ static_cast<std::uint32_t>(native_event.window.data1) },
+                     .height{ static_cast<std::uint32_t>(native_event.window.data2) }
+                  }
+               });
                break;
 
             case SDL_EVENT_KEY_DOWN:

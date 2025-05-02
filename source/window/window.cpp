@@ -1,5 +1,4 @@
-#include <SDL3/SDL.h>
-
+#include "services/context/context.hpp"
 #include "window.hpp"
 #include "utility/runtime_assert.hpp"
 
@@ -10,12 +9,28 @@ namespace eru
       : native_window_{
          [](std::string_view const title, vk::Extent2D const size, std::uint64_t const flags)
          {
-            SDL_Window* const native_window{ SDL_CreateWindow(title.data(), size.width, size.height, flags) };
+            SDL_Window* const native_window{
+               SDL_CreateWindow(title.data(), size.width, size.height, flags | SDL_WINDOW_VULKAN)
+            };
             runtime_assert(native_window, "failed to create an SDL window ({})",
                SDL_GetError());
+
             return native_window;
          }(title, size, flags),
          SDL_DestroyWindow
+      }
+      , surface_{
+         [](SDL_Window& window) -> vk::raii::SurfaceKHR
+         {
+            vk::raii::Instance const& instance{ Locator::get<Context>()->instance() };
+
+            VkSurfaceKHR surface;
+            bool const succeeded{ SDL_Vulkan_CreateSurface(&window, *instance, nullptr, &surface) };
+            runtime_assert(succeeded, "failed to create window surface ({})",
+               SDL_GetError());
+
+            return { instance, surface };
+         }(*native_window_)
       }
    {
       if (position.has_value())
@@ -140,5 +155,10 @@ namespace eru
    bool Window::visible() const
    {
       return not(SDL_GetWindowFlags(native_window_.get()) & SDL_WINDOW_HIDDEN);
+   }
+
+   vk::raii::SurfaceKHR const& Window::surface() const
+   {
+      return surface_;
    }
 }

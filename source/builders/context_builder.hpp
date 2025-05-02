@@ -1,7 +1,7 @@
 #ifndef CONTEXT_BUILDER_HPP
 #define CONTEXT_BUILDER_HPP
 
-#include "context/context.hpp"
+#include "services/context/context.hpp"
 
 namespace eru
 {
@@ -17,14 +17,16 @@ namespace eru
          ContextBuilder& operator=(ContextBuilder const&) = delete;
          ContextBuilder& operator=(ContextBuilder&&) = delete;
 
+         ContextBuilder& change_api_version(std::uint32_t api_version);
          ContextBuilder& enable_validation_layer(std::string validation_layer_name);
-         ContextBuilder& enable_validation_layers(std::initializer_list<std::string> validation_layer_names);
+         ContextBuilder& enable_validation_layers(std::vector<std::string> validation_layer_names);
          ContextBuilder& enable_extension(std::string extenion_name);
-         ContextBuilder& enable_extensions(std::initializer_list<std::string> extenion_names);
+         ContextBuilder& enable_extensions(std::vector<std::string> extenion_names);
 
          [[nodiscard]] Context build();
 
       private:
+         std::uint32_t api_version_{ vk::ApiVersion };
          std::unordered_set<std::string> validation_layer_names_{};
          std::unordered_set<std::string> extension_names_{};
    };

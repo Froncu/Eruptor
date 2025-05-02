@@ -21,14 +21,14 @@ namespace eru
    }
 
    SwapChain SwapChainBuilder::build(Device const& device, Window const& window,
-      std::initializer_list<std::reference_wrapper<DeviceQueue const>> queues)
+      std::span<DeviceQueue const> queues)
    {
       vk::raii::SwapchainKHR swap_chain{ create_swap_chain(device, window, queues) };
       return { std::move(swap_chain), create_images(device, swap_chain) };
    }
 
    vk::raii::SwapchainKHR SwapChainBuilder::create_swap_chain(Device const& device, Window const& window,
-      std::initializer_list<std::reference_wrapper<DeviceQueue const>> queues)
+      std::span<DeviceQueue const> queues)
    {
       vk::SurfaceCapabilitiesKHR const surface_capabilities{
          device.physical_device().getSurfaceCapabilitiesKHR(window.surface())

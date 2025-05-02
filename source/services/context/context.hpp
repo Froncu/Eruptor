@@ -11,12 +11,12 @@ namespace eru
 
       public:
          Context(Context const&) = delete;
-         Context(Context&&) = delete;
+         Context(Context&&) = default;
 
          ~Context() = default;
 
          Context& operator=(Context const&) = delete;
-         Context& operator=(Context&&) = delete;
+         Context& operator=(Context&&) = default;
 
          [[nodiscard]] vk::raii::Context const& context() const;
          [[nodiscard]] vk::raii::Instance const& instance() const;

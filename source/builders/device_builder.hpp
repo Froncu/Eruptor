@@ -1,10 +1,9 @@
 #ifndef DEVICE_BUILDER_HPP
 #define DEVICE_BUILDER_HPP
 
-#include "context/context.hpp"
+#include "erupch/erupch.hpp"
 #include "renderer/device.hpp"
 #include "renderer/device_queue.hpp"
-#include "erupch/erupch.hpp"
 
 namespace eru
 {
@@ -29,22 +28,26 @@ namespace eru
          DeviceBuilder& operator=(DeviceBuilder&&) = delete;
 
          DeviceBuilder& enable_extension(std::string extension_name);
-         DeviceBuilder& enable_extensions(std::initializer_list<std::string> extension_names);
+         DeviceBuilder& enable_extensions(std::vector<std::string> extension_names);
          DeviceBuilder& enable_features(vk::PhysicalDeviceFeatures const& features);
          DeviceBuilder& add_queues(RequiredQueueInfo const& info, std::uint32_t count = 1);
          DeviceBuilder& add_queues(vk::QueueFlags flags, std::uint32_t count = 1);
          DeviceBuilder& add_queues(vk::raii::SurfaceKHR surface, std::uint32_t count = 1);
 
-         [[nodiscard]] Device build(Context const& context);
+         [[nodiscard]] Device build();
 
       private:
-         [[nodiscard]] vk::raii::PhysicalDevice pick_physical_device(Context const& context);
+         [[nodiscard]] static UniquePointer<VmaAllocator_T> create_allocator(vk::raii::PhysicalDevice const& physical_device,
+            vk::raii::Device const& device);
+
+         [[nodiscard]] vk::raii::PhysicalDevice pick_physical_device();
          [[nodiscard]] vk::raii::Device create_device(vk::raii::PhysicalDevice const& physical_device);
          [[nodiscard]] std::vector<DeviceQueue> retrieve_queues(vk::raii::PhysicalDevice const& physical_device,
             vk::raii::Device const& device);
          [[nodiscard]] std::unordered_map<std::uint32_t, vk::raii::CommandPool> create_command_pools(
             vk::raii::PhysicalDevice const& physical_device, vk::raii::Device const& device);
 
+         bool dynamic_rendering_{};
          std::set<std::string> extension_names_{};
          vk::PhysicalDeviceFeatures features_{};
          std::vector<RequiredQueueInfo> required_queues_{};

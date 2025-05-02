@@ -11,15 +11,18 @@ namespace eru
    class Locator final
    {
       public:
-         template <std::default_initializable Service, std::derived_from<Service> Provider, typename... Arguments>
+         template <typename Service, std::derived_from<Service> Provider, typename... Arguments>
             requires std::constructible_from<Provider, Arguments...>
          static void set(Arguments&&... arguments)
          {
             if constexpr (std::movable<Service> and std::movable<Provider>)
             {
-               UniquePointer<void>& current_provider{ internal_get<Service>() };
                Provider new_provider{ std::forward<Arguments>(arguments)... };
-               static_cast<Service&>(new_provider) = std::move(*static_cast<Service*>(current_provider.get()));
+
+               UniquePointer<void>& current_provider{ internal_get<Service>() };
+               if (std::default_initializable<Service> or current_provider)
+                  static_cast<Service&>(new_provider) = std::move(*static_cast<Service*>(current_provider.get()));
+
                current_provider = UniquePointer<void>{ new Provider{ std::move(new_provider) }, void_deleter<Provider> };
             }
             else
@@ -27,17 +30,27 @@ namespace eru
                   UniquePointer<void>{ new Provider{ std::forward<Arguments>(arguments)... }, void_deleter<Provider> };
          }
 
-         template <std::default_initializable Service>
          static void reset()
          {
-            services_[type_index<Service>()] =
-               UniquePointer<void>{ new Service{}, void_deleter<Service> };
+            services_.clear();
+         }
+
+         template <typename Service>
+         static void reset()
+         {
+            services_.erase(type_index<Service>());
          }
 
          template <std::default_initializable Service>
          [[nodiscard]] static Service& get()
          {
             return *static_cast<Service*>(internal_get<Service>().get());
+         }
+
+         template <typename Service>
+         [[nodiscard]] static Service* get()
+         {
+            return static_cast<Service*>(internal_get<Service>().get());
          }
 
          Locator() = delete;
@@ -50,15 +63,15 @@ namespace eru
          Locator& operator=(Locator&&) = delete;
 
       private:
-         template <std::default_initializable Service>
+         template <typename Service>
          [[nodiscard]] static UniquePointer<void>& internal_get()
          {
-            auto service{ services_.find(type_index<Service>()) };
-            if (service == services_.end())
-               service = services_.emplace(type_index<Service>(),
-                  UniquePointer<void>{ new Service{}, void_deleter<Service> }).first;
+            UniquePointer<void>& service{ services_[type_index<Service>()] };
+            if constexpr (std::default_initializable<Service>)
+               if (not service)
+                  service = UniquePointer<void>{ new Service{}, void_deleter<Service> };
 
-            return service->second;
+            return service;
          }
 
          static std::unordered_map<std::type_index, UniquePointer<void>> services_;

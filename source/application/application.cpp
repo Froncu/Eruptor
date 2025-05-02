@@ -504,7 +504,7 @@ namespace eru
    {
       return device_.createPipelineLayout({
          .setLayoutCount{ 1 },
-         .pSetLayouts{ &descriptor_set_layout_ },
+         .pSetLayouts{ &descriptor_set_layout_ }
       });
    }
 
@@ -556,7 +556,7 @@ namespace eru
       // mode to point with the topology set to line does not render points but
       // lines, why?
       vk::PipelineInputAssemblyStateCreateInfo constexpr input_assembly_state_create_info{
-         .topology{ vk::PrimitiveTopology::eTriangleList },
+         .topology{ vk::PrimitiveTopology::eTriangleList }
       };
 
       vk::PipelineViewportStateCreateInfo constexpr viewport_state_create_info{

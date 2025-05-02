@@ -2,7 +2,7 @@
 #define SWAP_CHAIN_HPP
 
 #include "erupch/erupch.hpp"
-#include "image.hpp"
+#include "renderer/image.hpp"
 
 namespace eru
 {

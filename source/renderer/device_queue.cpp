@@ -12,4 +12,9 @@ namespace eru
    {
       return family_index_;
    }
+
+   vk::raii::Queue const& DeviceQueue::queue() const
+   {
+      return queue_;
+   }
 }

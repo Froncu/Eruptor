@@ -17,6 +17,7 @@ namespace eru
          DeviceQueue& operator=(DeviceQueue&&) = default;
 
          [[nodiscard]] std::uint32_t family_index() const;
+         [[nodiscard]] vk::raii::Queue const& queue() const;
 
       private:
          DeviceQueue(std::uint32_t family_index, vk::raii::Queue queue);

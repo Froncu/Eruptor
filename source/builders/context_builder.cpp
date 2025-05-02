@@ -2,31 +2,41 @@
 
 namespace eru
 {
-   ContextBuilder& ContextBuilder::enable_validation_layer(std::string validation_layer_name)
+   ContextBuilder& ContextBuilder::change_api_version(std::uint32_t const api_version)
    {
-      validation_layer_names_.insert(std::move(validation_layer_name));
+      api_version_ = api_version;
       return *this;
    }
 
-   ContextBuilder& ContextBuilder::enable_validation_layers(std::initializer_list<std::string> const validation_layer_names)
+   ContextBuilder& ContextBuilder::enable_validation_layer(std::string validation_layer_name)
    {
-      validation_layer_names_.insert(
-         std::make_move_iterator(validation_layer_names.begin()),
-         std::make_move_iterator(validation_layer_names.end()));
+      if (not validation_layer_name.empty())
+         validation_layer_names_.insert(std::move(validation_layer_name));
+
+      return *this;
+   }
+
+   ContextBuilder& ContextBuilder::enable_validation_layers(std::vector<std::string> validation_layer_names)
+   {
+      for (std::string& validation_layer_name : validation_layer_names)
+         enable_validation_layer(std::move(validation_layer_name));
+
       return *this;
    }
 
    ContextBuilder& ContextBuilder::enable_extension(std::string extenion_name)
    {
-      extension_names_.insert(std::move(extenion_name));
+      if (not extenion_name.empty())
+         extension_names_.insert(std::move(extenion_name));
+
       return *this;
    }
 
-   ContextBuilder& ContextBuilder::enable_extensions(std::initializer_list<std::string> const extenion_names)
+   ContextBuilder& ContextBuilder::enable_extensions(std::vector<std::string> extenion_names)
    {
-      extension_names_.insert(
-         std::make_move_iterator(extenion_names.begin()),
-         std::make_move_iterator(extenion_names.end()));
+      for (std::string& extenion_name : extenion_names)
+         enable_extension(std::move(extenion_name));
+
       return *this;
    }
 
@@ -58,9 +68,14 @@ namespace eru
       };
       std::vector<char const*> extension_names{ extension_names_view.begin(), extension_names_view.end() };
 
+      vk::ApplicationInfo const application_info{
+         .apiVersion{ api_version_ },
+      };
+
       vk::raii::Context context{};
       vk::raii::Instance instance{
          context, {
+            .pApplicationInfo{ &application_info },
             .enabledLayerCount{ static_cast<std::uint32_t>(validation_layer_names.size()) },
             .ppEnabledLayerNames{ validation_layer_names.data() },
             .enabledExtensionCount{ static_cast<std::uint32_t>(extension_names.size()) },

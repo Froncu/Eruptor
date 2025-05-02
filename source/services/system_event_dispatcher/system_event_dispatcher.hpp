@@ -29,7 +29,7 @@ namespace eru
 
          void poll_events();
 
-         EventDispatcher<WindowEvent const> render_context_event{};
+         EventDispatcher<WindowEvent const> window_event{};
          EventDispatcher<MouseButtonEvent const> mouse_button_event{};
          EventDispatcher<KeyEvent const> key_event{};
          EventDispatcher<GamepadConnectionEvent const> gamepad_connection_event{};
