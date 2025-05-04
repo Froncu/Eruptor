@@ -223,14 +223,26 @@ namespace eru
       auto const& [new_end, old_end]{ std::ranges::unique(queue_infos) };
       queue_infos.erase(new_end, old_end);
 
-      std::array constexpr extension_names{ vk::KHRSwapchainExtensionName, vk::KHRDynamicRenderingExtensionName };
+      std::array constexpr extension_names{
+         vk::KHRSwapchainExtensionName, vk::KHRDynamicRenderingLocalReadExtensionName
+      };
 
       vk::PhysicalDeviceFeatures constexpr device_features{
          .fillModeNonSolid{ true },
          .samplerAnisotropy{ true }
       };
 
-      vk::PhysicalDeviceDynamicRenderingFeaturesKHR constexpr dynamic_rendering_features{
+      vk::PhysicalDeviceDynamicRenderingLocalReadFeaturesKHR local_read_features{
+         .dynamicRenderingLocalRead{ true }
+      };
+
+      vk::PhysicalDeviceSynchronization2Features synchronization2_features{
+         .pNext{ &local_read_features },
+         .synchronization2{ true }
+      };
+
+      vk::PhysicalDeviceDynamicRenderingFeaturesKHR const dynamic_rendering_features{
+         .pNext{ &synchronization2_features },
          .dynamicRendering{ true }
       };
 
@@ -1119,6 +1131,41 @@ namespace eru
          },
       };
 
+      vk::ImageMemoryBarrier2 const color_barrier{
+         .srcStageMask{ vk::PipelineStageFlagBits2::eNone },
+         .srcAccessMask{ vk::AccessFlagBits2::eNone },
+         .dstStageMask{ vk::PipelineStageFlagBits2::eColorAttachmentOutput },
+         .dstAccessMask{ vk::AccessFlagBits2::eColorAttachmentWrite },
+         .oldLayout{ vk::ImageLayout::eUndefined },
+         .newLayout{ vk::ImageLayout::eColorAttachmentOptimal },
+         .image{ swap_chain_images_[image_index] },
+         .subresourceRange{
+            .aspectMask{ vk::ImageAspectFlagBits::eColor },
+            .levelCount{ 1 },
+            .layerCount{ 1 }
+         }
+      };
+
+      vk::ImageMemoryBarrier2 const depth_barrier{
+         .srcStageMask{ vk::PipelineStageFlagBits2::eNone },
+         .srcAccessMask{ vk::AccessFlagBits2::eNone },
+         .dstStageMask{ vk::PipelineStageFlagBits2::eEarlyFragmentTests },
+         .dstAccessMask{ vk::AccessFlagBits2::eDepthStencilAttachmentWrite },
+         .oldLayout{ vk::ImageLayout::eUndefined },
+         .newLayout{ vk::ImageLayout::eDepthStencilAttachmentOptimal },
+         .image{ depth_image_.first },
+         .subresourceRange{
+            .aspectMask{ vk::ImageAspectFlagBits::eDepth },
+            .levelCount{ 1 },
+            .layerCount{ 1 }
+         }
+      };
+
+      command_buffer.pipelineBarrier2({
+         .imageMemoryBarrierCount = 2,
+         .pImageMemoryBarriers = std::array{ color_barrier, depth_barrier }.data()
+      });
+
       command_buffer.beginRendering({
          .renderArea{
             .extent{ swap_chain_extent_ }
@@ -1153,6 +1200,26 @@ namespace eru
       command_buffer.drawIndexed(static_cast<std::uint32_t>(model_.second.size()), 1, 0, 0, 0);
 
       command_buffer.endRendering();
+
+      vk::ImageMemoryBarrier2 const present_barrier{
+         .srcStageMask{ vk::PipelineStageFlagBits2::eColorAttachmentOutput },
+         .srcAccessMask{ vk::AccessFlagBits2::eColorAttachmentWrite },
+         .dstStageMask{ vk::PipelineStageFlagBits2::eBottomOfPipe },
+         .dstAccessMask{ vk::AccessFlagBits2::eNone },
+         .oldLayout{ vk::ImageLayout::eColorAttachmentOptimal },
+         .newLayout{ vk::ImageLayout::ePresentSrcKHR },
+         .image{ swap_chain_images_[image_index] },
+         .subresourceRange{
+            .aspectMask{ vk::ImageAspectFlagBits::eColor },
+            .levelCount{ 1 },
+            .layerCount{ 1 }
+         }
+      };
+
+      command_buffer.pipelineBarrier2({
+         .imageMemoryBarrierCount = 1,
+         .pImageMemoryBarriers = &present_barrier
+      });
 
       command_buffer.end();
    }
@@ -1226,7 +1293,7 @@ namespace eru
       device_.waitIdle();
 
       device_.destroyImageView(depth_image_view_);
-      vmaDestroyImage(allocator_, depth_image_.first, depth_image_.second);
+      vmaDestroyImage(allocator_, static_cast<VkImage>(depth_image_.first), depth_image_.second);
 
       for (vk::ImageView const image_view : swap_chain_image_views_)
          device_.destroyImageView(image_view);
