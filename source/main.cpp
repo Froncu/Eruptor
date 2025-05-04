@@ -1,8 +1,9 @@
 #include <SDL3/SDL_main.h>
 
-#include "eruptor/eruptor.hpp"
+#include "application/application.hpp"
 #include "builders/context_builder.hpp"
 #include "erupch/erupch.hpp"
+#include "services/locator.hpp"
 #include "utility/constants.hpp"
 
 int main(int const, char** const)
@@ -27,7 +28,7 @@ int main(int const, char** const)
 
    try
    {
-      eru::Eruptor{}.run();
+      eru::Application{}.run();
    }
    catch (std::exception const& exception)
    {

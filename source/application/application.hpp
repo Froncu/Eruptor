@@ -41,8 +41,6 @@ namespace eru
          [[nodiscard]] std::vector<vk::ImageView> create_image_views() const;
          [[nodiscard]] vk::ShaderModule create_shader_module(std::vector<std::uint32_t> const& byte_code) const;
 
-         [[nodiscard]] vk::RenderPass create_render_pass() const;
-         [[nodiscard]] std::vector<vk::Framebuffer> create_frame_buffers() const;
          [[nodiscard]] vk::DescriptorSetLayout create_descriptor_set_layout() const;
          [[nodiscard]] vk::PipelineLayout create_pipeline_layout() const;
          [[nodiscard]] vk::Pipeline create_pipeline() const;
@@ -115,7 +113,6 @@ namespace eru
          std::vector<vk::Image> swap_chain_images_{ device_.getSwapchainImagesKHR(swap_chain_) };
          std::vector<vk::ImageView> swap_chain_image_views_{ create_image_views() };
 
-         vk::RenderPass const render_pass_{ create_render_pass() };
          vk::DescriptorSetLayout const descriptor_set_layout_{ create_descriptor_set_layout() };
          vk::PipelineLayout const pipeline_layout_{ create_pipeline_layout() };
          vk::Pipeline const pipeline_{ create_pipeline() };
@@ -127,7 +124,6 @@ namespace eru
          VmaAllocator const allocator_{ create_allocator() };
          std::pair<vk::Image, VmaAllocation> depth_image_{ create_depth_image() };
          vk::ImageView depth_image_view_{ create_depth_image_view() };
-         std::vector<vk::Framebuffer> swap_chain_framebuffers_{ create_frame_buffers() };
          std::pair<vk::Image, VmaAllocation> const texture_image_{ create_texture_image() };
          vk::ImageView const texture_image_view_{ create_texture_image_view() };
          vk::Sampler const texture_sampler_{ create_texture_sampler() };
