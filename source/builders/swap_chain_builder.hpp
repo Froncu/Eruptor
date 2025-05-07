@@ -23,8 +23,7 @@ namespace eru
          SwapChainBuilder& change_present_mode(vk::PresentModeKHR present_mode);
          SwapChainBuilder& change_old_swap_chain(SwapChain const* old_swap_chain);
 
-         [[nodiscard]] SwapChain build(Device const& device, Window const& window,
-            std::span<DeviceQueue const> queues);
+         [[nodiscard]] SwapChain build(Device const& device, Window const& window, std::span<DeviceQueue const> queues);
 
       private:
          [[nodiscard]] vk::raii::SwapchainKHR create_swap_chain(Device const& device, Window const& window,

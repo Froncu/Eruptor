@@ -9,11 +9,7 @@ namespace eru
 {
    class DeviceBuilder final
    {
-      struct QueueInfo final
-      {
-         std::unordered_map<std::uint32_t, std::uint32_t> family_create_counts{};
-         std::vector<std::uint32_t> retrieval_infos{};
-      };
+      using QueueInfo = std::vector<std::pair<std::uint32_t, bool>>;
 
       public:
          using RequiredQueueInfo = std::pair<vk::QueueFlags, vk::SurfaceKHR>;
@@ -42,16 +38,17 @@ namespace eru
 
          [[nodiscard]] vk::raii::PhysicalDevice pick_physical_device();
          [[nodiscard]] vk::raii::Device create_device(vk::raii::PhysicalDevice const& physical_device);
-         [[nodiscard]] std::vector<DeviceQueue> retrieve_queues(vk::raii::PhysicalDevice const& physical_device,
-            vk::raii::Device const& device);
+         [[nodiscard]] std::vector<DeviceQueue> retrieve_queues(vk::raii::Device const& device);
          [[nodiscard]] std::unordered_map<std::uint32_t, vk::raii::CommandPool> create_command_pools(
-            vk::raii::PhysicalDevice const& physical_device, vk::raii::Device const& device);
+            vk::raii::Device const& device);
 
          bool dynamic_rendering_{};
+         bool synchronization2_{};
          std::set<std::string> extension_names_{};
          vk::PhysicalDeviceFeatures features_{};
          std::vector<RequiredQueueInfo> required_queues_{};
-         std::unordered_map<VkPhysicalDevice, QueueInfo> queue_infos_{};
+
+         QueueInfo queue_info_{};
    };
 }
 

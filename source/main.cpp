@@ -3,6 +3,7 @@
 #include "application/application.hpp"
 #include "builders/context_builder.hpp"
 #include "erupch/erupch.hpp"
+#include "eruptor/eruptor.hpp"
 #include "services/locator.hpp"
 #include "utility/constants.hpp"
 
@@ -20,15 +21,12 @@ int main(int const, char** const)
       eru::ContextBuilder{}
       .change_api_version(vk::ApiVersion13)
       .enable_validation_layer(eru::constants::DEBUG ? "VK_LAYER_KHRONOS_validation" : "")
-      .enable_extensions({
-         eru::constants::DEBUG ? vk::EXTDebugUtilsExtensionName : "",
-         vk::KHRGetPhysicalDeviceProperties2ExtensionName,
-      })
+      .enable_extension(eru::constants::DEBUG ? vk::EXTDebugUtilsExtensionName : "")
       .build());
 
    try
    {
-      eru::Application{}.run();
+      eru::Eruptor{}.run();
    }
    catch (std::exception const& exception)
    {

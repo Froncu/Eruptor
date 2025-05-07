@@ -2,6 +2,7 @@
 #define LOCATOR_HPP
 
 #include "erupch/erupch.hpp"
+#include "utility/exception.hpp"
 #include "utility/type_index.hpp"
 #include "utility/unique_pointer.hpp"
 #include "utility/void_deleter.hpp"
@@ -48,9 +49,13 @@ namespace eru
          }
 
          template <typename Service>
-         [[nodiscard]] static Service* get()
+         [[nodiscard]] static Service& get()
          {
-            return static_cast<Service*>(internal_get<Service>().get());
+            Service* service{ static_cast<Service*>(internal_get<Service>().get()) };
+            if (not service)
+               exception("no provider was set for the requested service and the service is not default initializable!");
+
+            return *service;
          }
 
          Locator() = delete;

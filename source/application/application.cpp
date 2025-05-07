@@ -236,7 +236,7 @@ namespace eru
          .dynamicRenderingLocalRead{ true }
       };
 
-      vk::PhysicalDeviceDynamicRenderingFeaturesKHR dynamic_rendering_features{
+      vk::PhysicalDeviceDynamicRenderingFeatures dynamic_rendering_features{
          .pNext{ &local_read_features },
          .dynamicRendering{ true }
       };

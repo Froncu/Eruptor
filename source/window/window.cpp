@@ -20,16 +20,16 @@ namespace eru
          SDL_DestroyWindow
       }
       , surface_{
-         [](SDL_Window& window) -> vk::raii::SurfaceKHR
+         [](SDL_Window& window)
          {
-            vk::raii::Instance const& instance{ Locator::get<Context>()->instance() };
+            vk::raii::Instance const& instance{ Locator::get<Context>().instance() };
 
             VkSurfaceKHR surface;
             bool const succeeded{ SDL_Vulkan_CreateSurface(&window, *instance, nullptr, &surface) };
             runtime_assert(succeeded, "failed to create window surface ({})",
                SDL_GetError());
 
-            return { instance, surface };
+            return vk::raii::SurfaceKHR{ instance, surface };
          }(*native_window_)
       }
    {

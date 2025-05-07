@@ -13,14 +13,13 @@ namespace eru
             vk::KHRDynamicRenderingExtensionName
          })
          .enable_features({ .samplerAnisotropy{ true } })
-         .add_queues({ vk::QueueFlagBits::eGraphics | vk::QueueFlagBits::eTransfer, window.surface() }, 1)
+         .add_queues({ vk::QueueFlagBits::eGraphics | vk::QueueFlagBits::eTransfer, window.surface() })
          .build()
       }
       , swap_chain_{
          SwapChainBuilder{}
          .change_format({ vk::Format::eR8G8B8A8Srgb, vk::ColorSpaceKHR::eSrgbNonlinear })
          .change_present_mode(vk::PresentModeKHR::eMailbox)
-         .change_old_swap_chain(&swap_chain_)
          .build(device_, window, device_.queues())
       }
    {

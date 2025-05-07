@@ -52,7 +52,7 @@ namespace eru
 
       auto validation_layer_names_view{
          std::views::transform(validation_layer_names_,
-            [](std::string const& validation_layer_name) -> char const*
+            [](std::string const& validation_layer_name)
             {
                return validation_layer_name.c_str();
             })
@@ -61,7 +61,7 @@ namespace eru
 
       auto extension_names_view{
          std::views::transform(extension_names_,
-            [](std::string const& extension_name) -> char const*
+            [](std::string const& extension_name)
             {
                return extension_name.c_str();
             })
@@ -110,6 +110,6 @@ namespace eru
             }
       };
 
-      return { std::move(context), std::move(instance), std::move(debug_messenger) };
+      return { std::move(context), std::move(instance), std::move(debug_messenger), api_version_ };
    }
 }

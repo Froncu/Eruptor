@@ -21,7 +21,7 @@ namespace eru
    }
 
    SwapChain SwapChainBuilder::build(Device const& device, Window const& window,
-      std::span<DeviceQueue const> queues)
+      std::span<DeviceQueue const> const queues)
    {
       vk::raii::SwapchainKHR swap_chain{ create_swap_chain(device, window, queues) };
       return { std::move(swap_chain), create_images(device, swap_chain) };
