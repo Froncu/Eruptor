@@ -2,6 +2,8 @@
 #define RENDERER_HPP
 
 #include "device.hpp"
+#include "pipeline.hpp"
+#include "shader.hpp"
 #include "swap_chain.hpp"
 #include "window/window.hpp"
 
@@ -24,6 +26,9 @@ namespace eru
       private:
          Device device_;
          SwapChain swap_chain_;
+         Shader vertex_shader_{ "resources/shaders/shader.vert", device_ };
+         Shader fragment_shader_{ "resources/shaders/shader.frag", device_ };
+         Pipeline pipeline_;
    };
 }
 

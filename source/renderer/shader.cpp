@@ -6,7 +6,7 @@ namespace eru
 
    Shader::Shader(std::filesystem::path const& path, Device const& device)
       : module_{
-         [&path, &device]()
+         [&path, &device]
          {
             std::string const file_name{ path.filename().string() };
             if (not std::filesystem::exists(path))
