@@ -7,7 +7,14 @@ namespace eru
 {
    class Image
    {
+      friend class ImageBuilder;
       friend class SwapChainBuilder;
+
+      struct OwnedImage final
+      {
+         vk::raii::Image image;
+         VmaAllocation memory;
+      };
 
       public:
          Image(Image const&) = delete;
@@ -19,15 +26,16 @@ namespace eru
          Image& operator=(Image&&) = default;
 
          [[nodiscard]] vk::Image image() const;
-         [[nodiscard]] vk::raii::ImageView const& view() const;
+         [[nodiscard]] vk::raii::ImageView const& identical_view() const;
          [[nodiscard]] vk::Format format() const;
          [[nodiscard]] vk::ImageLayout layout() const;
 
       private:
-         Image(std::variant<vk::raii::Image, vk::Image> image, vk::raii::ImageView view, vk::Format format, vk::ImageLayout layout);
+         Image(std::variant<OwnedImage, vk::Image> image, vk::raii::ImageView identical_view, vk::Format format,
+            vk::ImageLayout layout);
 
-         std::variant<vk::raii::Image, vk::Image> image_;
-         vk::raii::ImageView view_;
+         std::variant<OwnedImage, vk::Image> image_;
+         vk::raii::ImageView identical_view_;
          vk::Format format_;
          vk::ImageLayout layout_;
    };

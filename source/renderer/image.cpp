@@ -2,10 +2,10 @@
 
 namespace eru
 {
-   Image::Image(std::variant<vk::raii::Image, vk::Image> image, vk::raii::ImageView view,
+   Image::Image(std::variant<OwnedImage, vk::Image> image, vk::raii::ImageView identical_view,
       vk::Format const format, vk::ImageLayout const layout)
       : image_{ std::move(image) }
-      , view_{ std::move(view) }
+      , identical_view_{ std::move(identical_view) }
       , format_{ format }
       , layout_{ layout }
    {
@@ -13,15 +13,15 @@ namespace eru
 
    vk::Image Image::image() const
    {
-      if (std::holds_alternative<vk::raii::Image>(image_))
-         return *std::get<vk::raii::Image>(image_);
+      if (std::holds_alternative<OwnedImage>(image_))
+         return std::get<OwnedImage>(image_).image;
 
       return std::get<vk::Image>(image_);
    }
 
-   vk::raii::ImageView const& Image::view() const
+   vk::raii::ImageView const& Image::identical_view() const
    {
-      return view_;
+      return identical_view_;
    }
 
    vk::Format Image::format() const
