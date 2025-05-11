@@ -23,12 +23,15 @@ namespace eru
          SwapChainBuilder& change_present_mode(vk::PresentModeKHR present_mode);
          SwapChainBuilder& change_old_swap_chain(SwapChain const* old_swap_chain);
 
-         [[nodiscard]] SwapChain build(Device const& device, Window const& window, std::span<DeviceQueue const> queues);
+         [[nodiscard]] SwapChain build(Device const& device, Window const& window, std::span<DeviceQueue const> queues) const;
 
       private:
+         [[nodiscard]] static vk::Extent2D pick_extent(Device const& device, Window const& window);
+
          [[nodiscard]] vk::raii::SwapchainKHR create_swap_chain(Device const& device, Window const& window,
-            std::span<DeviceQueue const> queues);
-         [[nodiscard]] std::vector<Image> create_images(Device const& device, vk::raii::SwapchainKHR const& swap_chain);
+            std::span<DeviceQueue const> queues, vk::Extent2D extent) const;
+         [[nodiscard]] std::vector<Image> create_images(Device const& device, vk::raii::SwapchainKHR const& swap_chain,
+            vk::Extent2D extent) const;
 
          vk::SurfaceFormatKHR format_{ vk::Format::eB8G8R8A8Unorm, vk::ColorSpaceKHR::eSrgbNonlinear };
          vk::PresentModeKHR present_mode_{ vk::PresentModeKHR::eFifo };

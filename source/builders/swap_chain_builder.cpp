@@ -2,6 +2,35 @@
 
 namespace eru
 {
+   vk::Extent2D SwapChainBuilder::pick_extent(Device const& device, Window const& window)
+   {
+      vk::SurfaceCapabilitiesKHR const surface_capabilities{
+         device.physical_device().getSurfaceCapabilitiesKHR(window.surface())
+      };
+
+      vk::Extent2D extent;
+      if (surface_capabilities.currentExtent.width not_eq std::numeric_limits<std::uint32_t>::max())
+         extent = surface_capabilities.currentExtent;
+      else
+      {
+         extent = window.extent();
+         extent = {
+            .width{
+               std::clamp(extent.width,
+                  surface_capabilities.minImageExtent.width,
+                  surface_capabilities.maxImageExtent.width)
+            },
+            .height{
+               std::clamp(extent.height,
+                  surface_capabilities.minImageExtent.height,
+                  surface_capabilities.maxImageExtent.height)
+            }
+         };
+      }
+
+      return extent;
+   }
+
    SwapChainBuilder& SwapChainBuilder::change_format(vk::SurfaceFormatKHR const format)
    {
       format_ = format;
@@ -21,38 +50,19 @@ namespace eru
    }
 
    SwapChain SwapChainBuilder::build(Device const& device, Window const& window,
-      std::span<DeviceQueue const> const queues)
+      std::span<DeviceQueue const> const queues) const
    {
-      vk::raii::SwapchainKHR swap_chain{ create_swap_chain(device, window, queues) };
-      return { std::move(swap_chain), create_images(device, swap_chain) };
+      vk::Extent2D const extent{ pick_extent(device, window) };
+      vk::raii::SwapchainKHR swap_chain{ create_swap_chain(device, window, queues, extent) };
+      return { std::move(swap_chain), create_images(device, swap_chain, extent), extent };
    }
 
    vk::raii::SwapchainKHR SwapChainBuilder::create_swap_chain(Device const& device, Window const& window,
-      std::span<DeviceQueue const> queues)
+      std::span<DeviceQueue const> queues, vk::Extent2D extent) const
    {
       vk::SurfaceCapabilitiesKHR const surface_capabilities{
          device.physical_device().getSurfaceCapabilitiesKHR(window.surface())
       };
-
-      vk::Extent2D swap_chain_extent;
-      if (surface_capabilities.currentExtent.width not_eq std::numeric_limits<std::uint32_t>::max())
-         swap_chain_extent = surface_capabilities.currentExtent;
-      else
-      {
-         swap_chain_extent = window.extent();
-         swap_chain_extent = {
-            .width{
-               std::clamp(swap_chain_extent.width,
-                  surface_capabilities.minImageExtent.width,
-                  surface_capabilities.maxImageExtent.width)
-            },
-            .height{
-               std::clamp(swap_chain_extent.height,
-                  surface_capabilities.minImageExtent.height,
-                  surface_capabilities.maxImageExtent.height)
-            }
-         };
-      }
 
       auto const queue_family_indices_view{
          std::views::transform(queues,
@@ -76,7 +86,7 @@ namespace eru
             .minImageCount{ surface_capabilities.minImageCount },
             .imageFormat{ format_.format },
             .imageColorSpace{ format_.colorSpace },
-            .imageExtent{ swap_chain_extent },
+            .imageExtent{ extent },
             .imageArrayLayers{ 1 },
             .imageUsage{ vk::ImageUsageFlagBits::eColorAttachment },
             .imageSharingMode{ queue_family_indices.size() > 1 ? vk::SharingMode::eConcurrent : vk::SharingMode::eExclusive },
@@ -90,7 +100,8 @@ namespace eru
          });
    }
 
-   std::vector<Image> SwapChainBuilder::create_images(Device const& device, vk::raii::SwapchainKHR const& swap_chain)
+   std::vector<Image> SwapChainBuilder::create_images(Device const& device, vk::raii::SwapchainKHR const& swap_chain,
+      vk::Extent2D const extent) const
    {
       std::vector<Image> images{};
       for (vk::Image const image : swap_chain.getImages())
@@ -113,7 +124,12 @@ namespace eru
                }
             }),
             format_.format,
-            vk::ImageLayout::eUndefined
+            vk::ImageLayout::eUndefined,
+            vk::Extent3D{
+               .width{ extent.width },
+               .height{ extent.height },
+               .depth{ 1 }
+            }
          });
 
       return images;

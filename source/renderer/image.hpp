@@ -29,15 +29,17 @@ namespace eru
          [[nodiscard]] vk::raii::ImageView const& identical_view() const;
          [[nodiscard]] vk::Format format() const;
          [[nodiscard]] vk::ImageLayout layout() const;
+         [[nodiscard]] vk::Extent3D extent() const;
 
       private:
          Image(std::variant<OwnedImage, vk::Image> image, vk::raii::ImageView identical_view, vk::Format format,
-            vk::ImageLayout layout);
+            vk::ImageLayout layout, vk::Extent3D extent);
 
          std::variant<OwnedImage, vk::Image> image_;
          vk::raii::ImageView identical_view_;
          vk::Format format_;
          vk::ImageLayout layout_;
+         vk::Extent3D extent_;
    };
 }
 

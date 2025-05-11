@@ -21,12 +21,14 @@ namespace eru
 
          [[nodiscard]] vk::raii::SwapchainKHR const& swap_chain() const;
          [[nodiscard]] std::vector<Image> const& images() const;
+         [[nodiscard]] vk::Extent2D extent() const;
 
       private:
-         SwapChain(vk::raii::SwapchainKHR swap_chain, std::vector<Image> images);
+         SwapChain(vk::raii::SwapchainKHR swap_chain, std::vector<Image> images, vk::Extent2D extent);
 
          vk::raii::SwapchainKHR swap_chain_;
          std::vector<Image> images_;
+         vk::Extent2D extent_;
    };
 }
 

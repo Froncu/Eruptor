@@ -27,6 +27,10 @@ namespace eru
 
          PipelineBuilder& change_color_attachment_format(vk::Format color_attachment_format);
          PipelineBuilder& change_depth_attachment_format(vk::Format depth_attachment_format);
+         PipelineBuilder& add_vertex_binding(vk::VertexInputBindingDescription const& vertex_binding);
+         PipelineBuilder& add_vertex_bindings(std::initializer_list<vk::VertexInputBindingDescription> vertex_bindings);
+         PipelineBuilder& add_vertex_attribute(vk::VertexInputAttributeDescription const& vertex_attribute);
+         PipelineBuilder& add_vertex_attributes(std::initializer_list<vk::VertexInputAttributeDescription> vertex_attributes);
          PipelineBuilder& add_shader_stage(vk::PipelineShaderStageCreateInfo const& shader_stage);
          PipelineBuilder& add_shader_stages(std::initializer_list<vk::PipelineShaderStageCreateInfo> shader_stages);
          PipelineBuilder& change_input_assembly_state(vk::PipelineInputAssemblyStateCreateInfo const& input_assembly_state);
@@ -58,6 +62,8 @@ namespace eru
 
          vk::Format color_attachment_format_{};
          vk::Format depth_attachment_format_{};
+         std::vector<vk::VertexInputBindingDescription> vertex_bindings_{};
+         std::vector<vk::VertexInputAttributeDescription> vertex_attributes_{};
          std::vector<vk::PipelineShaderStageCreateInfo> shader_stages_{};
          vk::PipelineInputAssemblyStateCreateInfo input_assembly_state_{
             .topology{ vk::PrimitiveTopology::eTriangleList }

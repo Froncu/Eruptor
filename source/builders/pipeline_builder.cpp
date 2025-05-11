@@ -1,4 +1,3 @@
-#include "mesh/vertex.hpp"
 #include "pipeline_builder.hpp"
 #include "utility/exception.hpp"
 
@@ -13,6 +12,36 @@ namespace eru
    PipelineBuilder& PipelineBuilder::change_depth_attachment_format(vk::Format const depth_attachment_format)
    {
       depth_attachment_format_ = depth_attachment_format;
+      return *this;
+   }
+
+   PipelineBuilder& PipelineBuilder::add_vertex_binding(vk::VertexInputBindingDescription const& vertex_binding)
+   {
+      vertex_bindings_.emplace_back(vertex_binding);
+      return *this;
+   }
+
+   PipelineBuilder& PipelineBuilder::add_vertex_bindings(
+      std::initializer_list<vk::VertexInputBindingDescription> const vertex_bindings)
+   {
+      for (vk::VertexInputBindingDescription const vertex_binding : vertex_bindings)
+         add_vertex_binding(vertex_binding);
+
+      return *this;
+   }
+
+   PipelineBuilder& PipelineBuilder::add_vertex_attribute(vk::VertexInputAttributeDescription const& vertex_attribute)
+   {
+      vertex_attributes_.emplace_back(vertex_attribute);
+      return *this;
+   }
+
+   PipelineBuilder& PipelineBuilder::add_vertex_attributes(
+      std::initializer_list<vk::VertexInputAttributeDescription> const vertex_attributes)
+   {
+      for (vk::VertexInputAttributeDescription const vertex_attribute : vertex_attributes)
+         add_vertex_attribute(vertex_attribute);
+
       return *this;
    }
 
@@ -214,11 +243,11 @@ namespace eru
          .depthAttachmentFormat{ depth_attachment_format_ }
       };
 
-      vk::PipelineVertexInputStateCreateInfo constexpr vertex_input_state_create_info{
-         .vertexBindingDescriptionCount{ static_cast<std::uint32_t>(Vertex::BINDING_DESCRIPTIONS.size()) },
-         .pVertexBindingDescriptions{ Vertex::BINDING_DESCRIPTIONS.data() },
-         .vertexAttributeDescriptionCount{ static_cast<std::uint32_t>(Vertex::ATTRIBUTE_DESCRIPTIONS.size()) },
-         .pVertexAttributeDescriptions{ Vertex::ATTRIBUTE_DESCRIPTIONS.data() }
+      vk::PipelineVertexInputStateCreateInfo const vertex_input_state_create_info{
+         .vertexBindingDescriptionCount{ static_cast<std::uint32_t>(vertex_bindings_.size()) },
+         .pVertexBindingDescriptions{ vertex_bindings_.data() },
+         .vertexAttributeDescriptionCount{ static_cast<std::uint32_t>(vertex_attributes_.size()) },
+         .pVertexAttributeDescriptions{ vertex_attributes_.data() }
       };
 
       vk::PipelineViewportStateCreateInfo constexpr viewport_state{

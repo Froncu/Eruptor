@@ -16,6 +16,8 @@ namespace eru
          Pipeline& operator=(Pipeline const&) = delete;
          Pipeline& operator=(Pipeline&&) = default;
 
+         [[nodiscard]] vk::raii::Pipeline const& pipeline() const;
+
       private:
          Pipeline(vk::raii::DescriptorPool descriptor_pool, std::vector<vk::raii::DescriptorSet> descriptor_sets,
             vk::raii::PipelineLayout pipeline_layout, vk::raii::Pipeline pipeline);

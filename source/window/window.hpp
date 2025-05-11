@@ -33,6 +33,7 @@ namespace eru
          void change_fullscreen_mode(bool fullscreen);
          void change_resizability(bool resizable);
          void change_visibility(bool show);
+         void change_minimised(bool mininimised);
 
          [[nodiscard]] ID::InternalValue id() const;
          [[nodiscard]] std::string_view title() const;
@@ -41,11 +42,11 @@ namespace eru
          [[nodiscard]] bool fullscreen() const;
          [[nodiscard]] bool resizable() const;
          [[nodiscard]] bool visible() const;
+         [[nodiscard]] bool minimised() const;
 
          [[nodiscard]] vk::raii::SurfaceKHR const& surface() const;
 
          EventDispatcher<> close_event{};
-         EventDispatcher<vk::Extent2D const> resize_event{};
 
       private:
          Window(std::string_view title, vk::Extent2D size, std::optional<glm::ivec2> const& position, std::uint64_t flags);
@@ -62,15 +63,6 @@ namespace eru
                      return false;
 
                   smart_this->close_event.notify();
-                  return true;
-               },
-
-               [smart_this = Reference<Window>{ this }](WindowResizeEvent const& event)
-               {
-                  if (smart_this->id() not_eq event.id)
-                     return false;
-
-                  smart_this->resize_event.notify(event.extent);
                   return true;
                },
 

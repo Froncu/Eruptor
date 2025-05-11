@@ -9,7 +9,7 @@ namespace eru
    class Eruptor
    {
       public:
-         Eruptor() = default;
+         Eruptor();
          Eruptor(Eruptor const&) = delete;
          Eruptor(Eruptor&&) = delete;
 

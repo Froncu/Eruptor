@@ -10,4 +10,9 @@ namespace eru
       , pipeline_{ std::move(pipeline) }
    {
    }
+
+   vk::raii::Pipeline const& Pipeline::pipeline() const
+   {
+      return pipeline_;
+   }
 }

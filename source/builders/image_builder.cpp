@@ -42,7 +42,8 @@ namespace eru
             }
          }),
          create_info_.format,
-         create_info_.initialLayout
+         create_info_.initialLayout,
+         create_info_.extent
       };
    }
 }

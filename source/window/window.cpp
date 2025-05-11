@@ -104,6 +104,13 @@ namespace eru
          id(), show ? "show" : "hidden", SDL_GetError());
    }
 
+   void Window::change_minimised(bool const mininimised)
+   {
+      bool const succeeded{ mininimised ? SDL_MinimizeWindow(native_window_.get()) : SDL_RestoreWindow(native_window_.get()) };
+      runtime_assert(succeeded, "failed to set RenderContext{}'s minimised to {} ({})",
+         id(), mininimised ? "minimised" : "not minimised", SDL_GetError());
+   }
+
    ID::InternalValue Window::id() const
    {
       ID::InternalValue const id{ SDL_GetWindowID(native_window_.get()) };
@@ -155,6 +162,11 @@ namespace eru
    bool Window::visible() const
    {
       return not(SDL_GetWindowFlags(native_window_.get()) & SDL_WINDOW_HIDDEN);
+   }
+
+   bool Window::minimised() const
+   {
+      return SDL_GetWindowFlags(native_window_.get()) & SDL_WINDOW_MINIMIZED;
    }
 
    vk::raii::SurfaceKHR const& Window::surface() const
