@@ -1,10 +1,8 @@
 #ifndef RENDERER_HPP
 #define RENDERER_HPP
 
-#include "builders/image_view_builder.hpp"
 #include "builders/swap_chain_builder.hpp"
 #include "device.hpp"
-#include "image_view.hpp"
 #include "pipeline.hpp"
 #include "shader.hpp"
 #include "window/window.hpp"

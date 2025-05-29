@@ -12,7 +12,13 @@ namespace eru
 
       struct OwnedImage final
       {
-         vk::raii::Image image;
+         ~OwnedImage()
+         {
+            vmaDestroyImage(allocator, static_cast<VkImage>(image), memory);
+         }
+
+         VmaAllocator allocator;
+         vk::Image image;
          VmaAllocation memory;
       };
 

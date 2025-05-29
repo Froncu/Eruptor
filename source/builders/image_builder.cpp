@@ -21,6 +21,6 @@ namespace eru
       vmaCreateImage(device.allocator().get(), &static_cast<VkImageCreateInfo const&>(create_info_), &allocation_info_,
          &image, &memory, nullptr);
 
-      return { Image::OwnedImage{ { device.device(), image }, memory }, create_info_ };
+      return { Image::OwnedImage{ device.allocator().get(), static_cast<vk::Image>(image), memory }, create_info_ };
    }
 }
