@@ -25,7 +25,7 @@ namespace eru
       }
       , pipeline_{
          PipelineBuilder{}
-         .change_color_attachment_format(swap_chain_.images().front().format())
+         .change_color_attachment_format(swap_chain_.images().front().info().format)
          .add_shader_stages({
             {
                .stage{ vk::ShaderStageFlagBits::eVertex },
@@ -84,6 +84,7 @@ namespace eru
       };
 
       Image const& image{ swap_chain_.images()[image_index] };
+      ImageView const& image_view{ swap_chain_.image_views()[image_index] };
 
       device_.device().resetFences({ command_buffer_executed_fence });
 
@@ -92,7 +93,7 @@ namespace eru
       command_buffer.begin({});
 
       vk::RenderingAttachmentInfo color_attachment_info{
-         .imageView{ *image.identical_view() },
+         .imageView{ *image_view.image_view() },
          .imageLayout{ vk::ImageLayout::eColorAttachmentOptimal },
          .loadOp{ vk::AttachmentLoadOp::eClear },
          .storeOp{ vk::AttachmentStoreOp::eStore },

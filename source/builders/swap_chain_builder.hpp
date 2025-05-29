@@ -27,11 +27,12 @@ namespace eru
 
       private:
          [[nodiscard]] static vk::Extent2D pick_extent(Device const& device, Window const& window);
+         [[nodiscard]] static std::vector<ImageView> create_image_views(Device const& device, std::vector<Image> const& images);
 
          [[nodiscard]] vk::raii::SwapchainKHR create_swap_chain(Device const& device, Window const& window,
             std::span<DeviceQueue const> queues, vk::Extent2D extent) const;
-         [[nodiscard]] std::vector<Image> create_images(Device const& device, vk::raii::SwapchainKHR const& swap_chain,
-            vk::Extent2D extent) const;
+         [[nodiscard]] std::vector<Image> create_images(vk::raii::SwapchainKHR const& swap_chain,
+         vk::Extent2D extent, std::span<DeviceQueue const> queues) const;
 
          vk::SurfaceFormatKHR format_{ vk::Format::eB8G8R8A8Unorm, vk::ColorSpaceKHR::eSrgbNonlinear };
          vk::PresentModeKHR present_mode_{ vk::PresentModeKHR::eFifo };

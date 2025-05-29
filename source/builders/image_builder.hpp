@@ -12,21 +12,20 @@ namespace eru
       public:
          ImageBuilder() = default;
          ImageBuilder(ImageBuilder const&) = delete;
-         ImageBuilder(ImageBuilder&&) = default;
+         ImageBuilder(ImageBuilder&&) = delete;
 
          ~ImageBuilder() = default;
 
          ImageBuilder& operator=(ImageBuilder const&) = delete;
-         ImageBuilder& operator=(ImageBuilder&&) = default;
+         ImageBuilder& operator=(ImageBuilder&&) = delete;
 
-         ImageBuilder& change_create_info(vk::ImageCreateInfo const& create_info, vk::ImageAspectFlags identical_aspect_flags);
+         ImageBuilder& change_create_info(vk::ImageCreateInfo const& create_info);
          ImageBuilder& change_allocation_info(VmaAllocationCreateInfo const& allocation_info);
 
          [[nodiscard]] Image build(Device const& device) const;
 
       private:
          vk::ImageCreateInfo create_info_{};
-         vk::ImageAspectFlags identical_aspect_flags_{};
          VmaAllocationCreateInfo allocation_info_{};
    };
 }

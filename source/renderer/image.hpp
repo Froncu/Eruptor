@@ -26,20 +26,13 @@ namespace eru
          Image& operator=(Image&&) = default;
 
          [[nodiscard]] vk::Image image() const;
-         [[nodiscard]] vk::raii::ImageView const& identical_view() const;
-         [[nodiscard]] vk::Format format() const;
-         [[nodiscard]] vk::ImageLayout layout() const;
-         [[nodiscard]] vk::Extent3D extent() const;
+         [[nodiscard]] vk::ImageCreateInfo const& info() const;
 
       private:
-         Image(std::variant<OwnedImage, vk::Image> image, vk::raii::ImageView identical_view, vk::Format format,
-            vk::ImageLayout layout, vk::Extent3D extent);
+         Image(std::variant<OwnedImage, vk::Image> image, vk::ImageCreateInfo info);
 
          std::variant<OwnedImage, vk::Image> image_;
-         vk::raii::ImageView identical_view_;
-         vk::Format format_;
-         vk::ImageLayout layout_;
-         vk::Extent3D extent_;
+         vk::ImageCreateInfo info_;
    };
 }
 
