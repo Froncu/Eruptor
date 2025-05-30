@@ -12,14 +12,52 @@ namespace eru
 
       struct OwnedImage final
       {
-         ~OwnedImage()
+         OwnedImage(VmaAllocator const allocator, vk::Image const image, VmaAllocation const memory)
+            : allocator{ allocator }
+            , image{ image }
+            , memory{ memory }
          {
-            vmaDestroyImage(allocator, static_cast<VkImage>(image), memory);
          }
 
-         VmaAllocator allocator;
-         vk::Image image;
-         VmaAllocation memory;
+         OwnedImage(OwnedImage const&) = delete;
+
+         OwnedImage(OwnedImage&& other) noexcept
+            : allocator{ other.allocator }
+            , image{ other.image }
+            , memory{ other.memory }
+         {
+            other.allocator = nullptr;
+            other.image = nullptr;
+            other.memory = nullptr;
+         }
+
+         ~OwnedImage()
+         {
+            if (allocator)
+               vmaDestroyImage(allocator, static_cast<VkImage>(image), memory);
+         }
+
+         OwnedImage& operator=(OwnedImage const&) = delete;
+
+         OwnedImage& operator=(OwnedImage&& other) noexcept
+         {
+            if (this == &other)
+               return *this;
+
+            allocator = other.allocator;
+            image = other.image;
+            memory = other.memory;
+
+            other.allocator = nullptr;
+            other.image = nullptr;
+            other.memory = nullptr;
+
+            return *this;
+         }
+
+         VmaAllocator allocator{};
+         vk::Image image{};
+         VmaAllocation memory{};
       };
 
       public:

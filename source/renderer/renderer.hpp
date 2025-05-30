@@ -3,6 +3,8 @@
 
 #include "buffer.hpp"
 #include "builders/buffer_builder.hpp"
+#include "builders/image_builder.hpp"
+#include "builders/image_view_builder.hpp"
 #include "builders/swap_chain_builder.hpp"
 #include "camera.hpp"
 #include "device.hpp"
@@ -131,6 +133,49 @@ namespace eru
 
                return buffers;
             }()
+         };
+
+         Image depth_image_{
+            ImageBuilder{}
+            .change_create_info({
+               .imageType{ vk::ImageType::e2D },
+               .format{ vk::Format::eD32Sfloat },
+               .extent{
+                  .width{ swap_chain_.extent().width },
+                  .height{ swap_chain_.extent().height },
+                  .depth{ 1 }
+               },
+               .mipLevels{ 1 },
+               .arrayLayers{ 1 },
+               .samples{ vk::SampleCountFlagBits::e1 },
+               .tiling{ vk::ImageTiling::eOptimal },
+               .usage{ vk::ImageUsageFlagBits::eDepthStencilAttachment },
+               .sharingMode{ vk::SharingMode::eExclusive },
+               .initialLayout{ vk::ImageLayout::eUndefined }
+            })
+            .change_allocation_info({
+               .flags{},
+               .usage{},
+               .requiredFlags{ VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT },
+               .preferredFlags{},
+               .memoryTypeBits{},
+               .pool{},
+               .pUserData{},
+               .priority{}
+            })
+            .build(device_)
+         };
+
+         ImageView depth_image_view_{
+            ImageViewBuilder{}
+            .change_view_type(vk::ImageViewType::e2D)
+            .change_format(depth_image_.info().format)
+            .change_subresource_range({
+               .aspectMask{ vk::ImageAspectFlagBits::eDepth },
+               .levelCount{ 1 },
+               .layerCount{ 1 }
+            })
+            .build(device_, depth_image_)
          };
 
          std::uint32_t current_frame_{};

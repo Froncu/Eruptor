@@ -52,6 +52,7 @@ namespace eru
             .lineWidth{ 1.0f }
          })
          .change_descriptor_set_count(frames_in_flight_)
+         .change_depth_attachment_format(vk::Format::eD32Sfloat)
          .build(device_)
       }
    {
@@ -106,6 +107,18 @@ namespace eru
          }
       };
 
+      vk::RenderingAttachmentInfo depth_attachment_info{
+         .imageView{ *depth_image_view_.image_view() },
+         .imageLayout{ vk::ImageLayout::eDepthStencilAttachmentOptimal },
+         .loadOp{ vk::AttachmentLoadOp::eClear },
+         .storeOp{ vk::AttachmentStoreOp::eDontCare },
+         .clearValue{
+            vk::ClearDepthStencilValue{
+               .depth{ 1.0f }
+            }
+         },
+      };
+
       vk::ImageMemoryBarrier2 const color_barrier{
          .srcStageMask{ vk::PipelineStageFlagBits2::eNone },
          .srcAccessMask{ vk::AccessFlagBits2::eNone },
@@ -132,7 +145,8 @@ namespace eru
          },
          .layerCount{ 1 },
          .colorAttachmentCount{ 1 },
-         .pColorAttachments{ &color_attachment_info }
+         .pColorAttachments{ &color_attachment_info },
+         .pDepthAttachment{ &depth_attachment_info }
       });
 
       command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline_.pipeline());
