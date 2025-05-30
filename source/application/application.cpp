@@ -1,5 +1,5 @@
 #include "application.hpp"
-#include "math/uniform_buffer_object.hpp"
+#include "renderer/camera.hpp"
 #include "shader_compiler/shader_compiler.hpp"
 
 namespace eru
@@ -900,7 +900,7 @@ namespace eru
 
    std::vector<std::pair<vk::Buffer, VmaAllocation>> Application::create_uniform_buffers() const
    {
-      vk::DeviceSize constexpr buffer_size{ sizeof(UniformBufferObject) };
+      vk::DeviceSize constexpr buffer_size{ sizeof(Camera) };
 
       std::vector<std::pair<vk::Buffer, VmaAllocation>> uniform_buffers(FRAMES_IN_FLIGHT);
       std::ranges::generate(uniform_buffers,
@@ -954,7 +954,7 @@ namespace eru
          vk::DescriptorBufferInfo const buffer_info{
             .buffer{ uniform_buffers_[index].first },
             .offset{ 0 },
-            .range{ sizeof(UniformBufferObject) }
+            .range{ sizeof(Camera) }
          };
 
          vk::DescriptorImageInfo const image_info{
@@ -1254,13 +1254,7 @@ namespace eru
 
    void Application::update_uniform_buffer(std::size_t const current_frame) const
    {
-      static auto start_time{ std::chrono::high_resolution_clock::now() };
-
-      auto const current_time{ std::chrono::high_resolution_clock::now() };
-      float const time{ std::chrono::duration<float>(current_time - start_time).count() };
-
-      UniformBufferObject const uniform_buffer_object{
-         .model{ glm::rotate<float, glm::defaultp>({ 1.0f }, time * glm::half_pi<float>(), { 0.0f, 1.0f, 0.0f }) },
+      Camera const uniform_buffer_object{
          .view{ glm::lookAt<float, glm::defaultp>({ 0.0f, 2.0f, -2.0 }, { 0.0f, 0.0f, 0.0f }, { 0.0f, -1.0f, 0.0f }) },
          .projection{
             glm::perspective(glm::radians(45.0f), swap_chain_extent_.width / static_cast<float>(swap_chain_extent_.height),

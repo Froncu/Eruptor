@@ -38,18 +38,20 @@ namespace eru
                .pName{ "main" }
             }
          })
-         // .add_descriptor_bindings({
-         //    {
-         //       .type{ vk::DescriptorType::eUniformBuffer },
-         //       .shader_stage_flags{ vk::ShaderStageFlagBits::eVertex },
-         //       .count{ 1 }
-         //    },
-         //    {
-         //       .type{ vk::DescriptorType::eCombinedImageSampler },
-         //       .shader_stage_flags{ vk::ShaderStageFlagBits::eFragment },
-         //       .count{ 1 }
-         //    }
-         // })
+         .add_descriptor_bindings({
+            {
+               .type{ vk::DescriptorType::eUniformBuffer },
+               .shader_stage_flags{ vk::ShaderStageFlagBits::eVertex },
+               .count{ 1 }
+            }
+         })
+         .change_rasterization_state({
+            .polygonMode{ vk::PolygonMode::eFill },
+            .cullMode{ vk::CullModeFlagBits::eBack },
+            .frontFace{ vk::FrontFace::eClockwise },
+            .lineWidth{ 1.0f }
+         })
+         .change_descriptor_set_count(frames_in_flight_)
          .build(device_)
       }
    {
@@ -135,6 +137,9 @@ namespace eru
 
       command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline_.pipeline());
 
+      command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline_.layout(), 0,
+         { pipeline_.descriptor_sets()[image_index] }, {});
+
       command_buffer.setViewport(0, {
          {
             .width{ static_cast<float>(swap_chain_.extent().width) },
@@ -175,6 +180,19 @@ namespace eru
 
       command_buffer.end();
 
+      Camera const camera{
+         .view{ glm::lookAt<float, glm::defaultp>({ 0.0f, -2.0f, 2.0 }, { 0.0f, 0.0f, 0.0f }, { 0.0f, -1.0f, 0.0f }) },
+         .projection{
+            glm::perspective(glm::radians(45.0f), swap_chain_.extent().width / static_cast<float>(swap_chain_.extent().height),
+               0.1f, 8.0f)
+         }
+      };
+
+      VmaAllocationInfo allocation_info;
+      vmaGetAllocationInfo(camera_buffers_[current_frame_].allocator(), camera_buffers_[current_frame_].allocation(),
+         &allocation_info);
+      std::memcpy(allocation_info.pMappedData, &camera, sizeof(camera));
+
       std::array<vk::PipelineStageFlags, 1> constexpr wait_stages{ vk::PipelineStageFlagBits::eColorAttachmentOutput };
       device_.queues().front().queue().submit({
          {
@@ -206,6 +224,6 @@ namespace eru
          swap_chain_ = swap_chain_builder_.build(device_, *window_, device_.queues());
       }
 
-      current_frame_ = (current_frame_ + 1) % 3;
+      current_frame_ = (current_frame_ + 1) % frames_in_flight_;
    }
 }

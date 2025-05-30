@@ -148,13 +148,12 @@ namespace eru
 
    Pipeline PipelineBuilder::build(Device const& device) const
    {
-      vk::raii::DescriptorSetLayout const descriptor_set_layout{ create_descriptor_set_layout(device) };
+      vk::raii::DescriptorSetLayout descriptor_set_layout{ create_descriptor_set_layout(device) };
       vk::raii::DescriptorPool descriptor_pool{ create_descriptor_pool(device) };
       std::vector descriptor_sets{ allocate_descriptor_sets(device, descriptor_set_layout, descriptor_pool) };
       vk::raii::PipelineLayout pipeline_layout{ create_pipeline_layout(device, descriptor_set_layout) };
 
-      return {
-         std::move(descriptor_pool), std::move(descriptor_sets),
+      return { std::move(descriptor_set_layout), std::move(descriptor_pool), std::move(descriptor_sets),
          std::move(pipeline_layout), create_pipeline(device, pipeline_layout)
       };
    }

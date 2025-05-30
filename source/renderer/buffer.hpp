@@ -9,13 +9,14 @@ namespace eru
 
       public:
          Buffer(Buffer const&) = delete;
-         Buffer(Buffer&&) = default;
+         Buffer(Buffer&& other) noexcept;
 
          ~Buffer();
 
          Buffer& operator=(Buffer const&) = delete;
-         Buffer& operator=(Buffer&&) = default;
+         Buffer& operator=(Buffer&& other) noexcept;
 
+         [[nodiscard]] VmaAllocator allocator() const;
          [[nodiscard]] vk::Buffer buffer() const;
          [[nodiscard]] VmaAllocation allocation() const;
 
