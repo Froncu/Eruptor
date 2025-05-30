@@ -1,6 +1,9 @@
 #ifndef BUFFER_HPP
 #define BUFFER_HPP
 
+#include "device.hpp"
+#include "image.hpp"
+
 namespace eru
 {
    class Buffer final
@@ -15,6 +18,9 @@ namespace eru
 
          Buffer& operator=(Buffer const&) = delete;
          Buffer& operator=(Buffer&& other) noexcept;
+
+         void copy(Device const& device, Buffer const& target, vk::DeviceSize size) const;
+         void copy(Device const& device, Image const& target, vk::Extent3D extent) const;
 
          [[nodiscard]] VmaAllocator allocator() const;
          [[nodiscard]] vk::Buffer buffer() const;

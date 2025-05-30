@@ -41,6 +41,66 @@ namespace eru
       return *this;
    }
 
+   void Buffer::copy(Device const& device, Buffer const& target, vk::DeviceSize size) const
+   {
+      DeviceQueue const& queue{ device.queues().front() };
+      vk::CommandBuffer const command_buffer{
+         device.device().allocateCommandBuffers({
+            .commandPool{ *device.command_pool(queue) },
+            .level{ vk::CommandBufferLevel::ePrimary },
+            .commandBufferCount{ 1 }
+         }).front()
+      };
+
+      command_buffer.copyBuffer(buffer_, target.buffer(), {
+         {
+            .size{ size }
+         }
+      });
+
+      command_buffer.end();
+
+      queue.queue().submit({
+         {
+            .commandBufferCount{ 1 },
+            .pCommandBuffers{ &command_buffer }
+         }
+      });
+      queue.queue().waitIdle();
+   }
+
+   void Buffer::copy(Device const& device, Image const& target, vk::Extent3D extent) const
+   {
+      DeviceQueue const& queue{ device.queues().front() };
+      vk::CommandBuffer const command_buffer{
+         device.device().allocateCommandBuffers({
+            .commandPool{ *device.command_pool(queue) },
+            .level{ vk::CommandBufferLevel::ePrimary },
+            .commandBufferCount{ 1 }
+         }).front()
+      };
+
+      command_buffer.copyBufferToImage(buffer_, target.image(), vk::ImageLayout::eTransferDstOptimal, {
+         {
+            .imageSubresource{
+               .aspectMask{ vk::ImageAspectFlagBits::eColor },
+               .layerCount{ 1 }
+            },
+            .imageExtent{ extent }
+         }
+      });
+
+      command_buffer.end();
+
+      queue.queue().submit({
+         {
+            .commandBufferCount{ 1 },
+            .pCommandBuffers{ &command_buffer }
+         }
+      });
+      queue.queue().waitIdle();
+   }
+
    VmaAllocator Buffer::allocator() const
    {
       return allocator_;

@@ -1,6 +1,7 @@
 #ifndef IMAGE_HPP
 #define IMAGE_HPP
 
+#include "device.hpp"
 #include "erupch/erupch.hpp"
 
 namespace eru
@@ -68,6 +69,8 @@ namespace eru
 
          Image& operator=(Image const&) = delete;
          Image& operator=(Image&&) = default;
+
+         void transition_layout(Device const& device, vk::ImageLayout new_layout);
 
          [[nodiscard]] vk::Image image() const;
          [[nodiscard]] vk::ImageCreateInfo const& info() const;
