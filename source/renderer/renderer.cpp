@@ -1,60 +1,9 @@
-#include "builders/device_builder.hpp"
-#include "builders/pipeline_builder.hpp"
 #include "renderer.hpp"
 
 namespace eru
 {
    Renderer::Renderer(Window const& window)
       : window_{ window }
-      , device_{
-         DeviceBuilder{}
-         .enable_extensions({
-            vk::KHRSwapchainExtensionName,
-            vk::KHRSynchronization2ExtensionName,
-            vk::KHRDynamicRenderingExtensionName
-         })
-         .enable_features({ .samplerAnisotropy{ true } })
-         .add_queues({ vk::QueueFlagBits::eGraphics | vk::QueueFlagBits::eTransfer, window_->surface() })
-         .build()
-      }
-      , swap_chain_{
-         swap_chain_builder_
-         .change_format({ vk::Format::eR8G8B8A8Srgb, vk::ColorSpaceKHR::eSrgbNonlinear })
-         .change_present_mode(vk::PresentModeKHR::eMailbox)
-         .build(device_, *window_, device_.queues())
-      }
-      , pipeline_{
-         PipelineBuilder{}
-         .change_color_attachment_format(swap_chain_.images().front().info().format)
-         .add_shader_stages({
-            {
-               .stage{ vk::ShaderStageFlagBits::eVertex },
-               .module{ *vertex_shader_.module() },
-               .pName{ "main" }
-            },
-            {
-               .stage{ vk::ShaderStageFlagBits::eFragment },
-               .module{ *fragment_shader_.module() },
-               .pName{ "main" }
-            }
-         })
-         .add_descriptor_bindings({
-            {
-               .type{ vk::DescriptorType::eUniformBuffer },
-               .shader_stage_flags{ vk::ShaderStageFlagBits::eVertex },
-               .count{ 1 }
-            }
-         })
-         .change_rasterization_state({
-            .polygonMode{ vk::PolygonMode::eFill },
-            .cullMode{ vk::CullModeFlagBits::eBack },
-            .frontFace{ vk::FrontFace::eClockwise },
-            .lineWidth{ 1.0f }
-         })
-         .change_descriptor_set_count(frames_in_flight_)
-         .change_depth_attachment_format(vk::Format::eD32Sfloat)
-         .build(device_)
-      }
    {
    }
 
@@ -236,6 +185,10 @@ namespace eru
          device_.device().waitIdle();
          swap_chain_builder_.change_old_swap_chain(&swap_chain_);
          swap_chain_ = swap_chain_builder_.build(device_, *window_, device_.queues());
+
+         depth_image_builder_.change_extent(swap_chain_.extent());
+         depth_image_ = depth_image_builder_.build(device_);
+         depth_image_view_ = depth_image_view_builder_.build(device_, depth_image_);
       }
 
       current_frame_ = (current_frame_ + 1) % frames_in_flight_;

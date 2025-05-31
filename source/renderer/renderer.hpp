@@ -3,8 +3,10 @@
 
 #include "buffer.hpp"
 #include "builders/buffer_builder.hpp"
+#include "builders/device_builder.hpp"
 #include "builders/image_builder.hpp"
 #include "builders/image_view_builder.hpp"
+#include "builders/pipeline_builder.hpp"
 #include "builders/swap_chain_builder.hpp"
 #include "camera.hpp"
 #include "device.hpp"
@@ -32,12 +34,61 @@ namespace eru
          std::uint32_t const frames_in_flight_{ 3 };
 
          Reference<Window const> const window_;
-         Device device_;
+
+         Device device_{
+            DeviceBuilder{}
+            .enable_extensions({
+               vk::KHRSwapchainExtensionName,
+               vk::KHRSynchronization2ExtensionName,
+               vk::KHRDynamicRenderingExtensionName
+            })
+            .enable_features({ .samplerAnisotropy{ true } })
+            .add_queues({ vk::QueueFlagBits::eGraphics | vk::QueueFlagBits::eTransfer, window_->surface() })
+            .build()
+         };
+
          SwapChainBuilder swap_chain_builder_{};
-         SwapChain swap_chain_;
+         SwapChain swap_chain_{
+            swap_chain_builder_
+            .change_format({ vk::Format::eR8G8B8A8Srgb, vk::ColorSpaceKHR::eSrgbNonlinear })
+            .change_present_mode(vk::PresentModeKHR::eMailbox)
+            .build(device_, *window_, device_.queues())
+         };
+
          Shader vertex_shader_{ "resources/shaders/triangle.vert", device_ };
          Shader fragment_shader_{ "resources/shaders/triangle.frag", device_ };
-         Pipeline pipeline_;
+         Pipeline pipeline_{
+            PipelineBuilder{}
+            .change_color_attachment_format(swap_chain_.images().front().info().format)
+            .add_shader_stages({
+               {
+                  .stage{ vk::ShaderStageFlagBits::eVertex },
+                  .module{ *vertex_shader_.module() },
+                  .pName{ "main" }
+               },
+               {
+                  .stage{ vk::ShaderStageFlagBits::eFragment },
+                  .module{ *fragment_shader_.module() },
+                  .pName{ "main" }
+               }
+            })
+            .add_descriptor_bindings({
+               {
+                  .type{ vk::DescriptorType::eUniformBuffer },
+                  .shader_stage_flags{ vk::ShaderStageFlagBits::eVertex },
+                  .count{ 1 }
+               }
+            })
+            .change_rasterization_state({
+               .polygonMode{ vk::PolygonMode::eFill },
+               .cullMode{ vk::CullModeFlagBits::eBack },
+               .frontFace{ vk::FrontFace::eClockwise },
+               .lineWidth{ 1.0f }
+            })
+            .change_descriptor_set_count(frames_in_flight_)
+            .change_depth_attachment_format(vk::Format::eD32Sfloat)
+            .build(device_)
+         };
 
          std::vector<vk::raii::CommandBuffer> command_buffers_{
             device_.device().allocateCommandBuffers({
@@ -135,38 +186,24 @@ namespace eru
             }()
          };
 
-         Image depth_image_{
+         ImageBuilder depth_image_builder_{
             ImageBuilder{}
-            .change_create_info({
-               .imageType{ vk::ImageType::e2D },
-               .format{ vk::Format::eD32Sfloat },
-               .extent{
-                  .width{ swap_chain_.extent().width },
-                  .height{ swap_chain_.extent().height },
-                  .depth{ 1 }
-               },
-               .mipLevels{ 1 },
-               .arrayLayers{ 1 },
-               .samples{ vk::SampleCountFlagBits::e1 },
-               .tiling{ vk::ImageTiling::eOptimal },
-               .usage{ vk::ImageUsageFlagBits::eDepthStencilAttachment },
-               .sharingMode{ vk::SharingMode::eExclusive },
-               .initialLayout{ vk::ImageLayout::eUndefined }
-            })
-            .change_allocation_info({
-               .flags{},
-               .usage{},
-               .requiredFlags{ VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT },
-               .preferredFlags{},
-               .memoryTypeBits{},
-               .pool{},
-               .pUserData{},
-               .priority{}
-            })
-            .build(device_)
+            .change_type(vk::ImageType::e2D)
+            .change_format(vk::Format::eD32Sfloat)
+            .change_extent(swap_chain_.extent())
+            .change_mip_levels(1)
+            .change_array_layers(1)
+            .change_samples(vk::SampleCountFlagBits::e1)
+            .change_tiling(vk::ImageTiling::eOptimal)
+            .change_usage(vk::ImageUsageFlagBits::eDepthStencilAttachment)
+            .change_sharing_mode(vk::SharingMode::eExclusive)
+            .change_initial_layout(vk::ImageLayout::eUndefined)
+            .change_allocation_required_flags(vk::MemoryPropertyFlagBits::eDeviceLocal)
          };
 
-         ImageView depth_image_view_{
+         Image depth_image_{ depth_image_builder_.build(device_) };
+
+         ImageViewBuilder depth_image_view_builder_{
             ImageViewBuilder{}
             .change_view_type(vk::ImageViewType::e2D)
             .change_format(depth_image_.info().format)
@@ -175,8 +212,9 @@ namespace eru
                .levelCount{ 1 },
                .layerCount{ 1 }
             })
-            .build(device_, depth_image_)
          };
+
+         ImageView depth_image_view_{ depth_image_view_builder_.build(device_, depth_image_) };
 
          std::uint32_t current_frame_{};
    };

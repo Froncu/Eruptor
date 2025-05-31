@@ -11,13 +11,13 @@ namespace eru
    {
       public:
          ImageViewBuilder() = default;
-         ImageViewBuilder(ImageViewBuilder const&) = delete;
-         ImageViewBuilder(ImageViewBuilder&&) = delete;
+         ImageViewBuilder(ImageViewBuilder const&) = default;
+         ImageViewBuilder(ImageViewBuilder&&) = default;
 
          ~ImageViewBuilder() = default;
 
-         ImageViewBuilder& operator=(ImageViewBuilder const&) = delete;
-         ImageViewBuilder& operator=(ImageViewBuilder&&) = delete;
+         ImageViewBuilder& operator=(ImageViewBuilder const&) = default;
+         ImageViewBuilder& operator=(ImageViewBuilder&&) = default;
 
          ImageViewBuilder& change_view_type(vk::ImageViewType view_type);
          ImageViewBuilder& change_format(vk::Format format);

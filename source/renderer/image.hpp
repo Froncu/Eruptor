@@ -45,6 +45,9 @@ namespace eru
             if (this == &other)
                return *this;
 
+            if (allocator)
+               vmaDestroyImage(allocator, static_cast<VkImage>(image), memory);
+
             allocator = other.allocator;
             image = other.image;
             memory = other.memory;

@@ -11,16 +11,33 @@ namespace eru
    {
       public:
          ImageBuilder() = default;
-         ImageBuilder(ImageBuilder const&) = delete;
-         ImageBuilder(ImageBuilder&&) = delete;
+         ImageBuilder(ImageBuilder const&) = default;
+         ImageBuilder(ImageBuilder&&) = default;
 
          ~ImageBuilder() = default;
 
-         ImageBuilder& operator=(ImageBuilder const&) = delete;
-         ImageBuilder& operator=(ImageBuilder&&) = delete;
+         ImageBuilder& operator=(ImageBuilder const&) = default;
+         ImageBuilder& operator=(ImageBuilder&&) = default;
 
-         ImageBuilder& change_create_info(vk::ImageCreateInfo const& create_info);
-         ImageBuilder& change_allocation_info(VmaAllocationCreateInfo const& allocation_info);
+         ImageBuilder& change_type(vk::ImageType type);
+         ImageBuilder& change_format(vk::Format format);
+         ImageBuilder& change_extent(vk::Extent3D extent);
+         ImageBuilder& change_extent(vk::Extent2D extent);
+         ImageBuilder& change_mip_levels(std::uint32_t mip_levels);
+         ImageBuilder& change_array_layers(std::uint32_t array_layers);
+         ImageBuilder& change_samples(vk::SampleCountFlagBits samples);
+         ImageBuilder& change_tiling(vk::ImageTiling tiling);
+         ImageBuilder& change_usage(vk::ImageUsageFlags usage);
+         ImageBuilder& change_sharing_mode(vk::SharingMode sharing_mode);
+         ImageBuilder& change_initial_layout(vk::ImageLayout initial_layout);
+         ImageBuilder& change_allocation_flags(VmaAllocationCreateFlags allocation_flags);
+         ImageBuilder& change_allocation_usage(VmaMemoryUsage allocation_usage);
+         ImageBuilder& change_allocation_required_flags(vk::MemoryPropertyFlags required_flags);
+         ImageBuilder& change_allocation_preferred_flags(vk::MemoryPropertyFlags preferred_flags);
+         ImageBuilder& change_allocation_memory_type_bits(std::uint32_t memory_type_bits);
+         ImageBuilder& change_allocation_pool(VmaPool pool);
+         ImageBuilder& change_allocation_user_data(void* user_data);
+         ImageBuilder& change_allocation_priority(float priority);
 
          [[nodiscard]] Image build(Device const& device) const;
 
