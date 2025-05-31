@@ -30,6 +30,8 @@ namespace eru
 
          void render();
 
+         Camera camera{};
+
       private:
          std::uint32_t const frames_in_flight_{ 3 };
 
@@ -141,7 +143,7 @@ namespace eru
             {
                BufferBuilder buffer_builder{};
 
-               vk::DeviceSize constexpr buffer_size{ sizeof(Camera) };
+               vk::DeviceSize constexpr buffer_size{ sizeof(Camera::Data) };
                buffer_builder.change_buffer_create_info({
                   .size{ buffer_size },
                   .usage{ vk::BufferUsageFlagBits::eUniformBuffer },
@@ -167,7 +169,7 @@ namespace eru
                   vk::DescriptorBufferInfo const buffer_info{
                      .buffer{ buffers.emplace_back(buffer_builder.build(device_)).buffer() },
                      .offset{ 0 },
-                     .range{ sizeof(Camera) }
+                     .range{ sizeof(Camera::Data) }
                   };
 
                   device_.device().updateDescriptorSets({

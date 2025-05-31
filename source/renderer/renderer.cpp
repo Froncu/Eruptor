@@ -5,6 +5,7 @@ namespace eru
    Renderer::Renderer(Window const& window)
       : window_{ window }
    {
+      camera.change_projection_extent(swap_chain_.extent());
    }
 
    Renderer::~Renderer()
@@ -143,18 +144,10 @@ namespace eru
 
       command_buffer.end();
 
-      Camera const camera{
-         .view{ glm::lookAt<float, glm::defaultp>({ 0.0f, -2.0f, 2.0 }, { 0.0f, 0.0f, 0.0f }, { 0.0f, -1.0f, 0.0f }) },
-         .projection{
-            glm::perspective(glm::radians(45.0f), swap_chain_.extent().width / static_cast<float>(swap_chain_.extent().height),
-               0.1f, 8.0f)
-         }
-      };
-
       VmaAllocationInfo allocation_info;
       vmaGetAllocationInfo(camera_buffers_[current_frame_].allocator(), camera_buffers_[current_frame_].allocation(),
          &allocation_info);
-      std::memcpy(allocation_info.pMappedData, &camera, sizeof(camera));
+      std::memcpy(allocation_info.pMappedData, &camera.data(), sizeof(camera.data()));
 
       std::array<vk::PipelineStageFlags, 1> constexpr wait_stages{ vk::PipelineStageFlagBits::eColorAttachmentOutput };
       device_.queues().front().queue().submit({
@@ -189,6 +182,8 @@ namespace eru
          depth_image_builder_.change_extent(swap_chain_.extent());
          depth_image_ = depth_image_builder_.build(device_);
          depth_image_view_ = depth_image_view_builder_.build(device_, depth_image_);
+
+         camera.change_projection_extent(swap_chain_.extent());
       }
 
       current_frame_ = (current_frame_ + 1) % frames_in_flight_;

@@ -900,7 +900,7 @@ namespace eru
 
    std::vector<std::pair<vk::Buffer, VmaAllocation>> Application::create_uniform_buffers() const
    {
-      vk::DeviceSize constexpr buffer_size{ sizeof(Camera) };
+      vk::DeviceSize constexpr buffer_size{ sizeof(Camera::Data) };
 
       std::vector<std::pair<vk::Buffer, VmaAllocation>> uniform_buffers(FRAMES_IN_FLIGHT);
       std::ranges::generate(uniform_buffers,
@@ -954,7 +954,7 @@ namespace eru
          vk::DescriptorBufferInfo const buffer_info{
             .buffer{ uniform_buffers_[index].first },
             .offset{ 0 },
-            .range{ sizeof(Camera) }
+            .range{ sizeof(Camera::Data) }
          };
 
          vk::DescriptorImageInfo const image_info{
@@ -1254,7 +1254,7 @@ namespace eru
 
    void Application::update_uniform_buffer(std::size_t const current_frame) const
    {
-      Camera const uniform_buffer_object{
+      Camera::Data const uniform_buffer_object{
          .view{ glm::lookAt<float, glm::defaultp>({ 0.0f, 2.0f, -2.0 }, { 0.0f, 0.0f, 0.0f }, { 0.0f, -1.0f, 0.0f }) },
          .projection{
             glm::perspective(glm::radians(45.0f), swap_chain_extent_.width / static_cast<float>(swap_chain_extent_.height),
