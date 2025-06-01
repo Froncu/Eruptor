@@ -22,7 +22,7 @@ namespace eru
    }
 
    PipelineBuilder& PipelineBuilder::add_vertex_bindings(
-      std::initializer_list<vk::VertexInputBindingDescription> const vertex_bindings)
+      std::span<vk::VertexInputBindingDescription const> const vertex_bindings)
    {
       for (vk::VertexInputBindingDescription const vertex_binding : vertex_bindings)
          add_vertex_binding(vertex_binding);
@@ -37,7 +37,7 @@ namespace eru
    }
 
    PipelineBuilder& PipelineBuilder::add_vertex_attributes(
-      std::initializer_list<vk::VertexInputAttributeDescription> const vertex_attributes)
+      std::span<vk::VertexInputAttributeDescription const> const vertex_attributes)
    {
       for (vk::VertexInputAttributeDescription const vertex_attribute : vertex_attributes)
          add_vertex_attribute(vertex_attribute);

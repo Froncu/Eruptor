@@ -1,9 +1,9 @@
 #ifndef APPLICATION_HPP
 #define APPLICATION_HPP
 
-#include "../utility/constants.hpp"
 #include "erupch/erupch.hpp"
-#include "mesh/vertex.hpp"
+#include "scene/vertex.hpp"
+#include "utility/constants.hpp"
 #include "utility/unique_pointer.hpp"
 
 namespace eru

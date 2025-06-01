@@ -11,6 +11,8 @@
 #include "camera.hpp"
 #include "device.hpp"
 #include "pipeline.hpp"
+#include "scene/scene.hpp"
+#include "scene/vertex.hpp"
 #include "shader.hpp"
 #include "window/window.hpp"
 
@@ -57,11 +59,13 @@ namespace eru
             .build(device_, *window_, device_.queues())
          };
 
-         Shader vertex_shader_{ "resources/shaders/triangle.vert", device_ };
-         Shader fragment_shader_{ "resources/shaders/triangle.frag", device_ };
+         Shader vertex_shader_{ "resources/shaders/test.vert", device_ };
+         Shader fragment_shader_{ "resources/shaders/test.frag", device_ };
          Pipeline pipeline_{
             PipelineBuilder{}
             .change_color_attachment_format(swap_chain_.images().front().info().format)
+            .add_vertex_bindings(Vertex::BINDING_DESCRIPTIONS)
+            .add_vertex_attributes(Vertex::ATTRIBUTE_DESCRIPTIONS)
             .add_shader_stages({
                {
                   .stage{ vk::ShaderStageFlagBits::eVertex },
@@ -144,22 +148,13 @@ namespace eru
                BufferBuilder buffer_builder{};
 
                vk::DeviceSize constexpr buffer_size{ sizeof(Camera::Data) };
-               buffer_builder.change_buffer_create_info({
-                  .size{ buffer_size },
-                  .usage{ vk::BufferUsageFlagBits::eUniformBuffer },
-                  .sharingMode{ vk::SharingMode::eExclusive }
-               });
-
-               buffer_builder.change_allocation_create_info({
-                  .flags{ VMA_ALLOCATION_CREATE_MAPPED_BIT },
-                  .usage{},
-                  .requiredFlags{ VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT },
-                  .preferredFlags{},
-                  .memoryTypeBits{},
-                  .pool{},
-                  .pUserData{},
-                  .priority{}
-               });
+               buffer_builder
+                  .change_size(buffer_size)
+                  .change_usage(vk::BufferUsageFlagBits::eUniformBuffer)
+                  .change_sharing_mode(vk::SharingMode::eExclusive)
+                  .change_allocation_flags(VMA_ALLOCATION_CREATE_MAPPED_BIT)
+                  .change_allocation_required_flags(
+                     vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
 
                std::vector<Buffer> buffers{};
                buffers.reserve(frames_in_flight_);
@@ -217,6 +212,8 @@ namespace eru
          };
 
          ImageView depth_image_view_{ depth_image_view_builder_.build(device_, depth_image_) };
+
+         Scene scene_{ device_, "resources/models/viking_room.obj" };
 
          std::uint32_t current_frame_{};
    };
