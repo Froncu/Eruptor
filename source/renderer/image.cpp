@@ -11,12 +11,12 @@ namespace eru
    void Image::transition_layout(Device const& device, vk::ImageLayout new_layout)
    {
       DeviceQueue const& queue{ device.queues().front() };
-      vk::CommandBuffer const command_buffer{
-         device.device().allocateCommandBuffers({
+      vk::raii::CommandBuffer const command_buffer{
+         std::move(device.device().allocateCommandBuffers({
             .commandPool{ *device.command_pool(queue) },
             .level{ vk::CommandBufferLevel::ePrimary },
             .commandBufferCount{ 1 }
-         }).front()
+         }).front())
       };
 
       vk::AccessFlags source_access_mask;
@@ -71,7 +71,7 @@ namespace eru
       queue.queue().submit({
          {
             .commandBufferCount{ 1 },
-            .pCommandBuffers{ &command_buffer }
+            .pCommandBuffers{ &*command_buffer }
          }
       });
       queue.queue().waitIdle();
