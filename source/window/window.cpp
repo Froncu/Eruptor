@@ -58,7 +58,7 @@ namespace eru
    void Window::change_title(std::string_view const title)
    {
       bool const succeeded{ SDL_SetWindowTitle(native_window_.get(), title.data()) };
-      runtime_assert(succeeded, "failed to set RenderContext{}'s title to {} ({})",
+      runtime_assert(succeeded, "failed to set Window{}'s title to {} ({})",
          id(), title, SDL_GetError());
    }
 
@@ -67,14 +67,14 @@ namespace eru
       bool const succeeded{
          SDL_SetWindowSize(native_window_.get(), static_cast<int>(size.width), static_cast<int>(size.height))
       };
-      runtime_assert(succeeded, "failed to set RenderContext{}'s size to {}x{} ({})",
+      runtime_assert(succeeded, "failed to set Window{}'s size to {}x{} ({})",
          id(), size.width, size.height, SDL_GetError());
    }
 
    void Window::change_position(glm::ivec2 position)
    {
       bool const succeeded{ SDL_SetWindowPosition(native_window_.get(), position.x, position.y) };
-      runtime_assert(succeeded, "failed to set RenderContext{}'s position to {}x{} ({})",
+      runtime_assert(succeeded, "failed to set Window{}'s position to {}x{} ({})",
          id(), position.x, position.y, SDL_GetError());
    }
 
@@ -86,35 +86,42 @@ namespace eru
    void Window::change_fullscreen_mode(bool const fullscreen)
    {
       bool const succeeded{ SDL_SetWindowFullscreen(native_window_.get(), fullscreen) };
-      runtime_assert(succeeded, "failed to set RenderContext{}'s fullscreen to {} ({})",
+      runtime_assert(succeeded, "failed to set Window{}'s fullscreen to {} ({})",
          id(), fullscreen ? "fullscreen" : "windowed", SDL_GetError());
    }
 
    void Window::change_resizability(bool const resizable)
    {
       bool const succeeded{ SDL_SetWindowResizable(native_window_.get(), resizable) };
-      runtime_assert(succeeded, "failed to set RenderContext{}'s resizability to {} ({})",
+      runtime_assert(succeeded, "failed to set Window{}'s resizability to {} ({})",
          id(), resizable, SDL_GetError());
    }
 
    void Window::change_visibility(bool const show)
    {
       bool const succeeded{ show ? SDL_ShowWindow(native_window_.get()) : SDL_HideWindow(native_window_.get()) };
-      runtime_assert(succeeded, "failed to set RenderContext{}'s visibility to {} ({})",
+      runtime_assert(succeeded, "failed to set Window{}'s visibility to {} ({})",
          id(), show ? "show" : "hidden", SDL_GetError());
    }
 
    void Window::change_minimised(bool const mininimised)
    {
       bool const succeeded{ mininimised ? SDL_MinimizeWindow(native_window_.get()) : SDL_RestoreWindow(native_window_.get()) };
-      runtime_assert(succeeded, "failed to set RenderContext{}'s minimised to {} ({})",
+      runtime_assert(succeeded, "failed to set Window{}'s minimised to {} ({})",
          id(), mininimised ? "minimised" : "not minimised", SDL_GetError());
+   }
+
+   void Window::change_lock_mouse(bool const lock_mouse)
+   {
+      bool const succeeded{ SDL_SetWindowRelativeMouseMode(native_window_.get(), lock_mouse) };
+      runtime_assert(succeeded, "failed to set Window{}'s mouse lock to {} ({})",
+         id(), lock_mouse ? "locked" : "unlocked", SDL_GetError());
    }
 
    ID::InternalValue Window::id() const
    {
       ID::InternalValue const id{ SDL_GetWindowID(native_window_.get()) };
-      runtime_assert(id, "failed to retrieve the ID of a RenderContext ({})",
+      runtime_assert(id, "failed to retrieve the ID of a Window ({})",
          SDL_GetError());
 
       return id;
@@ -130,7 +137,7 @@ namespace eru
       int width;
       int height;
       bool const succeeded{ SDL_GetWindowSize(native_window_.get(), &width, &height) };
-      runtime_assert(succeeded, "failed to retrieve RenderContext{}'s size ({})",
+      runtime_assert(succeeded, "failed to retrieve Window{}'s size ({})",
          id(), SDL_GetError());
 
       return {
@@ -143,7 +150,7 @@ namespace eru
    {
       glm::ivec2 position;
       bool const succeeded{ SDL_GetWindowPosition(native_window_.get(), &position.x, &position.y) };
-      runtime_assert(succeeded, "failed to retrieve RenderContext{}'s position ({})",
+      runtime_assert(succeeded, "failed to retrieve Window{}'s position ({})",
          id(), SDL_GetError());
 
       return position;

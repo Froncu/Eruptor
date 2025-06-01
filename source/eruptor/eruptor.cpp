@@ -5,6 +5,7 @@ namespace eru
    Eruptor::Eruptor()
    {
       window_.change_resizability(true);
+      Locator::get<InputManager>().change_mouse_sensitivity(0.2f);
 
       user_input_.bind_action("move", VectorAction{
          .positive_x_inputs{ Key::D, GamepadAxis::LEFT_STICK_EAST },
@@ -19,10 +20,14 @@ namespace eru
       });
 
       user_input_.bind_action("rotate", VectorAction{
-         .positive_x_inputs{ Key::LEFT, GamepadAxis::RIGHT_STICK_WEST },
-         .negative_x_inputs{ Key::RIGHT, GamepadAxis::RIGHT_STICK_EAST },
-         .positive_y_inputs{ Key::UP, GamepadAxis::RIGHT_STICK_NORTH },
-         .negative_y_inputs{ Key::DOWN, GamepadAxis::RIGHT_STICK_SOUTH }
+         .positive_x_inputs{ GamepadAxis::RIGHT_STICK_WEST },
+         .negative_x_inputs{ GamepadAxis::RIGHT_STICK_EAST },
+         .positive_y_inputs{ GamepadAxis::RIGHT_STICK_NORTH },
+         .negative_y_inputs{ GamepadAxis::RIGHT_STICK_SOUTH }
+      });
+
+      user_input_.bind_action("lock_mouse", ValueAction{
+         .inputs{ MouseButton::LEFT, MouseButton::RIGHT }
       });
    }
 

@@ -30,12 +30,13 @@ namespace eru
          void poll_events();
 
          EventDispatcher<WindowEvent const> window_event{};
-         EventDispatcher<MouseButtonEvent const> mouse_button_event{};
+         EventDispatcher<MouseInputEvent const> mouse_input_event{};
          EventDispatcher<KeyEvent const> key_event{};
          EventDispatcher<GamepadConnectionEvent const> gamepad_connection_event{};
          EventDispatcher<GamepadInputEvent const> gamepad_input_event{};
 
       private:
+         bool did_mouse_move_previously_{};
          std::unordered_map<std::uint32_t, GamepadStickValues> previous_gamepad_stick_values_{};
    };
 }

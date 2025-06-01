@@ -13,6 +13,17 @@ namespace eru
       LEFT
    };
 
+   enum class MouseAxis
+   {
+      UNKNOWN,
+      EAST,
+      WEST,
+      NORTH,
+      SOUTH,
+      WHEEL_NORTH,
+      WHEEL_SOUTH
+   };
+
    enum class Key
    {
       UNKNOWN,
@@ -291,6 +302,7 @@ namespace eru
 
    using Input = std::variant<
       MouseButton,
+      MouseAxis,
       Key,
       GamepadButton,
       GamepadAxis>;

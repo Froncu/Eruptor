@@ -3,6 +3,24 @@
 
 namespace eru
 {
+   MouseButton convert_sdl_mouse_button(Uint8 const mouse_button)
+   {
+      switch (mouse_button)
+      {
+         case SDL_BUTTON_LEFT:
+            return MouseButton::LEFT;
+
+         case SDL_BUTTON_MIDDLE:
+            return MouseButton::MIDDLE;
+
+         case SDL_BUTTON_RIGHT:
+            return MouseButton::RIGHT;
+
+         default:
+            return MouseButton::UNKNOWN;
+      }
+   }
+
    Key convert_sdl_key_code(SDL_Keycode const key_code)
    {
       switch (key_code)

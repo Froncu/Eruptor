@@ -17,6 +17,12 @@ namespace eru
       MouseButton const button;
    };
 
+   struct MouseAxisEvent final
+   {
+      MouseAxis const axis;
+      float const value;
+   };
+
    struct KeyDownEvent final
    {
       Key const key;
@@ -56,9 +62,10 @@ namespace eru
       float const value;
    };
 
-   using MouseButtonEvent = std::variant<
+   using MouseInputEvent = std::variant<
       MouseButtonDownEvent,
-      MouseButtonUpEvent>;
+      MouseButtonUpEvent,
+      MouseAxisEvent>;
 
    using KeyEvent = std::variant<
       KeyDownEvent,

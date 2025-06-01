@@ -6,6 +6,7 @@ namespace eru
 {
    void SystemEventDispatcher::poll_events()
    {
+      bool did_mouse_move_now{};
       SDL_Event native_event;
       while (SDL_PollEvent(&native_event))
          switch (native_event.type)
@@ -22,6 +23,34 @@ namespace eru
                   }
                });
                break;
+
+            case SDL_EVENT_MOUSE_BUTTON_DOWN:
+               mouse_input_event.notify(MouseButtonDownEvent{
+                  .button{ convert_sdl_mouse_button(native_event.button.button) },
+               });
+               break;
+
+            case SDL_EVENT_MOUSE_BUTTON_UP:
+               mouse_input_event.notify(MouseButtonUpEvent{
+                  .button{ convert_sdl_mouse_button(native_event.button.button) },
+               });
+               break;
+
+            case SDL_EVENT_MOUSE_MOTION:
+               if (native_event.motion.xrel)
+                  mouse_input_event.notify(MouseAxisEvent{
+                     .axis{ native_event.motion.xrel > 0.0 ? MouseAxis::EAST : MouseAxis::WEST },
+                     .value{ std::abs(native_event.motion.xrel) }
+                  });
+
+               if (native_event.motion.yrel)
+                  mouse_input_event.notify(MouseAxisEvent{
+                     .axis{ native_event.motion.yrel > 0.0 ? MouseAxis::SOUTH : MouseAxis::NORTH },
+                     .value{ std::abs(native_event.motion.yrel) }
+                  });
+
+               did_mouse_move_now = true;
+               did_mouse_move_previously_ = true;
 
             case SDL_EVENT_KEY_DOWN:
                key_event.notify(KeyDownEvent{ .key{ convert_sdl_key_code(native_event.key.key) } });
@@ -108,5 +137,14 @@ namespace eru
             default:
                break;
          }
+
+      if (not did_mouse_move_now and did_mouse_move_previously_)
+      {
+         mouse_input_event.notify(MouseAxisEvent{ .axis{ MouseAxis::EAST }, .value{} });
+         mouse_input_event.notify(MouseAxisEvent{ .axis{ MouseAxis::WEST }, .value{} });
+         mouse_input_event.notify(MouseAxisEvent{ .axis{ MouseAxis::NORTH }, .value{} });
+         mouse_input_event.notify(MouseAxisEvent{ .axis{ MouseAxis::SOUTH }, .value{} });
+         did_mouse_move_previously_ = false;
+      }
    }
 }

@@ -34,6 +34,7 @@ namespace eru
          void change_resizability(bool resizable);
          void change_visibility(bool show);
          void change_minimised(bool mininimised);
+         void change_lock_mouse(bool lock_mouse);
 
          [[nodiscard]] ID::InternalValue id() const;
          [[nodiscard]] std::string_view title() const;

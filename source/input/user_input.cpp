@@ -39,35 +39,75 @@ namespace eru
    EventDispatcher<float const>& UserInput::bind_action(std::string const& action_name, ValueAction action) const
    {
       InternalValueAction& internal_action{ value_actions_[action_name] };
+
+      bool const is_action_different{
+         internal_action.action.inputs not_eq action.inputs or
+         internal_action.action.deadzone not_eq action.deadzone
+      };
+
       internal_action.action = std::move(action);
+
+      calculate_action_values_if([is_action_different](auto&&)
+      {
+         return is_action_different;
+      });
+
       return internal_action.value_changed_event;
    }
 
    EventDispatcher<float const>& UserInput::bind_action(std::string const& action_name, AxisAction action) const
    {
       InternalAxisAction& internal_action{ axis_actions_[action_name] };
+
+      bool const is_action_different{
+         internal_action.action.positive_inputs not_eq action.positive_inputs or
+         internal_action.action.negative_inputs not_eq action.negative_inputs or
+         internal_action.action.deadzone not_eq action.deadzone
+      };
+
       internal_action.action = std::move(action);
+
+      calculate_action_values_if([is_action_different](auto&&)
+      {
+         return is_action_different;
+      });
+
       return internal_action.value_changed_event;
    }
 
    EventDispatcher<glm::vec2 const>& UserInput::bind_action(std::string const& action_name, VectorAction action) const
    {
       InternalVectorAction& internal_action{ vector_actions_[action_name] };
+
+      bool const is_action_different{
+         internal_action.action.positive_x_inputs not_eq action.positive_x_inputs or
+         internal_action.action.negative_x_inputs not_eq action.negative_x_inputs or
+         internal_action.action.positive_y_inputs not_eq action.positive_y_inputs or
+         internal_action.action.negative_y_inputs not_eq action.negative_y_inputs or
+         internal_action.action.deadzone not_eq action.deadzone
+      };
+
       internal_action.action = std::move(action);
+
+      calculate_action_values_if([is_action_different](auto&&)
+      {
+         return is_action_different;
+      });
+
       return internal_action.value_changed_event;
    }
 
-   EventDispatcher<float const>& UserInput::value_action(std::string const& action_name) const
+   EventDispatcher<float const>& UserInput::value_action_event(std::string const& action_name) const
    {
       return value_actions_[action_name].value_changed_event;
    }
 
-   EventDispatcher<float const>& UserInput::axis_action(std::string const& action_name) const
+   EventDispatcher<float const>& UserInput::axis_action_event(std::string const& action_name) const
    {
       return axis_actions_[action_name].value_changed_event;
    }
 
-   EventDispatcher<glm::vec2 const>& UserInput::vector_action(std::string const& action_name) const
+   EventDispatcher<glm::vec2 const>& UserInput::vector_action_event(std::string const& action_name) const
    {
       return vector_actions_[action_name].value_changed_event;
    }
@@ -141,10 +181,13 @@ namespace eru
                highest_strength(positive_y_inputs, input_strengths_) - highest_strength(negative_y_inputs, input_strengths_)
             };
 
-            if (float const magnitude{ glm::length(value) }; magnitude > 1.0)
-               value /= magnitude;
-            else
-               value *= deadzoned_strength(magnitude, deadzone);
+            if (std::abs(value.x) <= 1.0f and std::abs(value.y) <= 1.0f)
+            {
+               if (float const magnitude{ glm::length(value) }; magnitude > 1.0)
+                  value /= magnitude;
+               else
+                  value *= deadzoned_strength(magnitude, deadzone);
+            }
 
             if (old_value not_eq value)
                value_changed_event.notify(value);

@@ -29,13 +29,15 @@ namespace eru
          void assign_gamepad(UserInput const& user_input, Gamepad const& gamepad);
          void unassign_gamepad(Gamepad const& gamepad);
 
+         void change_mouse_sensitivity(float sensitivity);
+
          [[nodiscard]] UserInput const& user_input(int id);
          [[nodiscard]] std::vector<Gamepad> const& gamepads() const;
 
          EventDispatcher<Gamepad const> gamepad_connected_event{};
          EventDispatcher<Gamepad const> gamepad_disconnected_event{};
 
-         EventListener<MouseButtonEvent const> on_mouse_button_event
+         EventListener<MouseInputEvent const> on_mouse_button_event
          {
             VariantVisitor
             {
@@ -55,9 +57,19 @@ namespace eru
 
                   smart_this->user_input(smart_this->keyboard_mouse_user_input_id_).change_input_strength(event.button, 0.0f);
                   return true;
+               },
+
+               [smart_this = Reference{ this }](MouseAxisEvent const& event)
+               {
+                  if (smart_this->keyboard_mouse_user_input_id_ == UserInput::INVALID_USER_ID)
+                     return false;
+
+                  smart_this->user_input(smart_this->keyboard_mouse_user_input_id_).change_input_strength(event.axis,
+                     smart_this->mouse_sensitivity_ * event.value);
+                  return true;
                }
             },
-            Locator::get<SystemEventDispatcher>().mouse_button_event
+            Locator::get<SystemEventDispatcher>().mouse_input_event
          };
 
          EventListener<KeyEvent const> on_key_event
@@ -148,6 +160,7 @@ namespace eru
       private:
          std::unordered_set<UserInput> user_inputs_{};
          std::vector<Gamepad> gamepads_{};
+         float mouse_sensitivity_{ 1.0f };
          int keyboard_mouse_user_input_id_{};
    };
 }

@@ -1,3 +1,4 @@
+#include "erupch/erupch.hpp"
 #include "input_manager.hpp"
 
 namespace eru
@@ -87,6 +88,11 @@ namespace eru
          });
 
       gamepad.assign_user_input_id(UserInput::INVALID_USER_ID);
+   }
+
+   void InputManager::change_mouse_sensitivity(float const sensitivity)
+   {
+      mouse_sensitivity_ = std::max(0.0f, sensitivity);
    }
 
    UserInput const& InputManager::user_input(int const id)

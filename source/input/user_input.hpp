@@ -4,7 +4,6 @@
 #include "actions.hpp"
 #include "erupch/erupch.hpp"
 #include "events/observer/event_dispatcher.hpp"
-#include "gamepad.hpp"
 #include "reference/referenceable.hpp"
 
 namespace eru
@@ -51,9 +50,9 @@ namespace eru
          EventDispatcher<float const>& bind_action(std::string const& action_name, AxisAction action) const;
          EventDispatcher<glm::vec2 const>& bind_action(std::string const& action_name, VectorAction action) const;
 
-         [[nodiscard]] EventDispatcher<float const>& value_action(std::string const& action_name) const;
-         [[nodiscard]] EventDispatcher<float const>& axis_action(std::string const& action_name) const;
-         [[nodiscard]] EventDispatcher<glm::vec2 const>& vector_action(std::string const& action_name) const;
+         [[nodiscard]] EventDispatcher<float const>& value_action_event(std::string const& action_name) const;
+         [[nodiscard]] EventDispatcher<float const>& axis_action_event(std::string const& action_name) const;
+         [[nodiscard]] EventDispatcher<glm::vec2 const>& vector_action_event(std::string const& action_name) const;
 
          [[nodiscard]] float value_action_strength(std::string const& action_name) const;
          [[nodiscard]] float axis_action_strength(std::string const& action_name) const;
