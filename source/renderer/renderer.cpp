@@ -118,7 +118,7 @@ namespace eru
       command_buffer.bindVertexBuffers(0, { scene_.vertex_buffer().buffer() }, { {} });
       command_buffer.bindIndexBuffer(scene_.index_buffer().buffer(), 0, vk::IndexType::eUint32);
       command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline_.layout(), 0,
-         { pipeline_.descriptor_sets()[image_index] }, {});
+         { pipeline_.descriptor_sets("camera")[image_index] }, {});
 
       for (SubMesh const& sub_mesh : scene_.sub_meshes())
           command_buffer.drawIndexed(

@@ -51,7 +51,8 @@ namespace eru
       return *this;
    }
 
-   PipelineBuilder& PipelineBuilder::add_shader_stages(std::initializer_list<vk::PipelineShaderStageCreateInfo> const shader_stages)
+   PipelineBuilder& PipelineBuilder::add_shader_stages(
+      std::initializer_list<vk::PipelineShaderStageCreateInfo> const shader_stages)
    {
       for (vk::PipelineShaderStageCreateInfo const shader_stage : shader_stages)
          add_shader_stage(shader_stage);
@@ -86,7 +87,8 @@ namespace eru
       return *this;
    }
 
-   PipelineBuilder& PipelineBuilder::change_color_blend_attachment_state(vk::PipelineColorBlendAttachmentState const& color_blend_attachment_state)
+   PipelineBuilder& PipelineBuilder::change_color_blend_attachment_state(
+      vk::PipelineColorBlendAttachmentState const& color_blend_attachment_state)
    {
       color_blend_state_ = color_blend_attachment_state;
       return *this;
@@ -106,29 +108,72 @@ namespace eru
       return *this;
    }
 
-   PipelineBuilder& PipelineBuilder::add_descriptor_binding(DescriptorBinding const descriptor_binding)
+   PipelineBuilder& PipelineBuilder::add_descriptor_set(DescriptorSet descriptor_set)
    {
-      if (not descriptor_binding.count)
-         exception("descriptor binding count must be greater than 0!");
+      if (descriptor_set.name.empty())
+         exception("the descriptor set name cannot be empty!");
 
-      descriptor_bindings_.emplace_back(descriptor_binding);
+      if (not descriptor_set.bindings.size())
+         exception("the descriptor set's \"{}\" bindings cannot be empty!", descriptor_set.name);
+
+      if (std::ranges::any_of(descriptor_set.bindings,
+         [](DescriptorBinding const& binding)
+         {
+            return binding.count == 0;
+         }))
+         exception("none of the descriptor set's \"{}\" bindings counts can be 0!", descriptor_set.name);
+
+      if (not descriptor_set.allocation_count)
+         exception("the descriptor set's \"{}\" allocation count cannot be 0!", descriptor_set.name);
+
+      if (auto stored_set{ descriptor_sets_.find(descriptor_set.name) };
+         stored_set not_eq descriptor_sets_.end())
+      {
+         if (stored_set->bindings not_eq descriptor_set.bindings)
+            exception("a descriptor set with name \"{}\" already exists with different bindings!",
+               stored_set->name);
+
+         stored_set->allocation_count += descriptor_set.allocation_count;
+      }
+      else
+      {
+         for (stored_set = descriptor_sets_.begin(); stored_set not_eq descriptor_sets_.end(); ++stored_set)
+            if (stored_set->bindings == descriptor_set.bindings)
+               exception("an already added descriptor set named \"{}\" has identical bindings to \"{}\"!",
+                  stored_set->name, descriptor_set.name);
+
+         descriptor_sets_.emplace(std::move(descriptor_set));
+      }
+
       return *this;
    }
 
-   PipelineBuilder& PipelineBuilder::add_descriptor_bindings(std::initializer_list<DescriptorBinding> const descriptor_bindings)
+   PipelineBuilder& PipelineBuilder::add_descriptor_sets(std::initializer_list<DescriptorSet> const descriptor_sets)
    {
-      for (DescriptorBinding const binding : descriptor_bindings)
-         add_descriptor_binding(binding);
+      for (DescriptorSet const& descriptor_set : descriptor_sets)
+         add_descriptor_set(descriptor_set);
 
       return *this;
    }
 
-   PipelineBuilder& PipelineBuilder::change_descriptor_set_count(std::uint32_t const descriptor_set_count)
+   PipelineBuilder& PipelineBuilder::assign_slot_to_descriptor_set(std::string name, std::uint32_t const slot)
    {
-      if (not descriptor_set_count)
-         exception("descriptor set count must be greater than 0!");
+      if (name.empty())
+         exception("the descriptor set name cannot be empty!");
 
-      descriptor_set_count_ = descriptor_set_count;
+      if (descriptor_set_slots_.size() <= slot)
+         descriptor_set_slots_.resize(slot + 1);
+
+      descriptor_set_slots_[slot] = std::move(name);
+      return *this;
+   }
+
+   PipelineBuilder& PipelineBuilder::assign_slots_to_descriptor_set(std::string_view const name,
+      std::initializer_list<std::uint32_t> const slots)
+   {
+      for (std::uint32_t const slot : slots)
+         assign_slot_to_descriptor_set(name.data(), slot);
+
       return *this;
    }
 
@@ -138,7 +183,8 @@ namespace eru
       return *this;
    }
 
-   PipelineBuilder& PipelineBuilder::add_push_constant_ranges(std::initializer_list<vk::PushConstantRange> const push_constant_ranges)
+   PipelineBuilder& PipelineBuilder::add_push_constant_ranges(
+      std::initializer_list<vk::PushConstantRange> const push_constant_ranges)
    {
       for (vk::PushConstantRange const push_constant_range : push_constant_ranges)
          add_push_constant_range(push_constant_range);
@@ -146,88 +192,123 @@ namespace eru
       return *this;
    }
 
-   Pipeline PipelineBuilder::build(Device const& device) const
+   Pipeline PipelineBuilder::build(Device const& device)
    {
-      vk::raii::DescriptorSetLayout descriptor_set_layout{ create_descriptor_set_layout(device) };
+      std::unordered_map descriptor_set_layouts{ create_descriptor_set_layouts(device) };
       vk::raii::DescriptorPool descriptor_pool{ create_descriptor_pool(device) };
-      std::vector descriptor_sets{ allocate_descriptor_sets(device, descriptor_set_layout, descriptor_pool) };
-      vk::raii::PipelineLayout pipeline_layout{ create_pipeline_layout(device, descriptor_set_layout) };
+      std::unordered_map descriptor_sets{ allocate_descriptor_sets(device, descriptor_set_layouts, descriptor_pool) };
+      vk::raii::PipelineLayout pipeline_layout{ create_pipeline_layout(device, descriptor_set_layouts) };
 
-      return { std::move(descriptor_set_layout), std::move(descriptor_pool), std::move(descriptor_sets),
+      std::vector<vk::raii::DescriptorSetLayout> raw_descriptor_set_layouts{};
+      raw_descriptor_set_layouts.reserve(descriptor_set_layouts.size());
+      for (vk::raii::DescriptorSetLayout& layout : std::views::values(descriptor_set_layouts))
+         raw_descriptor_set_layouts.emplace_back(std::move(layout));
+
+      return {
+         std::move(raw_descriptor_set_layouts), std::move(descriptor_pool), std::move(descriptor_sets),
          std::move(pipeline_layout), create_pipeline(device, pipeline_layout)
       };
    }
 
-   vk::raii::DescriptorSetLayout PipelineBuilder::create_descriptor_set_layout(Device const& device) const
+   std::unordered_map<std::string, vk::raii::DescriptorSetLayout> PipelineBuilder::create_descriptor_set_layouts(
+      Device const& device) const
    {
-      if (descriptor_bindings_.empty())
-         return nullptr;
-
-      std::vector<vk::DescriptorSetLayoutBinding> descriptor_bindings{};
-      descriptor_bindings.reserve(descriptor_bindings_.size());
-      for (std::uint32_t index{}; index < descriptor_bindings_.size(); ++index)
+      std::unordered_map<std::string, vk::raii::DescriptorSetLayout> layouts{};
+      layouts.reserve(descriptor_sets_.size());
+      for (auto const& [name, bindings, allocation_count] : descriptor_sets_)
       {
-         auto const [type, shader_stage_flags, count]{ descriptor_bindings_[index] };
-         descriptor_bindings.push_back({
-            .binding{ index },
-            .descriptorType{ type },
-            .descriptorCount{ count },
-            .stageFlags{ shader_stage_flags }
-         });
+         if (std::ranges::find(descriptor_set_slots_, name) == descriptor_set_slots_.end())
+            exception("descriptor set with name \"{}\" was never assigned a slot!", name);
+
+         std::vector<vk::DescriptorSetLayoutBinding> native_bindings{};
+         native_bindings.reserve(bindings.size());
+         for (std::uint32_t index{}; index < bindings.size(); ++index)
+         {
+            auto const [type, shader_stage_flags, count]{ bindings[index] };
+            native_bindings.push_back({
+               .binding{ index },
+               .descriptorType{ type },
+               .descriptorCount{ count },
+               .stageFlags{ shader_stage_flags }
+            });
+         }
+
+         layouts.emplace(name,
+            device.device().createDescriptorSetLayout({
+               .bindingCount{ static_cast<std::uint32_t>(native_bindings.size()) },
+               .pBindings{ native_bindings.data() }
+            }));
       }
 
-      return device.device().createDescriptorSetLayout({
-         .bindingCount{ static_cast<std::uint32_t>(descriptor_bindings.size()) },
-         .pBindings{ descriptor_bindings.data() }
-      });
+      return layouts;
    }
 
    vk::raii::DescriptorPool PipelineBuilder::create_descriptor_pool(Device const& device) const
    {
-      if (descriptor_bindings_.empty())
-         return nullptr;
+      std::unordered_map<vk::DescriptorType, std::uint32_t> type_sizes{};
+      std::uint32_t total_set_count{};
+      for (auto const& [name, bindings, allocation_count] : descriptor_sets_)
+      {
+         for (DescriptorBinding const binding : bindings)
+            type_sizes[binding.type] += binding.count * allocation_count;
 
-      std::unordered_map<vk::DescriptorType, std::uint32_t> descriptor_type_sizes{};
-      descriptor_type_sizes.reserve(descriptor_bindings_.size());
-      for (DescriptorBinding const descriptor_binding : descriptor_bindings_)
-         descriptor_type_sizes[descriptor_binding.type] += descriptor_binding.count;
+         total_set_count += allocation_count;
+      }
 
-      std::vector<vk::DescriptorPoolSize> descriptor_pool_sizes{};
-      descriptor_pool_sizes.reserve(descriptor_type_sizes.size());
-      for (auto const [type, count] : descriptor_type_sizes)
-         descriptor_pool_sizes.push_back({
-            .type{ type },
-            .descriptorCount{ descriptor_set_count_ * count },
-         });
+      std::vector<vk::DescriptorPoolSize> pool_size{};
+      for (auto const& [type, size] : type_sizes)
+         pool_size.emplace_back(type, size);
 
       return device.device().createDescriptorPool({
          .flags{ vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet },
-         .maxSets{ descriptor_set_count_ },
-         .poolSizeCount{ static_cast<std::uint32_t>(descriptor_pool_sizes.size()) },
-         .pPoolSizes{ descriptor_pool_sizes.data() }
+         .maxSets{ total_set_count },
+         .poolSizeCount{ static_cast<std::uint32_t>(pool_size.size()) },
+         .pPoolSizes{ pool_size.data() }
       });
    }
 
-   std::vector<vk::raii::DescriptorSet> PipelineBuilder::allocate_descriptor_sets(Device const& device,
-      vk::raii::DescriptorSetLayout const& descriptor_set_layout, vk::raii::DescriptorPool const& descriptor_pool) const
+   std::unordered_map<std::string, std::vector<vk::raii::DescriptorSet>> PipelineBuilder::allocate_descriptor_sets(
+      Device const& device, std::unordered_map<std::string, vk::raii::DescriptorSetLayout> const& layouts,
+      vk::raii::DescriptorPool const& pool) const
    {
-      if (not *descriptor_set_layout)
-         return {};
+      std::unordered_map<std::string, std::vector<vk::raii::DescriptorSet>> descriptor_sets{};
+      for (auto const& [name, layout] : layouts)
+      {
+         std::vector<vk::DescriptorSetLayout> raw_layouts{ descriptor_sets_.find(name)->allocation_count, layout };
+         descriptor_sets[name] = device.device().allocateDescriptorSets({
+            .descriptorPool{ *pool },
+            .descriptorSetCount{ static_cast<std::uint32_t>(raw_layouts.size()) },
+            .pSetLayouts{ raw_layouts.data() }
+         });
+      }
 
-      std::vector<vk::DescriptorSetLayout> descriptor_set_layouts{ descriptor_set_count_, descriptor_set_layout };
-      return device.device().allocateDescriptorSets({
-         .descriptorPool{ *descriptor_pool },
-         .descriptorSetCount{ static_cast<std::uint32_t>(descriptor_set_layouts.size()) },
-         .pSetLayouts{ descriptor_set_layouts.data() }
-      });
+      return descriptor_sets;
    }
 
    vk::raii::PipelineLayout PipelineBuilder::create_pipeline_layout(Device const& device,
-      vk::raii::DescriptorSetLayout const& descriptor_set_layout) const
+      std::unordered_map<std::string, vk::raii::DescriptorSetLayout> const& descriptor_set_layouts)
    {
+      if (std::ranges::any_of(descriptor_set_slots_,
+         [](std::string_view const name)
+         {
+            return name.empty();
+         }))
+         exception("there cannot be a gap between descriptor set slots!");
+
+      std::vector<vk::DescriptorSetLayout> raw_descriptor_set_layouts{};
+      raw_descriptor_set_layouts.reserve(descriptor_set_slots_.size());
+      for (std::string const& name : descriptor_set_slots_)
+      {
+         auto const layout{ descriptor_set_layouts.find(name) };
+         if (layout == descriptor_set_layouts.end())
+            exception("descriptor set with name \"{}\" was assigned a slot but was never added!", name);
+
+         raw_descriptor_set_layouts.push_back(layout->second);
+      }
+
       return device.device().createPipelineLayout({
-         .setLayoutCount{ *descriptor_set_layout ? 1u : 0u },
-         .pSetLayouts{ &*descriptor_set_layout },
+         .setLayoutCount{ static_cast<std::uint32_t>(raw_descriptor_set_layouts.size()) },
+         .pSetLayouts{ raw_descriptor_set_layouts.data() },
          .pushConstantRangeCount{ static_cast<std::uint32_t>(push_constant_ranges_.size()) },
          .pPushConstantRanges{ push_constant_ranges_.data() }
       });

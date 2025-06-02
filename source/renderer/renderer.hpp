@@ -78,20 +78,24 @@ namespace eru
                   .pName{ "main" }
                }
             })
-            .add_descriptor_bindings({
-               {
-                  .type{ vk::DescriptorType::eUniformBuffer },
-                  .shader_stage_flags{ vk::ShaderStageFlagBits::eVertex },
-                  .count{ 1 }
-               }
+            .add_descriptor_set({
+               .name{ "camera" },
+               .bindings{
+                  {
+                     .type{ vk::DescriptorType::eUniformBuffer },
+                     .shader_stage_flags{ vk::ShaderStageFlagBits::eVertex },
+                     .count{ 1 }
+                  }
+               },
+               .allocation_count{ frames_in_flight_ }
             })
+            .assign_slot_to_descriptor_set("camera", 0)
             .change_rasterization_state({
                .polygonMode{ vk::PolygonMode::eFill },
                .cullMode{ vk::CullModeFlagBits::eBack },
                .frontFace{ vk::FrontFace::eClockwise },
                .lineWidth{ 1.0f }
             })
-            .change_descriptor_set_count(frames_in_flight_)
             .change_depth_attachment_format(vk::Format::eD32Sfloat)
             .build(device_)
          };
@@ -169,7 +173,7 @@ namespace eru
 
                   device_.device().updateDescriptorSets({
                      {
-                        .dstSet{ pipeline_.descriptor_sets()[index] },
+                        .dstSet{ pipeline_.descriptor_sets("camera")[index] },
                         .dstBinding{ 0 },
                         .dstArrayElement{ 0 },
                         .descriptorCount{ 1 },
