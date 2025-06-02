@@ -152,10 +152,7 @@ namespace eru
 
       command_buffer.end();
 
-      VmaAllocationInfo allocation_info;
-      vmaGetAllocationInfo(camera_buffers_[current_frame_].allocator(), camera_buffers_[current_frame_].allocation(),
-         &allocation_info);
-      std::memcpy(allocation_info.pMappedData, &camera.data(), sizeof(camera.data()));
+      camera_buffers_[current_frame_].upload(&camera.data(), sizeof(camera.data()));
 
       std::array<vk::PipelineStageFlags, 1> constexpr wait_stages{ vk::PipelineStageFlagBits::eColorAttachmentOutput };
       device_.queues().front().queue().submit({

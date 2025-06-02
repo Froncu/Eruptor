@@ -164,7 +164,7 @@ namespace eru
                   vk::DescriptorBufferInfo const buffer_info{
                      .buffer{ buffers.emplace_back(buffer_builder.build(device_)).buffer() },
                      .offset{ 0 },
-                     .range{ sizeof(Camera::Data) }
+                     .range{ buffer_size }
                   };
 
                   device_.device().updateDescriptorSets({
