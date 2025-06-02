@@ -213,7 +213,7 @@ namespace eru
 
          ImageView depth_image_view_{ depth_image_view_builder_.build(device_, depth_image_) };
 
-         Scene scene_{ device_, "resources/models/test.fbx" };
+         Scene scene_{ device_, "resources/models/sponza/sponza.obj" };
 
          std::uint32_t current_frame_{};
    };
