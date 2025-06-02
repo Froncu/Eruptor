@@ -2,6 +2,7 @@
 #define ERUPCH_HPP
 
 #define GLM_FORCE_RADIANS
+#define GLM_ENABLE_EXPERIMENTAL
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define VULKAN_HPP_NO_STRUCT_CONSTRUCTORS
 
@@ -20,8 +21,10 @@
 
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
+#include <assimp/cimport.h>
 #include <assimp/scene.h>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/matrix_decompose.hpp>
 #include <glm/mat4x4.hpp>
 #include <glm/vec4.hpp>
 #include <glm/vec4.hpp>

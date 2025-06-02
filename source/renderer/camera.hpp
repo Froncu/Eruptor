@@ -46,7 +46,7 @@ namespace eru
          vk::Extent2D projection_extent_{};
          float field_of_view_{ 45.0f };
          float near_plane_{ 0.1f };
-         float far_plane_{ 8.0f };
+         float far_plane_{ 5000.0f };
 
          mutable glm::vec3 front_{};
          mutable glm::vec3 right_{};

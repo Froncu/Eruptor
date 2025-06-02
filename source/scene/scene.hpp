@@ -3,6 +3,7 @@
 
 #include "renderer/buffer.hpp"
 #include "renderer/device.hpp"
+#include "sub_mesh.hpp"
 
 namespace eru
 {
@@ -20,12 +21,12 @@ namespace eru
 
          [[nodiscard]] Buffer const& vertex_buffer() const;
          [[nodiscard]] Buffer const& index_buffer() const;
-         [[nodiscard]] std::uint32_t index_count() const;
+         [[nodiscard]] std::span<SubMesh const> sub_meshes() const;
 
       private:
          Buffer vertex_buffer_{};
          Buffer index_buffer_{};
-         std::uint32_t index_count_{};
+         std::vector<SubMesh> sub_meshes_{};
    };
 }
 

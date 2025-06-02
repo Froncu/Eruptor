@@ -76,7 +76,7 @@ namespace eru
    {
       front_.x = sin(glm::radians(yaw_)) * cos(glm::radians(pitch_));
       front_.y = sin(glm::radians(pitch_));
-      front_.z = -cos(glm::radians(yaw_)) * cos(glm::radians(pitch_));
+      front_.z = cos(glm::radians(yaw_)) * cos(glm::radians(pitch_));
 
       front_ = glm::normalize(front_);
       right_ = glm::normalize(glm::cross(front_, glm::vec3(0.0f, -1.0f, 0.0f)));

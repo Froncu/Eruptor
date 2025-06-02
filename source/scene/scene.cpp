@@ -1,43 +1,62 @@
 #include "builders/buffer_builder.hpp"
-#include "vertex.hpp"
 #include "scene.hpp"
+#include "utility/exception.hpp"
+#include "vertex.hpp"
 
 namespace eru
 {
    Scene::Scene(Device const& device, std::filesystem::path const& path)
    {
+      if (not std::filesystem::exists(path))
+         exception("model file \"{}\" does not exist!", path.string());
+
       Assimp::Importer importer{};
       aiScene const* const scene{
          importer.ReadFile(path.string().c_str(),
-            aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_FlipWindingOrder | aiProcess_GenNormals)
+            aiProcess_Triangulate |
+            aiProcess_GenSmoothNormals |
+            aiProcess_CalcTangentSpace |
+            aiProcess_ConvertToLeftHanded |
+            aiProcess_PreTransformVertices |
+            aiProcess_JoinIdenticalVertices |
+            aiProcess_OptimizeMeshes |
+            aiProcess_ValidateDataStructure
+         )
       };
 
       if (not scene or scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE or not scene->mRootNode)
-         throw std::runtime_error("failed to load model!");
+         exception("failed to load model ({})", aiGetErrorString());
 
+      std::int32_t vertex_offset{};
+      std::uint32_t index_offset{};
       std::vector<Vertex> vertices{};
       std::vector<std::uint32_t> indices{};
-      for (aiMesh const* const native_mesh : std::vector<aiMesh*>{ scene->mMeshes, scene->mMeshes + scene->mNumMeshes })
+      for (aiMesh const* const mesh : std::span{ scene->mMeshes, scene->mMeshes + scene->mNumMeshes })
       {
-         if (native_mesh->mPrimitiveTypes not_eq aiPrimitiveType_TRIANGLE)
-            throw std::runtime_error("model is not triangulated!");
-
-         vertices.reserve(vertices.size() + native_mesh->mNumVertices);
-
-         for (unsigned int index{}; index < native_mesh->mNumVertices; ++index)
+         std::uint32_t const vertex_count{ mesh->mNumVertices };
+         vertices.reserve(vertices.size() + vertex_count);
+         for (std::uint32_t index{}; index < vertex_count; ++index)
             vertices.push_back({
-               .position{ native_mesh->mVertices[index].x, native_mesh->mVertices[index].z, native_mesh->mVertices[index].y },
+               .position{ mesh->mVertices[index].x, mesh->mVertices[index].y, mesh->mVertices[index].z },
                .color{ 1.0f, 1.0f, 1.0f },
-               .uv{ native_mesh->mTextureCoords[0][index].x, native_mesh->mTextureCoords[0][index].y }
+               .uv{ mesh->mTextureCoords[0][index].x, mesh->mTextureCoords[0][index].y }
             });
 
-         indices.reserve(indices.size() + native_mesh->mNumFaces * 3);
+         std::uint32_t const index_count{ mesh->mNumFaces * 3 };
+         indices.reserve(indices.size() + index_count);
+         for (aiFace const& face : std::span{ mesh->mFaces, mesh->mFaces + mesh->mNumFaces })
+            for (std::uint32_t const index : std::span{ face.mIndices, face.mIndices + face.mNumIndices })
+               indices.push_back(index);
 
-         for (unsigned int index{}; index < native_mesh->mNumFaces; ++index)
-         {
-            aiFace const face{ native_mesh->mFaces[index] };
-            indices.insert(indices.end(), face.mIndices, face.mIndices + face.mNumIndices);
-         }
+         sub_meshes_.push_back({
+            .vertex_offset{ vertex_offset },
+            .index_offset{ index_offset },
+            .index_count{ index_count },
+            .material_index{ mesh->mMaterialIndex }
+         });
+
+         vertex_offset += vertex_count;
+         index_offset += index_count;
       }
 
       vk::DeviceSize buffer_size{ sizeof(decltype(vertices)::value_type) * vertices.size() };
@@ -67,16 +86,14 @@ namespace eru
 
       buffer_size = sizeof(decltype(indices)::value_type) * indices.size();
       staging_buffer = staging_buffer_builder
-         .change_size(buffer_size)
-         .build(device);
+                       .change_size(buffer_size)
+                       .build(device);
       staging_buffer.upload(indices.data(), buffer_size);
       index_buffer_ = buffer_builder
-         .change_size(buffer_size)
-         .change_usage(vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer)
-         .build(device);
+                      .change_size(buffer_size)
+                      .change_usage(vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer)
+                      .build(device);
       staging_buffer.copy(device, index_buffer_, buffer_size);
-
-      index_count_ = static_cast<std::uint32_t>(indices.size());
    }
 
    Buffer const& Scene::vertex_buffer() const
@@ -89,8 +106,8 @@ namespace eru
       return index_buffer_;
    }
 
-   std::uint32_t Scene::index_count() const
+   std::span<SubMesh const> Scene::sub_meshes() const
    {
-      return index_count_;
+      return sub_meshes_;
    }
 }

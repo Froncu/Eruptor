@@ -41,15 +41,15 @@ namespace eru
 
                if (lock_mouse)
                   user_input_.bind_action("rotate", VectorAction{
-                     .positive_x_inputs{ MouseAxis::WEST, GamepadAxis::RIGHT_STICK_WEST },
-                     .negative_x_inputs{ MouseAxis::EAST, GamepadAxis::RIGHT_STICK_EAST },
+                     .positive_x_inputs{ MouseAxis::EAST, GamepadAxis::RIGHT_STICK_EAST },
+                     .negative_x_inputs{ MouseAxis::WEST, GamepadAxis::RIGHT_STICK_WEST },
                      .positive_y_inputs{ MouseAxis::NORTH, GamepadAxis::RIGHT_STICK_NORTH },
                      .negative_y_inputs{ MouseAxis::SOUTH, GamepadAxis::RIGHT_STICK_SOUTH }
                   });
                else
                   user_input_.bind_action("rotate", VectorAction{
-                     .positive_x_inputs{ GamepadAxis::RIGHT_STICK_WEST },
-                     .negative_x_inputs{ GamepadAxis::RIGHT_STICK_EAST },
+                     .positive_x_inputs{ GamepadAxis::RIGHT_STICK_EAST },
+                     .negative_x_inputs{ GamepadAxis::RIGHT_STICK_WEST },
                      .positive_y_inputs{ GamepadAxis::RIGHT_STICK_NORTH },
                      .negative_y_inputs{ GamepadAxis::RIGHT_STICK_SOUTH }
                   });
@@ -59,9 +59,17 @@ namespace eru
             },
             user_input_.value_action_event("lock_mouse")
          };
+         EventListener<float const> on_movement_speed_change_{
+            [this](float const value)
+            {
+               movement_speed_ = std::max(8.0f, movement_speed_ + value * 128.0f);
+               return true;
+            },
+            user_input_.axis_action_event("change_movement_speed")
+         };
 
-         float movement_speed_{ 2.0f };
-         float rotation_speed_{ 64.0f };
+         float movement_speed_{ 512.0f };
+         float rotation_speed_{ 128.0f };
          bool is_running_{ true };
    };
 }
