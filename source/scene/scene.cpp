@@ -80,7 +80,7 @@ namespace eru
       };
 
       Buffer staging_buffer{ staging_buffer_builder.build(device) };
-      staging_buffer.upload(vertices.data(), buffer_size);
+      staging_buffer.upload(vertices.data(), static_cast<std::size_t>(buffer_size));
       vertex_buffer_ = buffer_builder.build(device);
       staging_buffer.copy(device, vertex_buffer_, buffer_size);
 
@@ -88,7 +88,7 @@ namespace eru
       staging_buffer = staging_buffer_builder
                        .change_size(buffer_size)
                        .build(device);
-      staging_buffer.upload(indices.data(), buffer_size);
+      staging_buffer.upload(indices.data(), static_cast<std::size_t>(buffer_size));
       index_buffer_ = buffer_builder
                       .change_size(buffer_size)
                       .change_usage(vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer)
