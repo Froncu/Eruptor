@@ -43,8 +43,15 @@ namespace eru
             DeviceBuilder{}
             .enable_extension(vk::KHRSwapchainExtensionName)
             .enable_features10({ .samplerAnisotropy{ true } })
-            .enable_features12({ .shaderSampledImageArrayNonUniformIndexing{ true }, .runtimeDescriptorArray{ true } })
-            .enable_features13({ .synchronization2{ true }, .dynamicRendering{ true } })
+            .enable_features12({
+               .shaderSampledImageArrayNonUniformIndexing{ true },
+               .descriptorBindingPartiallyBound{ true }, // QUESTION: my bindless setup worked without this, why?
+               .runtimeDescriptorArray{ true }
+            })
+            .enable_features13({
+               .synchronization2{ true },
+               .dynamicRendering{ true }
+            })
             .add_queues({ vk::QueueFlagBits::eGraphics | vk::QueueFlagBits::eTransfer, window_->surface() })
             .build()
          };
@@ -95,6 +102,7 @@ namespace eru
                         .shader_stage_flags{ vk::ShaderStageFlagBits::eFragment }
                      },
                      {
+                        .flags{ vk::DescriptorBindingFlagBits::ePartiallyBound },
                         .type{ vk::DescriptorType::eSampledImage },
                         .shader_stage_flags{ vk::ShaderStageFlagBits::eFragment },
                         .count{ 50 }

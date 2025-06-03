@@ -11,6 +11,7 @@ namespace eru
       public:
          struct DescriptorBinding final
          {
+            vk::DescriptorBindingFlags flags{};
             vk::DescriptorType type{ vk::DescriptorType::eUniformBuffer };
             vk::ShaderStageFlags shader_stage_flags{ vk::ShaderStageFlagBits::eFragment };
             std::uint32_t count{ 1 };

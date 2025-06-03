@@ -222,20 +222,31 @@ namespace eru
 
          std::vector<vk::DescriptorSetLayoutBinding> native_bindings{};
          native_bindings.reserve(bindings.size());
+         std::vector<vk::DescriptorBindingFlags> flags_collection{};
+         flags_collection.reserve(bindings.size());
          for (std::uint32_t index{}; index < bindings.size(); ++index)
          {
-            auto const [type, shader_stage_flags, count]{ bindings[index] };
+            auto const [flags, type, shader_stage_flags, count]{ bindings[index] };
             native_bindings.push_back({
                .binding{ index },
                .descriptorType{ type },
                .descriptorCount{ count },
                .stageFlags{ shader_stage_flags }
             });
+
+            flags_collection.emplace_back(flags);
          }
+
+         std::uint32_t const binding_count{ static_cast<std::uint32_t>(bindings.size()) };
+         vk::DescriptorSetLayoutBindingFlagsCreateInfo binding_flags_create_info{
+            .bindingCount{ binding_count },
+            .pBindingFlags{ flags_collection.data() }
+         };
 
          layouts.emplace(name,
             device.device().createDescriptorSetLayout({
-               .bindingCount{ static_cast<std::uint32_t>(native_bindings.size()) },
+               .pNext{ &binding_flags_create_info },
+               .bindingCount{ binding_count },
                .pBindings{ native_bindings.data() }
             }));
       }
