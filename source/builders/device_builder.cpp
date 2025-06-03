@@ -34,11 +34,6 @@ namespace eru
       if (extension_name.empty())
          return *this;
 
-      if (extension_name == vk::KHRDynamicRenderingExtensionName)
-         dynamic_rendering_ = true;
-      else if (extension_name == vk::KHRSynchronization2ExtensionName)
-         synchronization2_ = true;
-
       extension_names_.insert(std::move(extension_name));
 
       return *this;
@@ -52,15 +47,27 @@ namespace eru
       return *this;
    }
 
-   DeviceBuilder& DeviceBuilder::enable_features(vk::PhysicalDeviceFeatures const& features)
+   DeviceBuilder& DeviceBuilder::enable_features10(vk::PhysicalDeviceFeatures const& features)
    {
-      auto const target_features{ reinterpret_cast<vk::Bool32*>(&features_) };
-      auto const source_features{ reinterpret_cast<vk::Bool32 const*>(&features) };
+      enable_features(features10_, features);
+      return *this;
+   }
 
-      for (std::size_t index{}; index < sizeof(VkPhysicalDeviceFeatures) / sizeof(VkBool32); ++index)
-         if (not target_features[index] and source_features[index])
-            target_features[index] = true;
+   DeviceBuilder& DeviceBuilder::enable_features11(vk::PhysicalDeviceVulkan11Features const& features)
+   {
+      enable_features(features11_, features);
+      return *this;
+   }
 
+   DeviceBuilder& DeviceBuilder::enable_features12(vk::PhysicalDeviceVulkan12Features const& features)
+   {
+      enable_features(features12_, features);
+      return *this;
+   }
+
+   DeviceBuilder& DeviceBuilder::enable_features13(vk::PhysicalDeviceVulkan13Features const& features)
+   {
+      enable_features(features13_, features);
       return *this;
    }
 
@@ -127,16 +134,21 @@ namespace eru
       if (physical_devices.empty())
          throw std::runtime_error("no physical device with support for requested extensions found!");
 
-      auto const required_features{ reinterpret_cast<vk::Bool32 const*>(&features_) };
       std::erase_if(physical_devices,
-         [required_features](vk::raii::PhysicalDevice const& physical_device)
+         [this](vk::raii::PhysicalDevice const& physical_device)
          {
-            vk::PhysicalDeviceFeatures const features{ physical_device.getFeatures() };
-            auto const available_features{ reinterpret_cast<vk::Bool32 const*>(&features) };
+            vk::StructureChain const features{
+               physical_device.getFeatures2<vk::PhysicalDeviceFeatures2,
+                  vk::PhysicalDeviceVulkan11Features,
+                  vk::PhysicalDeviceVulkan12Features,
+                  vk::PhysicalDeviceVulkan13Features>()
+            };
 
-            for (std::size_t index{}; index < sizeof(VkPhysicalDeviceFeatures) / sizeof(VkBool32); ++index)
-               if (required_features[index] and not available_features[index])
-                  return true;
+            if (any_requested_feature_missing(features10_, features.get<vk::PhysicalDeviceFeatures2>().features) or
+               any_requested_feature_missing(features11_, features.get<vk::PhysicalDeviceVulkan11Features>()) or
+               any_requested_feature_missing(features12_, features.get<vk::PhysicalDeviceVulkan12Features>()) or
+               any_requested_feature_missing(features13_, features.get<vk::PhysicalDeviceVulkan13Features>()))
+               return true;
 
             return false;
          });
@@ -233,26 +245,18 @@ namespace eru
       };
       std::vector<char const*> extension_names{ extension_names_view.begin(), extension_names_view.end() };
 
-      vk::PhysicalDeviceDynamicRenderingFeaturesKHR dynamic_rendering_features{
-         .dynamicRendering{ dynamic_rendering_ }
-      };
-
-      vk::PhysicalDeviceSynchronization2Features const synchronization2_features{
-         .pNext{ &dynamic_rendering_features },
-         .synchronization2{ synchronization2_ }
-      };
+      features_.features = features10_;
 
       // TODO: for backwards compatibility, enable the same
       // validation layers on each logical device as
       // the ones enabled on the instance from which the
       // logical device is created
       return physical_device.createDevice({
-         .pNext{ &synchronization2_features },
+         .pNext{ &features_ },
          .queueCreateInfoCount{ static_cast<std::uint32_t>(queue_infos.size()) },
          .pQueueCreateInfos{ queue_infos.data() },
          .enabledExtensionCount{ static_cast<std::uint32_t>(extension_names.size()) },
-         .ppEnabledExtensionNames{ extension_names.data() },
-         .pEnabledFeatures{ &features_ }
+         .ppEnabledExtensionNames{ extension_names.data() }
       });
    }
 

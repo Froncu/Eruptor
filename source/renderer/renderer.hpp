@@ -41,12 +41,10 @@ namespace eru
 
          Device device_{
             DeviceBuilder{}
-            .enable_extensions({
-               vk::KHRSwapchainExtensionName,
-               vk::KHRSynchronization2ExtensionName,
-               vk::KHRDynamicRenderingExtensionName
-            })
-            .enable_features({ .samplerAnisotropy{ true } })
+            .enable_extension(vk::KHRSwapchainExtensionName)
+            .enable_features10({ .samplerAnisotropy{ true } })
+            .enable_features12({ .shaderSampledImageArrayNonUniformIndexing{ true }, .runtimeDescriptorArray{ true } })
+            .enable_features13({ .synchronization2{ true }, .dynamicRendering{ true } })
             .add_queues({ vk::QueueFlagBits::eGraphics | vk::QueueFlagBits::eTransfer, window_->surface() })
             .build()
          };
@@ -99,7 +97,7 @@ namespace eru
                      {
                         .type{ vk::DescriptorType::eSampledImage },
                         .shader_stage_flags{ vk::ShaderStageFlagBits::eFragment },
-                        .count{ 25 }
+                        .count{ 50 }
                      }
                   }
                }
@@ -263,40 +261,35 @@ namespace eru
                   .sampler{ *sampler }
                };
 
-               device_.device().updateDescriptorSets(
+               device_.device().updateDescriptorSets({
                   {
-                     {
-                        .dstSet{ *pipeline_.descriptor_sets("textures").front() },
-                        .dstBinding{ 0 },
-                        .dstArrayElement{ 0 },
-                        .descriptorCount{ 1 },
-                        .descriptorType{ vk::DescriptorType::eSampler },
-                        .pImageInfo{ &sampler_info }
-                     }
-                  }, {});
+                     .dstSet{ *pipeline_.descriptor_sets("textures").front() },
+                     .dstBinding{ 0 },
+                     .dstArrayElement{ 0 },
+                     .descriptorCount{ 1 },
+                     .descriptorType{ vk::DescriptorType::eSampler },
+                     .pImageInfo{ &sampler_info }
+                  }
+               }, {});
 
-               std::vector<vk::DescriptorImageInfo> image_infos{};
-               image_infos.reserve(scene_.diffuse_images().size());
-               std::vector<vk::WriteDescriptorSet> writes{};
-               writes.reserve(scene_.diffuse_images().size());
                for (auto const& [index, image] : scene_.diffuse_images())
                {
-                  image_infos.push_back({
+                  vk::DescriptorImageInfo const image_info{
                      .imageView{ *image.second.image_view() },
                      .imageLayout{ image.first.info().initialLayout }
-                  });
+                  };
 
-                  writes.push_back({
-                     .dstSet{ *pipeline_.descriptor_sets("textures").front() },
-                     .dstBinding{ 1 },
-                     .dstArrayElement{ index },
-                     .descriptorCount{ 1 },
-                     .descriptorType{ vk::DescriptorType::eSampledImage },
-                     .pImageInfo{ &image_infos.back() }
-                  });
+                  device_.device().updateDescriptorSets({
+                     {
+                        .dstSet{ *pipeline_.descriptor_sets("textures").front() },
+                        .dstBinding{ 1 },
+                        .dstArrayElement{ index },
+                        .descriptorCount{ 1 },
+                        .descriptorType{ vk::DescriptorType::eSampledImage },
+                        .pImageInfo{ &image_info }
+                     }
+                  }, {});
                }
-
-               device_.device().updateDescriptorSets(writes, {});
 
                return sampler;
             }()

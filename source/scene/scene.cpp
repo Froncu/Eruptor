@@ -29,8 +29,6 @@ namespace eru
       if (not scene or scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE or not scene->mRootNode)
          exception("failed to load model ({})", aiGetErrorString());
 
-      std::uint32_t missing_diffuse_texture_count{};
-      std::unordered_map<std::uint32_t, std::uint32_t> material_to_diffuse_map{};
       for (std::uint32_t index{}; index < scene->mNumMaterials; ++index)
       {
          aiMaterial const* const material{ scene->mMaterials[index] };
@@ -39,10 +37,7 @@ namespace eru
          material->GetTexture(aiTextureType_DIFFUSE, 0, &diffuse_relative_path);
          std::filesystem::path const diffuse_path{ path.parent_path() /= diffuse_relative_path.C_Str() };
          if (not std::filesystem::is_regular_file(diffuse_path))
-         {
-            ++missing_diffuse_texture_count;
             continue;
-         }
 
          UniquePointer<SDL_Surface> diffuse_texture{ IMG_Load(diffuse_path.string().c_str()), SDL_DestroySurface };
          diffuse_texture.reset(SDL_ConvertSurface(diffuse_texture.get(), SDL_PIXELFORMAT_RGBA32));
@@ -100,8 +95,7 @@ namespace eru
             .build(device, diffuse_image)
          };
 
-         material_to_diffuse_map[index] = index - missing_diffuse_texture_count;
-         diffuse_images_.emplace(material_to_diffuse_map[index],
+         diffuse_images_.emplace(index,
             std::pair{ std::move(diffuse_image), std::move(diffuse_image_view) });
       }
 
@@ -130,7 +124,7 @@ namespace eru
             .vertex_offset{ vertex_offset },
             .index_offset{ index_offset },
             .index_count{ index_count },
-            .material_index{ material_to_diffuse_map[mesh->mMaterialIndex] }
+            .material_index{ mesh->mMaterialIndex }
          });
 
          vertex_offset += vertex_count;
