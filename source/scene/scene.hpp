@@ -23,13 +23,20 @@ namespace eru
          [[nodiscard]] Buffer const& vertex_buffer() const;
          [[nodiscard]] Buffer const& index_buffer() const;
          [[nodiscard]] std::span<SubMesh const> sub_meshes() const;
-         [[nodiscard]] std::unordered_map<std::uint32_t, std::pair<Image, ImageView>> const& diffuse_images() const;
+         [[nodiscard]] std::span<std::pair<Image, ImageView> const> diffuse_images() const;
 
       private:
+         void load_submeshes(Device const& device, aiScene const& scene);
+         void load_textures(Device const& device, aiMaterial const& material, aiTextureType type,
+            std::filesystem::path const& scene_path, BufferBuilder& staging_buffer_builder, ImageBuilder& image_builder,
+            ImageViewBuilder& image_view_builder);
+         void load_materials(Device const& device, aiScene const& scene, std::filesystem::path const& path);
+
          Buffer vertex_buffer_{};
          Buffer index_buffer_{};
          std::vector<SubMesh> sub_meshes_{};
-         std::unordered_map<std::uint32_t, std::pair<Image, ImageView>> diffuse_images_{};
+         std::vector<std::pair<Image, ImageView>> diffuse_images_{};
+         std::vector<Buffer> materials_{};
    };
 }
 

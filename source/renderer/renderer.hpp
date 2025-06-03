@@ -35,7 +35,7 @@ namespace eru
          Camera camera{};
 
       private:
-         std::uint32_t const frames_in_flight_{ 3 };
+         static std::uint32_t constexpr FRAMES_IN_FLIGHT{ 3 };
 
          Reference<Window const> const window_;
 
@@ -92,7 +92,7 @@ namespace eru
                         .shader_stage_flags{ vk::ShaderStageFlagBits::eVertex }
                      }
                   },
-                  .allocation_count{ frames_in_flight_ }
+                  .allocation_count{ FRAMES_IN_FLIGHT }
                },
                {
                   .name{ "textures" },
@@ -127,93 +127,6 @@ namespace eru
             .build(device_)
          };
 
-         std::vector<vk::raii::CommandBuffer> command_buffers_{
-            device_.device().allocateCommandBuffers({
-               .commandPool{ *device_.command_pool(device_.queues().front()) },
-               .level{ vk::CommandBufferLevel::ePrimary },
-               .commandBufferCount{ 3 }
-            })
-         };
-
-         std::vector<vk::raii::Semaphore> image_available_semaphores_{
-            [this]
-            {
-               std::vector<vk::raii::Semaphore> semaphores{};
-               semaphores.reserve(frames_in_flight_);
-               for (std::size_t index{}; index < frames_in_flight_; ++index)
-                  semaphores.emplace_back(device_.device().createSemaphore({}));
-
-               return semaphores;
-            }()
-         };
-
-         std::vector<vk::raii::Semaphore> render_finished_semaphores_{
-            [this]
-            {
-               std::vector<vk::raii::Semaphore> semaphores{};
-               semaphores.reserve(frames_in_flight_);
-               for (std::size_t index{}; index < frames_in_flight_; ++index)
-                  semaphores.emplace_back(device_.device().createSemaphore({}));
-
-               return semaphores;
-            }()
-         };
-
-         std::vector<vk::raii::Fence> command_buffer_executed_fences_{
-            [this]
-            {
-               std::vector<vk::raii::Fence> fences{};
-               fences.reserve(frames_in_flight_);
-               for (std::size_t index{}; index < frames_in_flight_; ++index)
-                  fences.emplace_back(device_.device().createFence({
-                     .flags{ vk::FenceCreateFlagBits::eSignaled }
-                  }));
-
-               return fences;
-            }()
-         };
-
-         std::vector<Buffer> camera_buffers_{
-            [this]
-            {
-               BufferBuilder buffer_builder{};
-
-               vk::DeviceSize constexpr buffer_size{ sizeof(Camera::Data) };
-               buffer_builder
-                  .change_size(buffer_size)
-                  .change_usage(vk::BufferUsageFlagBits::eUniformBuffer)
-                  .change_sharing_mode(vk::SharingMode::eExclusive)
-                  .change_allocation_flags(VMA_ALLOCATION_CREATE_MAPPED_BIT)
-                  .change_allocation_required_flags(
-                     vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
-
-               std::vector<Buffer> buffers{};
-               buffers.reserve(frames_in_flight_);
-
-               for (std::size_t index{}; index < frames_in_flight_; ++index)
-               {
-                  vk::DescriptorBufferInfo const buffer_info{
-                     .buffer{ buffers.emplace_back(buffer_builder.build(device_)).buffer() },
-                     .offset{ 0 },
-                     .range{ buffer_size }
-                  };
-
-                  device_.device().updateDescriptorSets({
-                     {
-                        .dstSet{ pipeline_.descriptor_sets("camera")[index] },
-                        .dstBinding{ 0 },
-                        .dstArrayElement{ 0 },
-                        .descriptorCount{ 1 },
-                        .descriptorType{ vk::DescriptorType::eUniformBuffer },
-                        .pBufferInfo{ &buffer_info }
-                     }
-                  }, {});
-               }
-
-               return buffers;
-            }()
-         };
-
          ImageBuilder depth_image_builder_{
             ImageBuilder{}
             .change_type(vk::ImageType::e2D)
@@ -228,9 +141,7 @@ namespace eru
             .change_initial_layout(vk::ImageLayout::eUndefined)
             .change_allocation_required_flags(vk::MemoryPropertyFlagBits::eDeviceLocal)
          };
-
          Image depth_image_{ depth_image_builder_.build(device_) };
-
          ImageViewBuilder depth_image_view_builder_{
             ImageViewBuilder{}
             .change_view_type(vk::ImageViewType::e2D)
@@ -241,10 +152,101 @@ namespace eru
                .layerCount{ 1 }
             })
          };
-
          ImageView depth_image_view_{ depth_image_view_builder_.build(device_, depth_image_) };
 
+         std::vector<vk::raii::CommandBuffer> command_buffers_{
+            device_.device().allocateCommandBuffers({
+               .commandPool{ *device_.command_pool(device_.queues().front()) },
+               .level{ vk::CommandBufferLevel::ePrimary },
+               .commandBufferCount{ 3 }
+            })
+         };
+
+         std::vector<vk::raii::Semaphore> image_available_semaphores_{
+            [this]
+            {
+               std::vector<vk::raii::Semaphore> semaphores{};
+               semaphores.reserve(FRAMES_IN_FLIGHT);
+               for (std::size_t index{}; index < FRAMES_IN_FLIGHT; ++index)
+                  semaphores.emplace_back(device_.device().createSemaphore({}));
+
+               return semaphores;
+            }()
+         };
+
+         std::vector<vk::raii::Semaphore> render_finished_semaphores_{
+            [this]
+            {
+               std::vector<vk::raii::Semaphore> semaphores{};
+               semaphores.reserve(FRAMES_IN_FLIGHT);
+               for (std::size_t index{}; index < FRAMES_IN_FLIGHT; ++index)
+                  semaphores.emplace_back(device_.device().createSemaphore({}));
+
+               return semaphores;
+            }()
+         };
+
+         std::vector<vk::raii::Fence> command_buffer_executed_fences_{
+            [this]
+            {
+               std::vector<vk::raii::Fence> fences{};
+               fences.reserve(FRAMES_IN_FLIGHT);
+               for (std::size_t index{}; index < FRAMES_IN_FLIGHT; ++index)
+                  fences.emplace_back(device_.device().createFence({
+                     .flags{ vk::FenceCreateFlagBits::eSignaled }
+                  }));
+
+               return fences;
+            }()
+         };
+
          Scene scene_{ device_, "resources/models/sponza/sponza.gltf" };
+
+         std::vector<Buffer> camera_buffers_{
+            [this]
+            {
+               vk::DeviceSize constexpr buffer_size{ sizeof(Camera::Data) };
+               auto const buffer_builder{
+                  BufferBuilder{}
+                  .change_size(buffer_size)
+                  .change_usage(vk::BufferUsageFlagBits::eUniformBuffer)
+                  .change_sharing_mode(vk::SharingMode::eExclusive)
+                  .change_allocation_flags(VMA_ALLOCATION_CREATE_MAPPED_BIT)
+                  .change_allocation_required_flags(
+                     vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent)
+               };
+
+               std::vector<Buffer> buffers{};
+               buffers.reserve(FRAMES_IN_FLIGHT);
+               std::vector<vk::DescriptorBufferInfo> infos{};
+               infos.reserve(FRAMES_IN_FLIGHT);
+               std::vector<vk::WriteDescriptorSet> writes{};
+               writes.reserve(FRAMES_IN_FLIGHT);
+               for (std::size_t index{}; index < FRAMES_IN_FLIGHT; ++index)
+               {
+                  buffers.push_back(buffer_builder.build(device_));
+
+                  infos.push_back({
+                     .buffer{ buffers.back().buffer() },
+                     .offset{ 0 },
+                     .range{ buffer_size }
+                  });
+
+                  writes.push_back({
+                     .dstSet{ *pipeline_.descriptor_sets("camera")[index] },
+                     .dstBinding{ 0 },
+                     .dstArrayElement{ 0 },
+                     .descriptorCount{ 1 },
+                     .descriptorType{ vk::DescriptorType::eUniformBuffer },
+                     .pBufferInfo{ &infos.back() }
+                  });
+               }
+
+               device_.device().updateDescriptorSets(writes, {});
+
+               return buffers;
+            }()
+         };
 
          vk::raii::Sampler sampler_
          {
@@ -280,24 +282,38 @@ namespace eru
                   }
                }, {});
 
-               for (auto const& [index, image] : scene_.diffuse_images())
-               {
-                  vk::DescriptorImageInfo const image_info{
-                     .imageView{ *image.second.image_view() },
-                     .imageLayout{ image.first.info().initialLayout }
-                  };
+               std::size_t const total_image_count{ scene_.diffuse_images().size() };
 
-                  device_.device().updateDescriptorSets({
+               std::vector<vk::DescriptorImageInfo> infos{};
+               infos.reserve(total_image_count);
+               std::vector<vk::WriteDescriptorSet> writes{};
+               writes.reserve(total_image_count);
+               auto const create_writes{
+                  [this, &infos, &writes](std::span<std::pair<Image, ImageView> const> images, std::uint32_t const binding)
+                  {
+                     for (std::uint32_t index{}; index < images.size(); ++index)
                      {
-                        .dstSet{ *pipeline_.descriptor_sets("textures").front() },
-                        .dstBinding{ 1 },
-                        .dstArrayElement{ index },
-                        .descriptorCount{ 1 },
-                        .descriptorType{ vk::DescriptorType::eSampledImage },
-                        .pImageInfo{ &image_info }
+                        auto const& [image, image_view]{ images[index] };
+                        infos.push_back({
+                           .imageView{ *image_view.image_view() },
+                           .imageLayout{ image.info().initialLayout }
+                        });
+
+                        writes.push_back({
+                           .dstSet{ *pipeline_.descriptor_sets("textures").front() },
+                           .dstBinding{ binding },
+                           .dstArrayElement{ index },
+                           .descriptorCount{ 1 },
+                           .descriptorType{ vk::DescriptorType::eSampledImage },
+                           .pImageInfo{ &infos.back() }
+                        });
                      }
-                  }, {});
-               }
+                  }
+               };
+
+               create_writes(scene_.diffuse_images(), 1);
+
+               device_.device().updateDescriptorSets(writes, {});
 
                return sampler;
             }()

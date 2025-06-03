@@ -1,3 +1,4 @@
+#include "material.hpp"
 #include "scene.hpp"
 #include "vertex.hpp"
 #include "builders/buffer_builder.hpp"
@@ -29,81 +30,37 @@ namespace eru
       if (not scene or scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE or not scene->mRootNode)
          exception("failed to load model ({})", aiGetErrorString());
 
-      for (std::uint32_t index{}; index < scene->mNumMaterials; ++index)
-      {
-         aiMaterial const* const material{ scene->mMaterials[index] };
+      load_submeshes(device, *scene);
+      load_materials(device, *scene, path);
+   }
 
-         aiString diffuse_relative_path{};
-         material->GetTexture(aiTextureType_DIFFUSE, 0, &diffuse_relative_path);
-         std::filesystem::path const diffuse_path{ path.parent_path() /= diffuse_relative_path.C_Str() };
-         if (not std::filesystem::is_regular_file(diffuse_path))
-            continue;
+   Buffer const& Scene::vertex_buffer() const
+   {
+      return vertex_buffer_;
+   }
 
-         UniquePointer<SDL_Surface> diffuse_texture{ IMG_Load(diffuse_path.string().c_str()), SDL_DestroySurface };
-         diffuse_texture.reset(SDL_ConvertSurface(diffuse_texture.get(), SDL_PIXELFORMAT_RGBA32));
+   Buffer const& Scene::index_buffer() const
+   {
+      return index_buffer_;
+   }
 
-         auto const image_size{ static_cast<vk::DeviceSize>(diffuse_texture->pitch * diffuse_texture->h) };
-         vk::Extent3D const image_extent{
-            .width{ static_cast<std::uint32_t>(diffuse_texture->w) },
-            .height{ static_cast<std::uint32_t>(diffuse_texture->h) },
-            .depth{ 1 }
-         };
+   std::span<SubMesh const> Scene::sub_meshes() const
+   {
+      return sub_meshes_;
+   }
 
-         Buffer staging_buffer{
-            BufferBuilder{}
-            .change_size(image_size)
-            .change_usage(vk::BufferUsageFlagBits::eTransferSrc)
-            .change_sharing_mode(vk::SharingMode::eExclusive)
-            .change_allocation_flags(VMA_ALLOCATION_CREATE_MAPPED_BIT)
-            .change_allocation_required_flags(
-               vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent)
-            .change_allocation_preferred_flags(vk::MemoryPropertyFlagBits::eDeviceLocal)
-            .build(device)
-         };
+   std::span<std::pair<Image, ImageView> const> Scene::diffuse_images() const
+   {
+      return diffuse_images_;
+   }
 
-         staging_buffer.upload(diffuse_texture->pixels, static_cast<std::size_t>(image_size));
-
-         Image diffuse_image{
-            ImageBuilder{}
-            .change_type(vk::ImageType::e2D)
-            .change_format(vk::Format::eR8G8B8A8Srgb)
-            .change_extent(image_extent)
-            .change_mip_levels(1)
-            .change_array_layers(1)
-            .change_samples(vk::SampleCountFlagBits::e1)
-            .change_tiling(vk::ImageTiling::eOptimal)
-            .change_usage(vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled)
-            .change_sharing_mode(vk::SharingMode::eExclusive)
-            .change_initial_layout(vk::ImageLayout::eUndefined)
-            .change_allocation_required_flags(vk::MemoryPropertyFlagBits::eDeviceLocal)
-            .build(device)
-         };
-
-         diffuse_image.transition_layout(device, vk::ImageLayout::eTransferDstOptimal);
-         staging_buffer.copy(device, diffuse_image, image_extent);
-         diffuse_image.transition_layout(device, vk::ImageLayout::eShaderReadOnlyOptimal);
-
-         ImageView diffuse_image_view{
-            ImageViewBuilder{}
-            .change_view_type(vk::ImageViewType::e2D)
-            .change_format(diffuse_image.info().format)
-            .change_subresource_range({
-               .aspectMask{ vk::ImageAspectFlagBits::eColor },
-               .levelCount{ 1 },
-               .layerCount{ 1 }
-            })
-            .build(device, diffuse_image)
-         };
-
-         diffuse_images_.emplace(index,
-            std::pair{ std::move(diffuse_image), std::move(diffuse_image_view) });
-      }
-
+   void Scene::load_submeshes(Device const& device, aiScene const& scene)
+   {
       std::int32_t vertex_offset{};
       std::uint32_t index_offset{};
       std::vector<Vertex> vertices{};
       std::vector<std::uint32_t> indices{};
-      for (aiMesh const* const mesh : std::span{ scene->mMeshes, scene->mMeshes + scene->mNumMeshes })
+      for (aiMesh const* const mesh : std::span{ scene.mMeshes, scene.mMeshes + scene.mNumMeshes })
       {
          std::uint32_t const vertex_count{ mesh->mNumVertices };
          vertices.reserve(vertices.size() + vertex_count);
@@ -170,23 +127,109 @@ namespace eru
       staging_buffer.copy(device, index_buffer_, buffer_size);
    }
 
-   Buffer const& Scene::vertex_buffer() const
+   void Scene::load_textures(Device const& device, aiMaterial const& material, aiTextureType const type,
+      std::filesystem::path const& scene_path, BufferBuilder& staging_buffer_builder, ImageBuilder& image_builder,
+      ImageViewBuilder& image_view_builder)
    {
-      return vertex_buffer_;
+      SDL_PixelFormat sdl_format;
+      vk::Format vulkan_format;
+      switch (type)
+      {
+         case aiTextureType_DIFFUSE:
+            sdl_format = SDL_PIXELFORMAT_RGBA32;
+            vulkan_format = vk::Format::eR8G8B8A8Srgb;
+            break;
+
+         default:
+            return;
+      }
+
+      aiString relative_path{};
+      material.GetTexture(aiTextureType_DIFFUSE, 0, &relative_path);
+      std::filesystem::path const path{ scene_path.parent_path() /= relative_path.C_Str() };
+      if (not std::filesystem::is_regular_file(path))
+         return;
+
+      UniquePointer<SDL_Surface> texture{ IMG_Load(path.string().c_str()), SDL_DestroySurface };
+      texture.reset(SDL_ConvertSurface(texture.get(), sdl_format));
+
+      auto const image_size{ static_cast<vk::DeviceSize>(texture->pitch * texture->h) };
+      vk::Extent3D const image_extent{
+         .width{ static_cast<std::uint32_t>(texture->w) },
+         .height{ static_cast<std::uint32_t>(texture->h) },
+         .depth{ 1 }
+      };
+
+      staging_buffer_builder.change_size(image_size);
+
+      Buffer staging_buffer{
+         staging_buffer_builder
+         .change_size(image_size)
+         .build(device)
+      };
+
+      staging_buffer.upload(texture->pixels, static_cast<std::size_t>(image_size));
+
+      Image image{
+         image_builder
+         .change_format(vulkan_format)
+         .change_extent(image_extent)
+         .build(device)
+      };
+
+      image.transition_layout(device, vk::ImageLayout::eTransferDstOptimal);
+      staging_buffer.copy(device, image, image_extent);
+      image.transition_layout(device, vk::ImageLayout::eShaderReadOnlyOptimal);
+
+      ImageView image_view{
+         image_view_builder
+         .change_format(image.info().format)
+         .build(device, image)
+      };
+
+      diffuse_images_.emplace_back(std::move(image), std::move(image_view));
    }
 
-   Buffer const& Scene::index_buffer() const
+   void Scene::load_materials(Device const& device, aiScene const& scene, std::filesystem::path const& path)
    {
-      return index_buffer_;
-   }
+      auto staging_buffer_builder{
+         BufferBuilder{}
+         .change_usage(vk::BufferUsageFlagBits::eTransferSrc)
+         .change_sharing_mode(vk::SharingMode::eExclusive)
+         .change_allocation_flags(VMA_ALLOCATION_CREATE_MAPPED_BIT)
+         .change_allocation_required_flags(vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent)
+         .change_allocation_preferred_flags(vk::MemoryPropertyFlagBits::eDeviceLocal)
+      };
 
-   std::span<SubMesh const> Scene::sub_meshes() const
-   {
-      return sub_meshes_;
-   }
+      auto image_builder{
+         ImageBuilder{}
+         .change_type(vk::ImageType::e2D)
+         .change_mip_levels(1)
+         .change_array_layers(1)
+         .change_samples(vk::SampleCountFlagBits::e1)
+         .change_tiling(vk::ImageTiling::eOptimal)
+         .change_usage(vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled)
+         .change_sharing_mode(vk::SharingMode::eExclusive)
+         .change_initial_layout(vk::ImageLayout::eUndefined)
+         .change_allocation_required_flags(vk::MemoryPropertyFlagBits::eDeviceLocal)
+      };
 
-   std::unordered_map<std::uint32_t, std::pair<Image, ImageView>> const& Scene::diffuse_images() const
-   {
-      return diffuse_images_;
+      auto image_view_builder{
+         ImageViewBuilder{}
+         .change_view_type(vk::ImageViewType::e2D)
+         .change_subresource_range({
+            .aspectMask{ vk::ImageAspectFlagBits::eColor },
+            .levelCount{ 1 },
+            .layerCount{ 1 }
+         })
+      };
+
+      std::vector<Material> materials{};
+      materials.reserve(scene.mNumMaterials);
+      for (aiMaterial const* const material : std::span{ scene.mMaterials, scene.mMaterials + scene.mNumMaterials })
+      {
+         load_textures(device, *material, aiTextureType_DIFFUSE, path, staging_buffer_builder, image_builder,
+            image_view_builder);
+      }
    }
 }

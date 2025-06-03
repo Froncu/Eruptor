@@ -18,6 +18,8 @@ namespace eru
       if (window_->minimised())
          return;
 
+      camera_buffers_[current_frame_].upload(&camera.data(), sizeof(camera.data()));
+
       vk::raii::Fence const& command_buffer_executed_fence{ command_buffer_executed_fences_[current_frame_] };
       vk::raii::Semaphore const& image_available_semaphore{ image_available_semaphores_[current_frame_] };
       vk::raii::Semaphore const& render_finished_semaphore{ render_finished_semaphores_[current_frame_] };
@@ -163,8 +165,6 @@ namespace eru
 
       command_buffer.end();
 
-      camera_buffers_[current_frame_].upload(&camera.data(), sizeof(camera.data()));
-
       std::array<vk::PipelineStageFlags, 1> constexpr wait_stages{ vk::PipelineStageFlagBits::eColorAttachmentOutput };
       device_.queues().front().queue().submit({
          {
@@ -202,6 +202,6 @@ namespace eru
          camera.change_projection_extent(swap_chain_.extent());
       }
 
-      current_frame_ = (current_frame_ + 1) % frames_in_flight_;
+      current_frame_ = (current_frame_ + 1) % FRAMES_IN_FLIGHT;
    }
 }
