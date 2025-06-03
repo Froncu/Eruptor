@@ -1,6 +1,6 @@
 #version 450
 
-layout(set = 1, binding = 0) uniform sampler2D texture_sampler[24];
+layout(set = 1, binding = 0) uniform sampler2D texture_sampler[25];
 layout(push_constant) uniform PushConstants {
    uint index;
 } push;

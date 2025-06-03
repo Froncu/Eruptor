@@ -95,7 +95,7 @@ namespace eru
                      {
                         .type{ vk::DescriptorType::eCombinedImageSampler },
                         .shader_stage_flags{ vk::ShaderStageFlagBits::eFragment },
-                        .count{ 24 }
+                        .count{ 25 }
                      }
                   }
                }
@@ -234,7 +234,7 @@ namespace eru
 
          ImageView depth_image_view_{ depth_image_view_builder_.build(device_, depth_image_) };
 
-         Scene scene_{ device_, "resources/models/sponza/sponza.obj" };
+         Scene scene_{ device_, "resources/models/sponza/sponza.gltf" };
 
          vk::raii::Sampler sampler_
          {

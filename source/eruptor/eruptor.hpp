@@ -62,13 +62,13 @@ namespace eru
          EventListener<float const> on_movement_speed_change_{
             [this](float const value)
             {
-               movement_speed_ = std::max(8.0f, movement_speed_ + value * 128.0f);
+               movement_speed_ = std::max(0.5f, movement_speed_ + value * 0.5f);
                return true;
             },
             user_input_.axis_action_event("change_movement_speed")
          };
 
-         float movement_speed_{ 512.0f };
+         float movement_speed_{ 1.0f };
          float rotation_speed_{ 128.0f };
          bool is_running_{ true };
    };
