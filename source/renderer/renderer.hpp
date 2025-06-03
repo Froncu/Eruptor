@@ -93,7 +93,11 @@ namespace eru
                   .name{ "textures" },
                   .bindings{
                      {
-                        .type{ vk::DescriptorType::eCombinedImageSampler },
+                        .type{ vk::DescriptorType::eSampler },
+                        .shader_stage_flags{ vk::ShaderStageFlagBits::eFragment }
+                     },
+                     {
+                        .type{ vk::DescriptorType::eSampledImage },
                         .shader_stage_flags{ vk::ShaderStageFlagBits::eFragment },
                         .count{ 25 }
                      }
@@ -255,25 +259,40 @@ namespace eru
                   })
                };
 
-               std::vector<vk::DescriptorImageInfo> sampler_infos{};
-               sampler_infos.reserve(scene_.diffuse_images().size());
+               vk::DescriptorImageInfo const sampler_info{
+                  .sampler{ *sampler }
+               };
+
+               device_.device().updateDescriptorSets(
+                  {
+                     {
+                        .dstSet{ *pipeline_.descriptor_sets("textures").front() },
+                        .dstBinding{ 0 },
+                        .dstArrayElement{ 0 },
+                        .descriptorCount{ 1 },
+                        .descriptorType{ vk::DescriptorType::eSampler },
+                        .pImageInfo{ &sampler_info }
+                     }
+                  }, {});
+
+               std::vector<vk::DescriptorImageInfo> image_infos{};
+               image_infos.reserve(scene_.diffuse_images().size());
                std::vector<vk::WriteDescriptorSet> writes{};
                writes.reserve(scene_.diffuse_images().size());
                for (auto const& [index, image] : scene_.diffuse_images())
                {
-                  sampler_infos.push_back({
-                     .sampler{ *sampler },
+                  image_infos.push_back({
                      .imageView{ *image.second.image_view() },
                      .imageLayout{ image.first.info().initialLayout }
                   });
 
                   writes.push_back({
                      .dstSet{ *pipeline_.descriptor_sets("textures").front() },
-                     .dstBinding{ 0 },
+                     .dstBinding{ 1 },
                      .dstArrayElement{ index },
                      .descriptorCount{ 1 },
-                     .descriptorType{ vk::DescriptorType::eCombinedImageSampler },
-                     .pImageInfo{ &sampler_infos.back() }
+                     .descriptorType{ vk::DescriptorType::eSampledImage },
+                     .pImageInfo{ &image_infos.back() }
                   });
                }
 
