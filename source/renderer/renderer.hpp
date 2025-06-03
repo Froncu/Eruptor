@@ -59,8 +59,8 @@ namespace eru
             .build(device_, *window_, device_.queues())
          };
 
-         Shader vertex_shader_{ "resources/shaders/test.vert", device_ };
-         Shader fragment_shader_{ "resources/shaders/test.frag", device_ };
+         Shader vertex_shader_{ "resources/shaders/shader.vert", device_ };
+         Shader fragment_shader_{ "resources/shaders/shader.frag", device_ };
          Pipeline pipeline_{
             PipelineBuilder{}
             .change_color_attachment_format(swap_chain_.images().front().info().format)
@@ -78,18 +78,35 @@ namespace eru
                   .pName{ "main" }
                }
             })
-            .add_descriptor_set({
-               .name{ "camera" },
-               .bindings{
-                  {
-                     .type{ vk::DescriptorType::eUniformBuffer },
-                     .shader_stage_flags{ vk::ShaderStageFlagBits::eVertex },
-                     .count{ 1 }
-                  }
+            .add_descriptor_sets({
+               {
+                  .name{ "camera" },
+                  .bindings{
+                     {
+                        .type{ vk::DescriptorType::eUniformBuffer },
+                        .shader_stage_flags{ vk::ShaderStageFlagBits::eVertex }
+                     }
+                  },
+                  .allocation_count{ frames_in_flight_ }
                },
-               .allocation_count{ frames_in_flight_ }
+               {
+                  .name{ "textures" },
+                  .bindings{
+                     {
+                        .type{ vk::DescriptorType::eCombinedImageSampler },
+                        .shader_stage_flags{ vk::ShaderStageFlagBits::eFragment },
+                        .count{ 24 }
+                     }
+                  }
+               }
+            })
+            .add_push_constant_range({
+               .stageFlags{ vk::ShaderStageFlagBits::eFragment },
+               .offset{ 0 },
+               .size{ sizeof(std::uint32_t) }
             })
             .assign_slot_to_descriptor_set("camera", 0)
+            .assign_slot_to_descriptor_set("textures", 1)
             .change_rasterization_state({
                .polygonMode{ vk::PolygonMode::eFill },
                .cullMode{ vk::CullModeFlagBits::eBack },
@@ -218,6 +235,53 @@ namespace eru
          ImageView depth_image_view_{ depth_image_view_builder_.build(device_, depth_image_) };
 
          Scene scene_{ device_, "resources/models/sponza/sponza.obj" };
+
+         vk::raii::Sampler sampler_
+         {
+            [this]
+            {
+               vk::raii::Sampler sampler{
+                  device_.device().createSampler({
+                     .magFilter{ vk::Filter::eLinear },
+                     .minFilter{ vk::Filter::eLinear },
+                     .mipmapMode{ vk::SamplerMipmapMode::eLinear },
+                     .addressModeU{ vk::SamplerAddressMode::eRepeat },
+                     .addressModeV{ vk::SamplerAddressMode::eRepeat },
+                     .addressModeW{ vk::SamplerAddressMode::eRepeat },
+                     .anisotropyEnable{ true },
+                     .maxAnisotropy{ device_.physical_device().getProperties().limits.maxSamplerAnisotropy },
+                     .compareOp{ vk::CompareOp::eAlways },
+                     .borderColor{ vk::BorderColor::eIntOpaqueBlack },
+                  })
+               };
+
+               std::vector<vk::DescriptorImageInfo> sampler_infos{};
+               sampler_infos.reserve(scene_.diffuse_images().size());
+               std::vector<vk::WriteDescriptorSet> writes{};
+               writes.reserve(scene_.diffuse_images().size());
+               for (auto const& [index, image] : scene_.diffuse_images())
+               {
+                  sampler_infos.push_back({
+                     .sampler{ *sampler },
+                     .imageView{ *image.second.image_view() },
+                     .imageLayout{ image.first.info().initialLayout }
+                  });
+
+                  writes.push_back({
+                     .dstSet{ *pipeline_.descriptor_sets("textures").front() },
+                     .dstBinding{ 0 },
+                     .dstArrayElement{ index },
+                     .descriptorCount{ 1 },
+                     .descriptorType{ vk::DescriptorType::eCombinedImageSampler },
+                     .pImageInfo{ &sampler_infos.back() }
+                  });
+               }
+
+               device_.device().updateDescriptorSets(writes, {});
+
+               return sampler;
+            }()
+         };
 
          std::uint32_t current_frame_{};
    };

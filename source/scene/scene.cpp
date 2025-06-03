@@ -1,7 +1,9 @@
-#include "builders/buffer_builder.hpp"
 #include "scene.hpp"
-#include "utility/exception.hpp"
 #include "vertex.hpp"
+#include "builders/buffer_builder.hpp"
+#include "builders/image_builder.hpp"
+#include "builders/image_view_builder.hpp"
+#include "utility/exception.hpp"
 
 namespace eru
 {
@@ -26,6 +28,82 @@ namespace eru
 
       if (not scene or scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE or not scene->mRootNode)
          exception("failed to load model ({})", aiGetErrorString());
+
+      std::uint32_t missing_diffuse_texture_count{};
+      std::unordered_map<std::uint32_t, std::uint32_t> material_to_diffuse_map{};
+      for (std::uint32_t index{}; index < scene->mNumMaterials; ++index)
+      {
+         aiMaterial const* const material{ scene->mMaterials[index] };
+
+         aiString diffuse_relative_path{};
+         material->GetTexture(aiTextureType_DIFFUSE, 0, &diffuse_relative_path);
+         std::filesystem::path const diffuse_path{ path.parent_path() /= diffuse_relative_path.C_Str() };
+         if (not std::filesystem::is_regular_file(diffuse_path))
+         {
+            ++missing_diffuse_texture_count;
+            continue;
+         }
+
+         UniquePointer<SDL_Surface> diffuse_texture{ IMG_Load(diffuse_path.string().c_str()), SDL_DestroySurface };
+         diffuse_texture.reset(SDL_ConvertSurface(diffuse_texture.get(), SDL_PIXELFORMAT_RGBA32));
+
+         auto const image_size{ static_cast<vk::DeviceSize>(diffuse_texture->pitch * diffuse_texture->h) };
+         vk::Extent3D const image_extent{
+            .width{ static_cast<std::uint32_t>(diffuse_texture->w) },
+            .height{ static_cast<std::uint32_t>(diffuse_texture->h) },
+            .depth{ 1 }
+         };
+
+         Buffer staging_buffer{
+            BufferBuilder{}
+            .change_size(image_size)
+            .change_usage(vk::BufferUsageFlagBits::eTransferSrc)
+            .change_sharing_mode(vk::SharingMode::eExclusive)
+            .change_allocation_flags(VMA_ALLOCATION_CREATE_MAPPED_BIT)
+            .change_allocation_required_flags(
+               vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent)
+            .change_allocation_preferred_flags(vk::MemoryPropertyFlagBits::eDeviceLocal)
+            .build(device)
+         };
+
+         staging_buffer.upload(diffuse_texture->pixels, static_cast<std::size_t>(image_size));
+
+         Image diffuse_image{
+            ImageBuilder{}
+            .change_type(vk::ImageType::e2D)
+            .change_format(vk::Format::eR8G8B8A8Srgb)
+            .change_extent(image_extent)
+            .change_mip_levels(1)
+            .change_array_layers(1)
+            .change_samples(vk::SampleCountFlagBits::e1)
+            .change_tiling(vk::ImageTiling::eOptimal)
+            .change_usage(vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled)
+            .change_sharing_mode(vk::SharingMode::eExclusive)
+            .change_initial_layout(vk::ImageLayout::eUndefined)
+            .change_allocation_required_flags(vk::MemoryPropertyFlagBits::eDeviceLocal)
+            .build(device)
+         };
+
+         diffuse_image.transition_layout(device, vk::ImageLayout::eTransferDstOptimal);
+         staging_buffer.copy(device, diffuse_image, image_extent);
+         diffuse_image.transition_layout(device, vk::ImageLayout::eShaderReadOnlyOptimal);
+
+         ImageView diffuse_image_view{
+            ImageViewBuilder{}
+            .change_view_type(vk::ImageViewType::e2D)
+            .change_format(diffuse_image.info().format)
+            .change_subresource_range({
+               .aspectMask{ vk::ImageAspectFlagBits::eColor },
+               .levelCount{ 1 },
+               .layerCount{ 1 }
+            })
+            .build(device, diffuse_image)
+         };
+
+         material_to_diffuse_map[index] = index - missing_diffuse_texture_count;
+         diffuse_images_.emplace(material_to_diffuse_map[index],
+            std::pair{ std::move(diffuse_image), std::move(diffuse_image_view) });
+      }
 
       std::int32_t vertex_offset{};
       std::uint32_t index_offset{};
@@ -52,7 +130,7 @@ namespace eru
             .vertex_offset{ vertex_offset },
             .index_offset{ index_offset },
             .index_count{ index_count },
-            .material_index{ mesh->mMaterialIndex }
+            .material_index{ material_to_diffuse_map[mesh->mMaterialIndex] }
          });
 
          vertex_offset += vertex_count;
@@ -85,14 +163,16 @@ namespace eru
       staging_buffer.copy(device, vertex_buffer_, buffer_size);
 
       buffer_size = sizeof(decltype(indices)::value_type) * indices.size();
-      staging_buffer = staging_buffer_builder
-                       .change_size(buffer_size)
-                       .build(device);
+      staging_buffer =
+         staging_buffer_builder
+         .change_size(buffer_size)
+         .build(device);
       staging_buffer.upload(indices.data(), static_cast<std::size_t>(buffer_size));
-      index_buffer_ = buffer_builder
-                      .change_size(buffer_size)
-                      .change_usage(vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer)
-                      .build(device);
+      index_buffer_ =
+         buffer_builder
+         .change_size(buffer_size)
+         .change_usage(vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer)
+         .build(device);
       staging_buffer.copy(device, index_buffer_, buffer_size);
    }
 
@@ -109,5 +189,10 @@ namespace eru
    std::span<SubMesh const> Scene::sub_meshes() const
    {
       return sub_meshes_;
+   }
+
+   std::unordered_map<std::uint32_t, std::pair<Image, ImageView>> const& Scene::diffuse_images() const
+   {
+      return diffuse_images_;
    }
 }

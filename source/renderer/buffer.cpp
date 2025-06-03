@@ -86,13 +86,17 @@ namespace eru
    void Buffer::copy(Device const& device, Image const& target, vk::Extent3D extent) const
    {
       DeviceQueue const& queue{ device.queues().front() };
-      vk::CommandBuffer const command_buffer{
-         device.device().allocateCommandBuffers({
+      vk::raii::CommandBuffer const command_buffer{
+         std::move(device.device().allocateCommandBuffers({
             .commandPool{ *device.command_pool(queue) },
             .level{ vk::CommandBufferLevel::ePrimary },
             .commandBufferCount{ 1 }
-         }).front()
+         }).front())
       };
+
+      command_buffer.begin({
+         .flags{ vk::CommandBufferUsageFlagBits::eOneTimeSubmit }
+      });
 
       command_buffer.copyBufferToImage(buffer_, target.image(), vk::ImageLayout::eTransferDstOptimal, {
          {
@@ -109,7 +113,7 @@ namespace eru
       queue.queue().submit({
          {
             .commandBufferCount{ 1 },
-            .pCommandBuffers{ &command_buffer }
+            .pCommandBuffers{ &*command_buffer }
          }
       });
       queue.queue().waitIdle();

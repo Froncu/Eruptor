@@ -118,15 +118,26 @@ namespace eru
       command_buffer.bindVertexBuffers(0, { scene_.vertex_buffer().buffer() }, { {} });
       command_buffer.bindIndexBuffer(scene_.index_buffer().buffer(), 0, vk::IndexType::eUint32);
       command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline_.layout(), 0,
-         { pipeline_.descriptor_sets("camera")[image_index] }, {});
+         {
+            pipeline_.descriptor_sets("camera")[image_index],
+            pipeline_.descriptor_sets("textures").front()
+         }, {});
 
-      for (SubMesh const& sub_mesh : scene_.sub_meshes())
-          command_buffer.drawIndexed(
-             sub_mesh.index_count,
-             1,
-             sub_mesh.index_offset,
-             sub_mesh.vertex_offset,
-             0);
+      for (auto const& [vertex_offset, index_offset, index_count, material_index] : scene_.sub_meshes())
+      {
+         command_buffer.pushConstants<std::uint32_t>(
+            *pipeline_.layout(),
+            vk::ShaderStageFlagBits::eFragment,
+            0,
+            material_index);
+
+         command_buffer.drawIndexed(
+            index_count,
+            1,
+            index_offset,
+            vertex_offset,
+            0);
+      }
 
       command_buffer.endRendering();
 
