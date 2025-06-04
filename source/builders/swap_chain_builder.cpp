@@ -118,7 +118,7 @@ namespace eru
    }
 
    std::vector<Image> SwapChainBuilder::create_images(vk::raii::SwapchainKHR const& swap_chain, vk::Extent2D const extent,
-      std::span<DeviceQueue const> queues) const
+      std::span<DeviceQueue const> const queues) const
    {
       std::vector<Image> images{};
       std::vector<std::uint32_t> queue_family_indices{};

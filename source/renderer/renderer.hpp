@@ -37,7 +37,7 @@ namespace eru
          Camera camera{};
 
       private:
-         static std::uint32_t constexpr FRAMES_IN_FLIGHT{ 3 };
+         static std::uint32_t constexpr FRAMES_IN_FLIGHT{ 2 };
 
          Reference<Window const> const window_;
 
@@ -182,7 +182,7 @@ namespace eru
             device_.device().allocateCommandBuffers({
                .commandPool{ *device_.command_pool(device_.queues().front()) },
                .level{ vk::CommandBufferLevel::ePrimary },
-               .commandBufferCount{ 3 }
+               .commandBufferCount{ FRAMES_IN_FLIGHT }
             })
          };
 
