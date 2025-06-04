@@ -24,7 +24,7 @@ namespace eru
 
       VmaAllocator allocator;
       if (vmaCreateAllocator(&allocator_create_info, &allocator) not_eq VK_SUCCESS)
-         throw std::runtime_error("failed to create Vulkan memory allocator!");
+         exception("failed to create Vulkan memory allocator!");
 
       return { allocator, vmaDestroyAllocator };
    }
@@ -49,25 +49,42 @@ namespace eru
 
    DeviceBuilder& DeviceBuilder::enable_features10(vk::PhysicalDeviceFeatures const& features)
    {
-      enable_features(features10_, features);
+      // TODO: re-enable this when the templated functions are implemented
+      // enable_features(features10_, features);
+      features10_ = features;
       return *this;
    }
 
    DeviceBuilder& DeviceBuilder::enable_features11(vk::PhysicalDeviceVulkan11Features const& features)
    {
-      enable_features(features11_, features);
+      // TODO: re-enable this when the templated functions are implemented
+      // enable_features(features11_, features);
+      void* const next{ features11_.pNext };
+      features11_ = features;
+      features11_.pNext = next;
+
       return *this;
    }
 
    DeviceBuilder& DeviceBuilder::enable_features12(vk::PhysicalDeviceVulkan12Features const& features)
    {
-      enable_features(features12_, features);
+      // TODO: re-enable this when the templated functions are implemented
+      // enable_features(features12_, features);
+      void* const next{ features12_.pNext };
+      features12_ = features;
+      features12_.pNext = next;
+
       return *this;
    }
 
    DeviceBuilder& DeviceBuilder::enable_features13(vk::PhysicalDeviceVulkan13Features const& features)
    {
-      enable_features(features13_, features);
+      // TODO: re-enable this when the templated functions are implemented
+      // enable_features(features13_, features);
+      void* const next{ features13_.pNext };
+      features13_ = features;
+      features13_.pNext = next;
+
       return *this;
    }
 
@@ -112,7 +129,7 @@ namespace eru
    {
       std::vector physical_devices{ Locator::get<Context>().instance().enumeratePhysicalDevices() };
       if (physical_devices.empty())
-         throw std::runtime_error("no physical device with Vulkan support found!");
+         exception("no physical device with Vulkan support found!");
 
       std::erase_if(physical_devices,
          [this](vk::raii::PhysicalDevice const& physical_device)
@@ -132,28 +149,29 @@ namespace eru
             return not std::ranges::includes(available_extension_names, extension_names_);
          });
       if (physical_devices.empty())
-         throw std::runtime_error("no physical device with support for requested extensions found!");
+         exception("no physical device with support for requested extensions found!");
 
-      std::erase_if(physical_devices,
-         [this](vk::raii::PhysicalDevice const& physical_device)
-         {
-            vk::StructureChain const features{
-               physical_device.getFeatures2<vk::PhysicalDeviceFeatures2,
-                  vk::PhysicalDeviceVulkan11Features,
-                  vk::PhysicalDeviceVulkan12Features,
-                  vk::PhysicalDeviceVulkan13Features>()
-            };
-
-            if (any_requested_feature_missing(features10_, features.get<vk::PhysicalDeviceFeatures2>().features) or
-               any_requested_feature_missing(features11_, features.get<vk::PhysicalDeviceVulkan11Features>()) or
-               any_requested_feature_missing(features12_, features.get<vk::PhysicalDeviceVulkan12Features>()) or
-               any_requested_feature_missing(features13_, features.get<vk::PhysicalDeviceVulkan13Features>()))
-               return true;
-
-            return false;
-         });
-      if (physical_devices.empty())
-         throw std::runtime_error("no physical device with support for requested features found!");
+      // TODO: re-enable this when the templated functions are implemented
+      // std::erase_if(physical_devices,
+      //    [this](vk::raii::PhysicalDevice const& physical_device)
+      //    {
+      //       vk::StructureChain const features{
+      //          physical_device.getFeatures2<vk::PhysicalDeviceFeatures2,
+      //             vk::PhysicalDeviceVulkan11Features,
+      //             vk::PhysicalDeviceVulkan12Features,
+      //             vk::PhysicalDeviceVulkan13Features>()
+      //       };
+      //
+      //       if (any_requested_feature_missing(features10_, features.get<vk::PhysicalDeviceFeatures2>().features) or
+      //          any_requested_feature_missing(features11_, features.get<vk::PhysicalDeviceVulkan11Features>()) or
+      //          any_requested_feature_missing(features12_, features.get<vk::PhysicalDeviceVulkan12Features>()) or
+      //          any_requested_feature_missing(features13_, features.get<vk::PhysicalDeviceVulkan13Features>()))
+      //          return true;
+      //
+      //       return false;
+      //    });
+      // if (physical_devices.empty())
+      //    exception("no physical device with support for requested features found!");
 
       std::unordered_map<VkPhysicalDevice, QueueInfo> queue_infos{};
       std::erase_if(physical_devices,
@@ -208,7 +226,7 @@ namespace eru
             return false;
          });
       if (physical_devices.empty())
-         throw std::runtime_error("no physical device with support for requested queues found!");
+         exception("no physical device with support for requested queues found!");
 
       for (vk::raii::PhysicalDevice physical_device : physical_devices)
          if (physical_device.getProperties().deviceType == vk::PhysicalDeviceType::eDiscreteGpu)
