@@ -1,6 +1,5 @@
 #include <SDL3/SDL_main.h>
 
-#include "application/application.hpp"
 #include "builders/context_builder.hpp"
 #include "erupch/erupch.hpp"
 #include "eruptor/eruptor.hpp"
