@@ -50,29 +50,7 @@ namespace eru
 
       command_buffer.begin({});
 
-      vk::RenderingAttachmentInfo color_attachment_info{
-         .imageView{ *image_view.image_view() },
-         .imageLayout{ vk::ImageLayout::eColorAttachmentOptimal },
-         .loadOp{ vk::AttachmentLoadOp::eClear },
-         .storeOp{ vk::AttachmentStoreOp::eStore },
-         .clearValue{
-            vk::ClearColorValue{
-               std::array{ 0.0f, 0.0f, 0.0f, 1.0f }
-            }
-         }
-      };
-
-      vk::RenderingAttachmentInfo depth_attachment_info{
-         .imageView{ *depth_image_view_.image_view() },
-         .imageLayout{ vk::ImageLayout::eDepthStencilAttachmentOptimal },
-         .loadOp{ vk::AttachmentLoadOp::eClear },
-         .storeOp{ vk::AttachmentStoreOp::eDontCare },
-         .clearValue{
-            vk::ClearDepthStencilValue{
-               .depth{ 1.0f }
-            }
-         },
-      };
+      depth_pass_.render(command_buffer, scene_, current_frame_);
 
       vk::ImageMemoryBarrier2 const color_barrier{
          .srcStageMask{ vk::PipelineStageFlagBits2::eNone },
@@ -93,6 +71,25 @@ namespace eru
          .imageMemoryBarrierCount{ 1 },
          .pImageMemoryBarriers{ &color_barrier }
       });
+
+      vk::RenderingAttachmentInfo const color_attachment_info{
+         .imageView{ *image_view.image_view() },
+         .imageLayout{ vk::ImageLayout::eColorAttachmentOptimal },
+         .loadOp{ vk::AttachmentLoadOp::eClear },
+         .storeOp{ vk::AttachmentStoreOp::eStore },
+         .clearValue{
+            vk::ClearColorValue{
+               std::array{ 0.0f, 0.0f, 0.0f, 1.0f }
+            }
+         }
+      };
+
+      vk::RenderingAttachmentInfo const depth_attachment_info{
+         .imageView{ *depth_pass_.depth_image_view().image_view() },
+         .imageLayout{ vk::ImageLayout::eDepthStencilReadOnlyOptimal },
+         .loadOp{ vk::AttachmentLoadOp::eLoad },
+         .storeOp{ vk::AttachmentStoreOp::eDontCare }
+      };
 
       command_buffer.beginRendering({
          .renderArea{
@@ -197,9 +194,7 @@ namespace eru
          swap_chain_builder_.change_old_swap_chain(&swap_chain_);
          swap_chain_ = swap_chain_builder_.build(device_, *window_, device_.queues());
 
-         depth_image_builder_.change_extent(swap_chain_.extent());
-         depth_image_ = depth_image_builder_.build(device_);
-         depth_image_view_ = depth_image_view_builder_.build(device_, depth_image_);
+         depth_pass_.recreate_depth_image(device_, swap_chain_.extent());
 
          camera.change_projection_extent(swap_chain_.extent());
       }

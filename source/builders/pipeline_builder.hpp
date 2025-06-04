@@ -19,7 +19,8 @@ namespace eru
          PipelineBuilder& operator=(PipelineBuilder const&) = delete;
          PipelineBuilder& operator=(PipelineBuilder&&) = delete;
 
-         PipelineBuilder& change_color_attachment_format(vk::Format color_attachment_format);
+         PipelineBuilder& add_color_attachment_format(vk::Format color_attachment_format);
+         PipelineBuilder& add_color_attachment_formats(std::initializer_list<vk::Format> color_attachment_formats);
          PipelineBuilder& change_depth_attachment_format(vk::Format depth_attachment_format);
          PipelineBuilder& add_vertex_binding(vk::VertexInputBindingDescription const& vertex_binding);
          PipelineBuilder& add_vertex_bindings(std::span<vk::VertexInputBindingDescription const> vertex_bindings);
@@ -48,7 +49,7 @@ namespace eru
          [[nodiscard]] vk::raii::Pipeline create_pipeline(Device const& device,
             vk::raii::PipelineLayout const& pipeline_layout) const;
 
-         vk::Format color_attachment_format_{};
+         std::vector<vk::Format> color_attachment_formats_{};
          vk::Format depth_attachment_format_{};
          std::vector<vk::VertexInputBindingDescription> vertex_bindings_{};
          std::vector<vk::VertexInputAttributeDescription> vertex_attributes_{};

@@ -3,9 +3,17 @@
 
 namespace eru
 {
-   PipelineBuilder& PipelineBuilder::change_color_attachment_format(vk::Format const color_attachment_format)
+   PipelineBuilder& PipelineBuilder::add_color_attachment_format(vk::Format const color_attachment_format)
    {
-      color_attachment_format_ = color_attachment_format;
+      color_attachment_formats_.emplace_back(color_attachment_format);
+      return *this;
+   }
+
+   PipelineBuilder& PipelineBuilder::add_color_attachment_formats(std::initializer_list<vk::Format> color_attachment_formats)
+   {
+      for (vk::Format const color_attachment_format : color_attachment_formats)
+         add_color_attachment_format(color_attachment_format);
+
       return *this;
    }
 
@@ -176,9 +184,9 @@ namespace eru
       vk::raii::PipelineLayout const& pipeline_layout) const
    {
       vk::PipelineRenderingCreateInfo const rendering_create_info{
-         .colorAttachmentCount{ 1 },
-         .pColorAttachmentFormats{ &color_attachment_format_ },
-         .depthAttachmentFormat{ depth_attachment_format_ }
+         .colorAttachmentCount{ static_cast<std::uint32_t>(color_attachment_formats_.size()) },
+         .pColorAttachmentFormats{ color_attachment_formats_.data() },
+         .depthAttachmentFormat{ depth_attachment_format_ },
       };
 
       vk::PipelineVertexInputStateCreateInfo const vertex_input_state_create_info{

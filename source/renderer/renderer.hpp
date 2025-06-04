@@ -10,9 +10,9 @@
 #include "builders/descriptor_sets_builder.hpp"
 #include "builders/device_builder.hpp"
 #include "builders/image_builder.hpp"
-#include "builders/image_view_builder.hpp"
 #include "builders/pipeline_builder.hpp"
 #include "builders/swap_chain_builder.hpp"
+#include "passes/depth_pass.hpp"
 #include "scene/material.hpp"
 #include "scene/scene.hpp"
 #include "scene/vertex.hpp"
@@ -125,7 +125,8 @@ namespace eru
          };
          Pipeline pipeline_{
             PipelineBuilder{}
-            .change_color_attachment_format(swap_chain_.images().front().info().format)
+            .add_color_attachment_format(swap_chain_.images().front().info().format)
+            .change_depth_attachment_format(vk::Format::eD32Sfloat)
             .add_vertex_bindings(Vertex::BINDING_DESCRIPTIONS)
             .add_vertex_attributes(Vertex::ATTRIBUTE_DESCRIPTIONS)
             .add_shader_stages({
@@ -142,41 +143,19 @@ namespace eru
             })
             .assign_descriptor_set_layout("camera", 0)
             .assign_descriptor_set_layout("texturing", 1)
+            .change_depth_stencil_state({
+               .depthTestEnable{ true },
+               .depthCompareOp{ vk::CompareOp::eEqual }
+            })
             .add_push_constant_range({
                .stageFlags{ vk::ShaderStageFlagBits::eFragment },
                .offset{ 0 },
                .size{ sizeof(std::uint32_t) }
             })
-            .change_depth_attachment_format(vk::Format::eD32Sfloat)
             .build(device_, descriptor_sets_)
          };
 
-         ImageBuilder depth_image_builder_{
-            ImageBuilder{}
-            .change_type(vk::ImageType::e2D)
-            .change_format(vk::Format::eD32Sfloat)
-            .change_extent(swap_chain_.extent())
-            .change_mip_levels(1)
-            .change_array_layers(1)
-            .change_samples(vk::SampleCountFlagBits::e1)
-            .change_tiling(vk::ImageTiling::eOptimal)
-            .change_usage(vk::ImageUsageFlagBits::eDepthStencilAttachment)
-            .change_sharing_mode(vk::SharingMode::eExclusive)
-            .change_initial_layout(vk::ImageLayout::eUndefined)
-            .change_allocation_required_flags(vk::MemoryPropertyFlagBits::eDeviceLocal)
-         };
-         Image depth_image_{ depth_image_builder_.build(device_) };
-         ImageViewBuilder depth_image_view_builder_{
-            ImageViewBuilder{}
-            .change_view_type(vk::ImageViewType::e2D)
-            .change_format(depth_image_.info().format)
-            .change_subresource_range({
-               .aspectMask{ vk::ImageAspectFlagBits::eDepth },
-               .levelCount{ 1 },
-               .layerCount{ 1 }
-            })
-         };
-         ImageView depth_image_view_{ depth_image_view_builder_.build(device_, depth_image_) };
+         DepthPass depth_pass_{ device_, swap_chain_.extent(), descriptor_sets_ };
 
          std::vector<vk::raii::CommandBuffer> command_buffers_{
             device_.device().allocateCommandBuffers({

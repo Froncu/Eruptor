@@ -1,4 +1,5 @@
 #include "image.hpp"
+#include "utility/exception.hpp"
 
 namespace eru
 {
@@ -21,27 +22,44 @@ namespace eru
 
       vk::AccessFlags source_access_mask;
       vk::AccessFlags destination_access_mask;
+      vk::ImageAspectFlags image_aspect_flags;
       vk::PipelineStageFlags source_stage_mask;
       vk::PipelineStageFlags destination_stage_mask;
-      if (info_.initialLayout == vk::ImageLayout::eUndefined and new_layout == vk::ImageLayout::eTransferDstOptimal)
+      if (info_.initialLayout == vk::ImageLayout::eUndefined and
+         new_layout == vk::ImageLayout::eTransferDstOptimal)
       {
          source_access_mask = vk::AccessFlagBits::eNone;
          destination_access_mask = vk::AccessFlagBits::eTransferWrite;
 
+         image_aspect_flags = vk::ImageAspectFlagBits::eColor;
+
          source_stage_mask = vk::PipelineStageFlagBits::eTopOfPipe;
          destination_stage_mask = vk::PipelineStageFlagBits::eTransfer;
       }
-      else if (info_.initialLayout == vk::ImageLayout::eTransferDstOptimal and new_layout ==
-         vk::ImageLayout::eShaderReadOnlyOptimal)
+      else if (info_.initialLayout == vk::ImageLayout::eTransferDstOptimal and
+         new_layout == vk::ImageLayout::eShaderReadOnlyOptimal)
       {
          source_access_mask = vk::AccessFlagBits::eTransferWrite;
          destination_access_mask = vk::AccessFlagBits::eShaderRead;
 
+         image_aspect_flags = vk::ImageAspectFlagBits::eColor;
+
          source_stage_mask = vk::PipelineStageFlagBits::eTransfer;
          destination_stage_mask = vk::PipelineStageFlagBits::eFragmentShader;
       }
+      else if (info_.initialLayout == vk::ImageLayout::eUndefined &&
+         new_layout == vk::ImageLayout::eDepthStencilReadOnlyOptimal)
+      {
+         source_access_mask = vk::AccessFlagBits::eNone;
+         destination_access_mask = vk::AccessFlagBits::eDepthStencilAttachmentRead;
+
+         image_aspect_flags = vk::ImageAspectFlagBits::eDepth;
+
+         source_stage_mask = vk::PipelineStageFlagBits::eTopOfPipe;
+         destination_stage_mask = vk::PipelineStageFlagBits::eEarlyFragmentTests;
+      }
       else
-         throw std::invalid_argument("unsupported layout transition!");
+         exception("unsupported layout transition!");
 
       vk::ImageMemoryBarrier const image_memory_barrier{
          .srcAccessMask{ source_access_mask },
@@ -52,7 +70,7 @@ namespace eru
          .dstQueueFamilyIndex{ vk::QueueFamilyIgnored },
          .image{ image() },
          .subresourceRange{
-            .aspectMask{ vk::ImageAspectFlagBits::eColor },
+            .aspectMask{ image_aspect_flags },
             .baseMipLevel{ 0 },
             .levelCount{ 1 },
             .baseArrayLayer{ 0 },
