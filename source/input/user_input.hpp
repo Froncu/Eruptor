@@ -61,10 +61,10 @@ namespace eru
 
       private:
          [[nodiscard]] static float deadzoned_strength(float strength, float deadzone);
-         [[nodiscard]] static float highest_strength(std::unordered_set<Input> const& inputs,
-            std::unordered_map<Input, float>& input_strengths);
 
          explicit UserInput(int id);
+
+         [[nodiscard]] std::pair<Input, float> highest_strength(std::unordered_set<Input> const& inputs) const;
 
          void calculate_action_values_if(std::function<bool(std::unordered_set<Input> const&)> const& predicate) const;
          void reset_input_strength_if(std::function<bool(Input)> const& predicate) const;

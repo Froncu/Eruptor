@@ -7,20 +7,6 @@ namespace eru
       return strength < deadzone ? 0.0f : (strength - deadzone) / (1.0f - deadzone);
    }
 
-   float UserInput::highest_strength(std::unordered_set<Input> const& inputs,
-      std::unordered_map<Input, float>& input_strengths)
-   {
-      auto highest_strength{ std::numeric_limits<float>::lowest() };
-      for (Input const input : inputs)
-      {
-         if (float const strength{ input_strengths[input] };
-            strength > highest_strength)
-            highest_strength = strength;
-      }
-
-      return highest_strength;
-   }
-
    UserInput::UserInput(int const id)
       : id_{ id }
    {
@@ -132,6 +118,19 @@ namespace eru
       return id_;
    }
 
+   std::pair<Input, float> UserInput::highest_strength(std::unordered_set<Input> const& inputs) const
+   {
+      std::pair<Input, float> highest_strength{ {}, std::numeric_limits<float>::lowest() };
+      for (Input const input : inputs)
+      {
+         if (float const strength{ input_strengths_[input] };
+            strength > highest_strength.second)
+            highest_strength = { input, strength };
+      }
+
+      return highest_strength;
+   }
+
    void UserInput::calculate_action_values_if(std::function<bool(std::unordered_set<Input> const&)> const& predicate) const
    {
       for (InternalValueAction& internal_action : std::views::values(value_actions_))
@@ -142,7 +141,11 @@ namespace eru
 
             float const old_value{ value };
 
-            value = deadzoned_strength(highest_strength(inputs, input_strengths_), deadzone);
+            auto [input, strength]{ highest_strength(inputs) };
+            if (not std::holds_alternative<MouseAxis>(input))
+               strength = deadzoned_strength(strength, deadzone);
+
+            value = strength;
 
             if (old_value not_eq value)
                value_changed_event.notify(value);
@@ -157,9 +160,16 @@ namespace eru
 
             float const old_value{ value };
 
-            value =
-               deadzoned_strength(highest_strength(positive_inputs, input_strengths_), deadzone) -
-               deadzoned_strength(highest_strength(negative_inputs, input_strengths_), deadzone);
+            auto [positive_input, positive_strength]{ highest_strength(positive_inputs) };
+            auto [negative_input, negative_strength]{ highest_strength(negative_inputs) };
+            if (not std::holds_alternative<MouseAxis>(positive_input) and
+                not std::holds_alternative<MouseAxis>(negative_input))
+            {
+               positive_strength = deadzoned_strength(positive_strength, deadzone);
+               negative_strength = deadzoned_strength(negative_strength, deadzone);
+            }
+
+            value = positive_strength - negative_strength;
 
             if (old_value not_eq value)
                value_changed_event.notify(value);
@@ -176,12 +186,17 @@ namespace eru
 
             glm::vec2 const old_value{ value };
 
-            value = {
-               highest_strength(positive_x_inputs, input_strengths_) - highest_strength(negative_x_inputs, input_strengths_),
-               highest_strength(positive_y_inputs, input_strengths_) - highest_strength(negative_y_inputs, input_strengths_)
-            };
+            auto [positive_x_input, positive_x_strength]{ highest_strength(positive_x_inputs) };
+            auto [negative_x_input, negative_x_strength]{ highest_strength(negative_x_inputs) };
+            auto [positive_y_input, positive_y_strength]{ highest_strength(positive_y_inputs) };
+            auto [negative_y_input, negative_y_strength]{ highest_strength(negative_y_inputs) };
+            value.x = positive_x_strength - negative_x_strength;
+            value.y = positive_y_strength - negative_y_strength;
 
-            if (std::abs(value.x) <= 1.0f and std::abs(value.y) <= 1.0f)
+            if (not std::holds_alternative<MouseAxis>(positive_x_input) and
+                not std::holds_alternative<MouseAxis>(negative_x_input) and
+                not std::holds_alternative<MouseAxis>(positive_y_input) and
+                not std::holds_alternative<MouseAxis>(negative_y_input))
             {
                if (float const magnitude{ glm::length(value) }; magnitude > 1.0)
                   value /= magnitude;
