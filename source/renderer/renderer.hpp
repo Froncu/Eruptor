@@ -112,7 +112,21 @@ namespace eru
                         .shader_stage_flags{ vk::ShaderStageFlagBits::eFragment }
                      },
                      {
-                        .name{ "diffuse_textures" },
+                        .name{ "base_color_textures" },
+                        .flags{ vk::DescriptorBindingFlagBits::ePartiallyBound },
+                        .type{ vk::DescriptorType::eSampledImage },
+                        .shader_stage_flags{ vk::ShaderStageFlagBits::eFragment },
+                        .count{ 100 }
+                     },
+                     {
+                        .name{ "normal_textures" },
+                        .flags{ vk::DescriptorBindingFlagBits::ePartiallyBound },
+                        .type{ vk::DescriptorType::eSampledImage },
+                        .shader_stage_flags{ vk::ShaderStageFlagBits::eFragment },
+                        .count{ 100 }
+                     },
+                     {
+                        .name{ "metalness_textures" },
                         .flags{ vk::DescriptorBindingFlagBits::ePartiallyBound },
                         .type{ vk::DescriptorType::eSampledImage },
                         .shader_stage_flags{ vk::ShaderStageFlagBits::eFragment },
@@ -128,12 +142,6 @@ namespace eru
             })
             .assign_slot_to_descriptor_set("camera", 0)
             .assign_slot_to_descriptor_set("texturing", 1)
-            .change_rasterization_state({
-               .polygonMode{ vk::PolygonMode::eFill },
-               .cullMode{ vk::CullModeFlagBits::eBack },
-               .frontFace{ vk::FrontFace::eClockwise },
-               .lineWidth{ 1.0f }
-            })
             .change_depth_attachment_format(vk::Format::eD32Sfloat)
             .build(device_)
          };
@@ -280,7 +288,12 @@ namespace eru
                   }
                }, {});
 
-               std::size_t const writes_count{ 1 + scene_.diffuse_images().size() };
+               std::size_t const writes_count{
+                  1 +
+                  scene_.base_color_images().size() +
+                  scene_.normal_images().size() +
+                  scene_.metalness_images().size()
+               };
                std::vector<vk::DescriptorImageInfo> infos{};
                infos.reserve(writes_count);
                std::vector<vk::WriteDescriptorSet> writes{};
@@ -338,7 +351,9 @@ namespace eru
                   }
                };
 
-               create_image_writes(scene_.diffuse_images(), "texturing", "diffuse_textures");
+               create_image_writes(scene_.base_color_images(), "texturing", "base_color_textures");
+               create_image_writes(scene_.normal_images(), "texturing", "normal_textures");
+               create_image_writes(scene_.metalness_images(), "texturing", "metalness_textures");
 
                device_.device().updateDescriptorSets(writes, {});
 

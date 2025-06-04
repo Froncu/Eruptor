@@ -127,7 +127,6 @@ namespace eru
             pipeline_.descriptor_sets("camera")[image_index],
             pipeline_.descriptor_sets("texturing").front()
          }, {});
-
       for (auto const& [vertex_offset, index_offset, index_count, material_index] : scene_.sub_meshes())
       {
          command_buffer.pushConstants<std::uint32_t>(

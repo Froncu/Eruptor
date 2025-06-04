@@ -49,9 +49,19 @@ namespace eru
       return sub_meshes_;
    }
 
-   std::span<std::pair<Image, ImageView> const> Scene::diffuse_images() const
+   std::span<std::pair<Image, ImageView> const> Scene::base_color_images() const
    {
-      return diffuse_images_;
+      return base_color_images_;
+   }
+
+   std::span<std::pair<Image, ImageView> const> Scene::normal_images() const
+   {
+      return normal_images_;
+   }
+
+   std::span<std::pair<Image, ImageView> const> Scene::metalness_images() const
+   {
+      return metalness_images_;
    }
 
    Buffer const& Scene::materials() const
@@ -77,7 +87,9 @@ namespace eru
          for (std::uint32_t index{}; index < vertex_count; ++index)
             vertices.push_back({
                .position{ mesh->mVertices[index].x, mesh->mVertices[index].y, mesh->mVertices[index].z },
-               .uv{ mesh->mTextureCoords[0][index].x, mesh->mTextureCoords[0][index].y }
+               .uv{ mesh->mTextureCoords[0][index].x, mesh->mTextureCoords[0][index].y },
+               .normal{ mesh->mNormals[index].x, mesh->mNormals[index].y, mesh->mNormals[index].z },
+               .tangent{ mesh->mTangents[index].x, mesh->mTangents[index].y, mesh->mTangents[index].z }
             });
 
          std::uint32_t const index_count{ mesh->mNumFaces * 3 };
@@ -136,17 +148,38 @@ namespace eru
       staging_buffer.copy(device, index_buffer_, buffer_size);
    }
 
+   static std::vector<std::string> metalness_maps{};
+   static std::vector<std::string> rougness_maps{};
+
    int Scene::load_texture(Device const& device, aiMaterial const& material, aiTextureType const type,
       std::filesystem::path const& scene_path, BufferBuilder& staging_buffer_builder, ImageBuilder& image_builder,
       ImageViewBuilder& image_view_builder)
    {
+      aiTextureType fallback_type{ aiTextureType_UNKNOWN };
       SDL_PixelFormat sdl_format;
       vk::Format vulkan_format;
+      std::vector<std::pair<Image, ImageView>>* target_images;
       switch (type)
       {
-         case aiTextureType_DIFFUSE:
+         case aiTextureType_BASE_COLOR:
+            fallback_type = aiTextureType_DIFFUSE;
             sdl_format = SDL_PIXELFORMAT_RGBA32;
             vulkan_format = vk::Format::eR8G8B8A8Srgb;
+            target_images = &base_color_images_;
+            break;
+
+         // TODO: can the following use a better format?
+         case aiTextureType_NORMAL_CAMERA:
+            fallback_type = aiTextureType_NORMALS;
+            sdl_format = SDL_PIXELFORMAT_RGBA32;
+            vulkan_format = vk::Format::eR8G8B8A8Unorm;
+            target_images = &normal_images_;
+            break;
+
+         case aiTextureType_METALNESS:
+            sdl_format = SDL_PIXELFORMAT_RGBA32;
+            vulkan_format = vk::Format::eR8G8B8A8Unorm;
+            target_images = &metalness_images_;
             break;
 
          default:
@@ -154,10 +187,15 @@ namespace eru
       }
 
       aiString relative_path{};
-      material.GetTexture(aiTextureType_DIFFUSE, 0, &relative_path);
-      std::filesystem::path const path{ scene_path.parent_path() /= relative_path.C_Str() };
+      material.GetTexture(type, 0, &relative_path);
+      std::filesystem::path path{ scene_path.parent_path() /= relative_path.C_Str() };
       if (not std::filesystem::is_regular_file(path))
-         return -1;
+      {
+         material.GetTexture(fallback_type, 0, &relative_path);
+         path = scene_path.parent_path() /= relative_path.C_Str();
+         if (not std::filesystem::is_regular_file(path))
+            return -1;
+      }
 
       UniquePointer<SDL_Surface> texture{ IMG_Load(path.string().c_str()), SDL_DestroySurface };
       texture.reset(SDL_ConvertSurface(texture.get(), sdl_format));
@@ -196,8 +234,8 @@ namespace eru
          .build(device, image)
       };
 
-      diffuse_images_.emplace_back(std::move(image), std::move(image_view));
-      return static_cast<int>(diffuse_images_.size() - 1);
+      target_images->emplace_back(std::move(image), std::move(image_view));
+      return static_cast<int>(target_images->size() - 1);
    }
 
    void Scene::load_materials(Device const& device, aiScene const& scene, std::filesystem::path const& path)
@@ -239,8 +277,16 @@ namespace eru
       for (aiMaterial const* const material : std::span{ scene.mMaterials, scene.mMaterials + scene.mNumMaterials })
       {
          materials.push_back({
-            .diffuse_index{
-               load_texture(device, *material, aiTextureType_DIFFUSE, path, staging_buffer_builder,
+            .base_color_index{
+               load_texture(device, *material, aiTextureType_BASE_COLOR, path, staging_buffer_builder,
+                  image_builder, image_view_builder)
+            },
+            .normal_index{
+               load_texture(device, *material, aiTextureType_NORMAL_CAMERA, path, staging_buffer_builder,
+                  image_builder, image_view_builder)
+            },
+            .metalness_index{
+               load_texture(device, *material, aiTextureType_METALNESS, path, staging_buffer_builder,
                   image_builder, image_view_builder)
             }
          });

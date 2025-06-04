@@ -23,7 +23,9 @@ namespace eru
          [[nodiscard]] Buffer const& vertex_buffer() const;
          [[nodiscard]] Buffer const& index_buffer() const;
          [[nodiscard]] std::span<SubMesh const> sub_meshes() const;
-         [[nodiscard]] std::span<std::pair<Image, ImageView> const> diffuse_images() const;
+         [[nodiscard]] std::span<std::pair<Image, ImageView> const> base_color_images() const;
+         [[nodiscard]] std::span<std::pair<Image, ImageView> const> normal_images() const;
+         [[nodiscard]] std::span<std::pair<Image, ImageView> const> metalness_images() const;
          [[nodiscard]] Buffer const& materials() const;
          [[nodiscard]] std::size_t materials_count() const;
 
@@ -37,7 +39,9 @@ namespace eru
          Buffer vertex_buffer_{};
          Buffer index_buffer_{};
          std::vector<SubMesh> sub_meshes_{};
-         std::vector<std::pair<Image, ImageView>> diffuse_images_{};
+         std::vector<std::pair<Image, ImageView>> base_color_images_{};
+         std::vector<std::pair<Image, ImageView>> normal_images_{};
+         std::vector<std::pair<Image, ImageView>> metalness_images_{};
          Buffer materials_{};
          std::size_t materials_count_{};
    };
