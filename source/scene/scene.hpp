@@ -24,10 +24,12 @@ namespace eru
          [[nodiscard]] Buffer const& index_buffer() const;
          [[nodiscard]] std::span<SubMesh const> sub_meshes() const;
          [[nodiscard]] std::span<std::pair<Image, ImageView> const> diffuse_images() const;
+         [[nodiscard]] Buffer const& materials() const;
+         [[nodiscard]] std::size_t materials_count() const;
 
       private:
          void load_submeshes(Device const& device, aiScene const& scene);
-         void load_textures(Device const& device, aiMaterial const& material, aiTextureType type,
+         [[nodiscard]] int load_texture(Device const& device, aiMaterial const& material, aiTextureType type,
             std::filesystem::path const& scene_path, BufferBuilder& staging_buffer_builder, ImageBuilder& image_builder,
             ImageViewBuilder& image_view_builder);
          void load_materials(Device const& device, aiScene const& scene, std::filesystem::path const& path);
@@ -36,7 +38,8 @@ namespace eru
          Buffer index_buffer_{};
          std::vector<SubMesh> sub_meshes_{};
          std::vector<std::pair<Image, ImageView>> diffuse_images_{};
-         std::vector<Buffer> materials_{};
+         Buffer materials_{};
+         std::size_t materials_count_{};
    };
 }
 

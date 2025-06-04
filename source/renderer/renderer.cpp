@@ -5,6 +5,9 @@ namespace eru
    Renderer::Renderer(Window const& window)
       : window_{ window }
    {
+      // TODO: putting ANYTHING more here makes all the physical devices
+      // incompatible due to missing features?????????????
+
       camera.change_projection_extent(swap_chain_.extent());
    }
 
@@ -122,7 +125,7 @@ namespace eru
       command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline_.layout(), 0,
          {
             pipeline_.descriptor_sets("camera")[image_index],
-            pipeline_.descriptor_sets("textures").front()
+            pipeline_.descriptor_sets("texturing").front()
          }, {});
 
       for (auto const& [vertex_offset, index_offset, index_count, material_index] : scene_.sub_meshes())

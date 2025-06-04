@@ -54,6 +54,16 @@ namespace eru
       return diffuse_images_;
    }
 
+   Buffer const& Scene::materials() const
+   {
+      return materials_;
+   }
+
+   std::size_t Scene::materials_count() const
+   {
+      return materials_count_;
+   }
+
    void Scene::load_submeshes(Device const& device, aiScene const& scene)
    {
       std::int32_t vertex_offset{};
@@ -67,7 +77,6 @@ namespace eru
          for (std::uint32_t index{}; index < vertex_count; ++index)
             vertices.push_back({
                .position{ mesh->mVertices[index].x, mesh->mVertices[index].y, mesh->mVertices[index].z },
-               .color{ 1.0f, 1.0f, 1.0f },
                .uv{ mesh->mTextureCoords[0][index].x, mesh->mTextureCoords[0][index].y }
             });
 
@@ -127,7 +136,7 @@ namespace eru
       staging_buffer.copy(device, index_buffer_, buffer_size);
    }
 
-   void Scene::load_textures(Device const& device, aiMaterial const& material, aiTextureType const type,
+   int Scene::load_texture(Device const& device, aiMaterial const& material, aiTextureType const type,
       std::filesystem::path const& scene_path, BufferBuilder& staging_buffer_builder, ImageBuilder& image_builder,
       ImageViewBuilder& image_view_builder)
    {
@@ -141,14 +150,14 @@ namespace eru
             break;
 
          default:
-            return;
+            return -1;
       }
 
       aiString relative_path{};
       material.GetTexture(aiTextureType_DIFFUSE, 0, &relative_path);
       std::filesystem::path const path{ scene_path.parent_path() /= relative_path.C_Str() };
       if (not std::filesystem::is_regular_file(path))
-         return;
+         return -1;
 
       UniquePointer<SDL_Surface> texture{ IMG_Load(path.string().c_str()), SDL_DestroySurface };
       texture.reset(SDL_ConvertSurface(texture.get(), sdl_format));
@@ -188,6 +197,7 @@ namespace eru
       };
 
       diffuse_images_.emplace_back(std::move(image), std::move(image_view));
+      return static_cast<int>(diffuse_images_.size() - 1);
    }
 
    void Scene::load_materials(Device const& device, aiScene const& scene, std::filesystem::path const& path)
@@ -228,8 +238,33 @@ namespace eru
       materials.reserve(scene.mNumMaterials);
       for (aiMaterial const* const material : std::span{ scene.mMaterials, scene.mMaterials + scene.mNumMaterials })
       {
-         load_textures(device, *material, aiTextureType_DIFFUSE, path, staging_buffer_builder, image_builder,
-            image_view_builder);
+         materials.push_back({
+            .diffuse_index{
+               load_texture(device, *material, aiTextureType_DIFFUSE, path, staging_buffer_builder,
+                  image_builder, image_view_builder)
+            }
+         });
       }
+      materials_count_ = materials.size();
+
+      vk::DeviceSize const buffer_size{ sizeof(decltype(materials)::value_type) * materials.size() };
+
+      Buffer staging_buffer{
+         staging_buffer_builder
+         .change_size(buffer_size)
+         .build(device)
+      };
+
+      staging_buffer.upload(materials.data(), static_cast<std::size_t>(buffer_size));
+
+      materials_ =
+         BufferBuilder{}
+         .change_size(buffer_size)
+         .change_usage(vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eStorageBuffer)
+         .change_sharing_mode(vk::SharingMode::eExclusive)
+         .change_allocation_required_flags(vk::MemoryPropertyFlagBits::eDeviceLocal)
+         .build(device);
+
+      staging_buffer.copy(device, materials_, buffer_size);
    }
 }

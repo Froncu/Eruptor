@@ -595,7 +595,6 @@ namespace eru
          for (unsigned int index{}; index < mesh->mNumVertices; ++index)
             vertices.push_back({
                .position{ mesh->mVertices[index].x, mesh->mVertices[index].z, mesh->mVertices[index].y },
-               .color{ 1.0f, 1.0f, 1.0f },
                .uv{ mesh->mTextureCoords[0][index].x, mesh->mTextureCoords[0][index].y }
             });
 

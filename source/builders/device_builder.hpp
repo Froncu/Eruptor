@@ -48,7 +48,7 @@ namespace eru
          {
             std::size_t offset{};
             if (not std::is_same_v<FeatureStruct, vk::PhysicalDeviceFeatures>)
-               offset = sizeof(VkStructureType) + sizeof(void*);
+               offset = alignof(FeatureStruct) * 2;
 
             std::size_t const feature_count{ (sizeof(FeatureStruct::NativeType) - offset) / sizeof(VkBool32) };
             auto const source_features{
@@ -68,7 +68,7 @@ namespace eru
          {
             std::size_t offset{};
             if (not std::is_same_v<FeatureStruct, vk::PhysicalDeviceFeatures>)
-               offset = sizeof(VkStructureType) + sizeof(void*);
+               offset = alignof(FeatureStruct) * 2;
 
             std::size_t const feature_count{ (sizeof(FeatureStruct::NativeType) - offset) / sizeof(VkBool32) };
             auto const requested_features{

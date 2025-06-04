@@ -119,31 +119,38 @@ namespace eru
       if (std::ranges::any_of(descriptor_set.bindings,
          [](DescriptorBinding const& binding)
          {
-            return binding.count == 0;
+            return
+               binding.name.empty() or
+               binding.count == 0;
          }))
-         exception("none of the descriptor set's \"{}\" bindings counts can be 0!", descriptor_set.name);
+         exception("at least one of the descriptor set's \"{}\" bindings is unnamed or has a count of 0!",
+            descriptor_set.name);
+
+      if (std::unordered_set<std::string> names{}; std::ranges::any_of(descriptor_set.bindings,
+         [&names](DescriptorBinding const& binding)
+         {
+            return not names.insert(binding.name).second;
+         }))
+         exception("all binding names in the descriptor set \"{}\" must be unique!", descriptor_set.name);
 
       if (not descriptor_set.allocation_count)
          exception("the descriptor set's \"{}\" allocation count cannot be 0!", descriptor_set.name);
 
       if (auto stored_set{ descriptor_sets_.find(descriptor_set.name) };
-         stored_set not_eq descriptor_sets_.end())
-      {
-         if (stored_set->bindings not_eq descriptor_set.bindings)
-            exception("a descriptor set with name \"{}\" already exists with different bindings!",
-               stored_set->name);
-
-         stored_set->allocation_count += descriptor_set.allocation_count;
-      }
-      else
+         stored_set == descriptor_sets_.end())
       {
          for (stored_set = descriptor_sets_.begin(); stored_set not_eq descriptor_sets_.end(); ++stored_set)
+         {
             if (stored_set->bindings == descriptor_set.bindings)
                exception("an already added descriptor set named \"{}\" has identical bindings to \"{}\"!",
                   stored_set->name, descriptor_set.name);
+         }
 
          descriptor_sets_.emplace(std::move(descriptor_set));
       }
+      else
+         exception("a descriptor set with name \"{}\" already exists!",
+            stored_set->name);
 
       return *this;
    }
@@ -201,7 +208,7 @@ namespace eru
 
       std::vector<vk::raii::DescriptorSetLayout> raw_descriptor_set_layouts{};
       raw_descriptor_set_layouts.reserve(descriptor_set_layouts.size());
-      for (vk::raii::DescriptorSetLayout& layout : std::views::values(descriptor_set_layouts))
+      for (auto& [layout, binding_map] : std::views::values(descriptor_set_layouts))
          raw_descriptor_set_layouts.emplace_back(std::move(layout));
 
       return {
@@ -210,29 +217,32 @@ namespace eru
       };
    }
 
-   std::unordered_map<std::string, vk::raii::DescriptorSetLayout> PipelineBuilder::create_descriptor_set_layouts(
-      Device const& device) const
+   PipelineBuilder::DescriptorSetLayouts PipelineBuilder::create_descriptor_set_layouts(Device const& device) const
    {
-      std::unordered_map<std::string, vk::raii::DescriptorSetLayout> layouts{};
+      DescriptorSetLayouts layouts{};
       layouts.reserve(descriptor_sets_.size());
-      for (auto const& [name, bindings, allocation_count] : descriptor_sets_)
+      for (auto const& [set_name, bindings, allocation_count] : descriptor_sets_)
       {
-         if (std::ranges::find(descriptor_set_slots_, name) == descriptor_set_slots_.end())
-            exception("descriptor set with name \"{}\" was never assigned a slot!", name);
+         if (std::ranges::find(descriptor_set_slots_, set_name) == descriptor_set_slots_.end())
+            exception("descriptor set with name \"{}\" was never assigned a slot!", set_name);
 
          std::vector<vk::DescriptorSetLayoutBinding> native_bindings{};
          native_bindings.reserve(bindings.size());
+         Pipeline::DescriptorSetBindingMap binding_map{};
+         binding_map.reserve(bindings.size());
          std::vector<vk::DescriptorBindingFlags> flags_collection{};
          flags_collection.reserve(bindings.size());
          for (std::uint32_t index{}; index < bindings.size(); ++index)
          {
-            auto const [flags, type, shader_stage_flags, count]{ bindings[index] };
+            auto const& [binding_name, flags, type, shader_stage_flags, count]{ bindings[index] };
             native_bindings.push_back({
                .binding{ index },
                .descriptorType{ type },
                .descriptorCount{ count },
                .stageFlags{ shader_stage_flags }
             });
+
+            binding_map.emplace(binding_name, index);
 
             flags_collection.emplace_back(flags);
          }
@@ -243,12 +253,16 @@ namespace eru
             .pBindingFlags{ flags_collection.data() }
          };
 
-         layouts.emplace(name,
-            device.device().createDescriptorSetLayout({
-               .pNext{ &binding_flags_create_info },
-               .bindingCount{ binding_count },
-               .pBindings{ native_bindings.data() }
-            }));
+         layouts.emplace(set_name,
+            std::pair{
+               device.device().createDescriptorSetLayout({
+                  .pNext{ &binding_flags_create_info },
+                  .bindingCount{ binding_count },
+                  .pBindings{ native_bindings.data() }
+               }),
+               std::move(binding_map)
+            }
+         );
       }
 
       return layouts;
@@ -278,26 +292,28 @@ namespace eru
       });
    }
 
-   std::unordered_map<std::string, std::vector<vk::raii::DescriptorSet>> PipelineBuilder::allocate_descriptor_sets(
-      Device const& device, std::unordered_map<std::string, vk::raii::DescriptorSetLayout> const& layouts,
+   Pipeline::DescriptorSets PipelineBuilder::allocate_descriptor_sets(Device const& device, DescriptorSetLayouts& layouts,
       vk::raii::DescriptorPool const& pool) const
    {
-      std::unordered_map<std::string, std::vector<vk::raii::DescriptorSet>> descriptor_sets{};
-      for (auto const& [name, layout] : layouts)
+      Pipeline::DescriptorSets descriptor_sets{};
+      for (auto& [name, layout] : layouts)
       {
-         std::vector<vk::DescriptorSetLayout> raw_layouts{ descriptor_sets_.find(name)->allocation_count, layout };
-         descriptor_sets[name] = device.device().allocateDescriptorSets({
-            .descriptorPool{ *pool },
-            .descriptorSetCount{ static_cast<std::uint32_t>(raw_layouts.size()) },
-            .pSetLayouts{ raw_layouts.data() }
-         });
+         std::vector<vk::DescriptorSetLayout> raw_layouts{ descriptor_sets_.find(name)->allocation_count, layout.first };
+         descriptor_sets[name] = {
+            device.device().allocateDescriptorSets({
+               .descriptorPool{ *pool },
+               .descriptorSetCount{ static_cast<std::uint32_t>(raw_layouts.size()) },
+               .pSetLayouts{ raw_layouts.data() }
+            }),
+            std::move(layout.second)
+         };
       }
 
       return descriptor_sets;
    }
 
    vk::raii::PipelineLayout PipelineBuilder::create_pipeline_layout(Device const& device,
-      std::unordered_map<std::string, vk::raii::DescriptorSetLayout> const& descriptor_set_layouts)
+      DescriptorSetLayouts const& descriptor_set_layouts)
    {
       if (std::ranges::any_of(descriptor_set_slots_,
          [](std::string_view const name)
@@ -314,7 +330,7 @@ namespace eru
          if (layout == descriptor_set_layouts.end())
             exception("descriptor set with name \"{}\" was assigned a slot but was never added!", name);
 
-         raw_descriptor_set_layouts.push_back(layout->second);
+         raw_descriptor_set_layouts.push_back(layout->second.first);
       }
 
       return device.device().createPipelineLayout({

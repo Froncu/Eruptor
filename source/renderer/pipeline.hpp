@@ -19,16 +19,19 @@ namespace eru
          [[nodiscard]] vk::raii::Pipeline const& pipeline() const;
          [[nodiscard]] vk::raii::PipelineLayout const& layout() const;
          [[nodiscard]] std::span<vk::raii::DescriptorSet const> descriptor_sets(std::string_view name) const;
+         [[nodiscard]] std::uint32_t descriptor_binding(std::string_view set_name, std::string_view binding_name) const;
 
       private:
-         Pipeline(std::vector<vk::raii::DescriptorSetLayout> descriptor_set_layouts,
-            vk::raii::DescriptorPool descriptor_pool,
-            std::unordered_map<std::string, std::vector<vk::raii::DescriptorSet>> descriptor_sets,
-            vk::raii::PipelineLayout pipeline_layout, vk::raii::Pipeline pipeline);
+         using RawDescriptorSets = std::vector<vk::raii::DescriptorSet>;
+         using DescriptorSetBindingMap = std::unordered_map<std::string, std::uint32_t>;
+         using DescriptorSets = std::unordered_map<std::string, std::pair<RawDescriptorSets, DescriptorSetBindingMap>>;
+
+         Pipeline(std::vector<vk::raii::DescriptorSetLayout> descriptor_set_layouts, vk::raii::DescriptorPool descriptor_pool,
+            DescriptorSets descriptor_sets, vk::raii::PipelineLayout pipeline_layout, vk::raii::Pipeline pipeline);
 
          std::vector<vk::raii::DescriptorSetLayout> descriptor_set_layouts_;
          vk::raii::DescriptorPool descriptor_pool_;
-         std::unordered_map<std::string, std::vector<vk::raii::DescriptorSet>> descriptor_sets_;
+         DescriptorSets descriptor_sets_;
          vk::raii::PipelineLayout pipeline_layout_;
          vk::raii::Pipeline pipeline_;
    };

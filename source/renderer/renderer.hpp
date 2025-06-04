@@ -14,6 +14,7 @@
 #include "scene/scene.hpp"
 #include "scene/vertex.hpp"
 #include "shader.hpp"
+#include "scene/material.hpp"
 #include "window/window.hpp"
 
 namespace eru
@@ -88,6 +89,7 @@ namespace eru
                   .name{ "camera" },
                   .bindings{
                      {
+                        .name{ "data" },
                         .type{ vk::DescriptorType::eUniformBuffer },
                         .shader_stage_flags{ vk::ShaderStageFlagBits::eVertex }
                      }
@@ -95,17 +97,26 @@ namespace eru
                   .allocation_count{ FRAMES_IN_FLIGHT }
                },
                {
-                  .name{ "textures" },
+                  .name{ "texturing" },
                   .bindings{
                      {
+                        .name{ "materials" },
+                        .flags{ vk::DescriptorBindingFlagBits::ePartiallyBound },
+                        .type{ vk::DescriptorType::eStorageBuffer },
+                        .shader_stage_flags{ vk::ShaderStageFlagBits::eFragment },
+                        .count{ 100 }
+                     },
+                     {
+                        .name{ "sampler" },
                         .type{ vk::DescriptorType::eSampler },
                         .shader_stage_flags{ vk::ShaderStageFlagBits::eFragment }
                      },
                      {
+                        .name{ "diffuse_textures" },
                         .flags{ vk::DescriptorBindingFlagBits::ePartiallyBound },
                         .type{ vk::DescriptorType::eSampledImage },
                         .shader_stage_flags{ vk::ShaderStageFlagBits::eFragment },
-                        .count{ 50 }
+                        .count{ 100 }
                      }
                   }
                }
@@ -116,7 +127,7 @@ namespace eru
                .size{ sizeof(std::uint32_t) }
             })
             .assign_slot_to_descriptor_set("camera", 0)
-            .assign_slot_to_descriptor_set("textures", 1)
+            .assign_slot_to_descriptor_set("texturing", 1)
             .change_rasterization_state({
                .polygonMode{ vk::PolygonMode::eFill },
                .cullMode{ vk::CullModeFlagBits::eBack },
@@ -234,7 +245,7 @@ namespace eru
 
                   writes.push_back({
                      .dstSet{ *pipeline_.descriptor_sets("camera")[index] },
-                     .dstBinding{ 0 },
+                     .dstBinding{ pipeline_.descriptor_binding("camera", "data") },
                      .dstArrayElement{ 0 },
                      .descriptorCount{ 1 },
                      .descriptorType{ vk::DescriptorType::eUniformBuffer },
@@ -248,10 +259,33 @@ namespace eru
             }()
          };
 
-         vk::raii::Sampler sampler_
-         {
+         vk::raii::Sampler sampler_{
             [this]
             {
+               // NOTE: this could be done in the Scene's constructor body, but look at the comment there...
+               vk::DescriptorBufferInfo const materials_info{
+                  .buffer{ scene_.materials().buffer() },
+                  .offset{ 0 },
+                  .range{ sizeof(Material) * scene_.materials_count() }
+               };
+
+               device_.device().updateDescriptorSets({
+                  {
+                     .dstSet{ pipeline_.descriptor_sets("texturing").front() },
+                     .dstBinding{ pipeline_.descriptor_binding("texturing", "materials") },
+                     .dstArrayElement{ 0 },
+                     .descriptorCount{ 1 },
+                     .descriptorType{ vk::DescriptorType::eStorageBuffer },
+                     .pBufferInfo{ &materials_info }
+                  }
+               }, {});
+
+               std::size_t const writes_count{ 1 + scene_.diffuse_images().size() };
+               std::vector<vk::DescriptorImageInfo> infos{};
+               infos.reserve(writes_count);
+               std::vector<vk::WriteDescriptorSet> writes{};
+               writes.reserve(writes_count);
+
                vk::raii::Sampler sampler{
                   device_.device().createSampler({
                      .magFilter{ vk::Filter::eLinear },
@@ -267,29 +301,22 @@ namespace eru
                   })
                };
 
-               vk::DescriptorImageInfo const sampler_info{
+               infos.push_back({
                   .sampler{ *sampler }
-               };
+               });
 
-               device_.device().updateDescriptorSets({
-                  {
-                     .dstSet{ *pipeline_.descriptor_sets("textures").front() },
-                     .dstBinding{ 0 },
-                     .dstArrayElement{ 0 },
-                     .descriptorCount{ 1 },
-                     .descriptorType{ vk::DescriptorType::eSampler },
-                     .pImageInfo{ &sampler_info }
-                  }
-               }, {});
+               writes.push_back({
+                  .dstSet{ *pipeline_.descriptor_sets("texturing").front() },
+                  .dstBinding{ pipeline_.descriptor_binding("texturing", "sampler") },
+                  .dstArrayElement{ 0 },
+                  .descriptorCount{ 1 },
+                  .descriptorType{ vk::DescriptorType::eSampler },
+                  .pImageInfo{ &infos.back() }
+               });
 
-               std::size_t const total_image_count{ scene_.diffuse_images().size() };
-
-               std::vector<vk::DescriptorImageInfo> infos{};
-               infos.reserve(total_image_count);
-               std::vector<vk::WriteDescriptorSet> writes{};
-               writes.reserve(total_image_count);
-               auto const create_writes{
-                  [this, &infos, &writes](std::span<std::pair<Image, ImageView> const> images, std::uint32_t const binding)
+               auto const create_image_writes{
+                  [this, &infos, &writes](std::span<std::pair<Image, ImageView> const> images, std::string_view const set,
+                  std::string_view const binding)
                   {
                      for (std::uint32_t index{}; index < images.size(); ++index)
                      {
@@ -300,8 +327,8 @@ namespace eru
                         });
 
                         writes.push_back({
-                           .dstSet{ *pipeline_.descriptor_sets("textures").front() },
-                           .dstBinding{ binding },
+                           .dstSet{ *pipeline_.descriptor_sets(set).front() },
+                           .dstBinding{ pipeline_.descriptor_binding(set, binding) },
                            .dstArrayElement{ index },
                            .descriptorCount{ 1 },
                            .descriptorType{ vk::DescriptorType::eSampledImage },
@@ -311,7 +338,7 @@ namespace eru
                   }
                };
 
-               create_writes(scene_.diffuse_images(), 1);
+               create_image_writes(scene_.diffuse_images(), "texturing", "diffuse_textures");
 
                device_.device().updateDescriptorSets(writes, {});
 

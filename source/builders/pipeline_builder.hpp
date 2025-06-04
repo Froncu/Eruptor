@@ -11,19 +11,26 @@ namespace eru
       public:
          struct DescriptorBinding final
          {
+            std::string name{};
             vk::DescriptorBindingFlags flags{};
             vk::DescriptorType type{ vk::DescriptorType::eUniformBuffer };
             vk::ShaderStageFlags shader_stage_flags{ vk::ShaderStageFlagBits::eFragment };
             std::uint32_t count{ 1 };
 
-            [[nodiscard]] bool operator==(DescriptorBinding const& other) const = default;
+            [[nodiscard]] bool operator==(DescriptorBinding const& other) const
+            {
+               return flags == other.flags and
+                  type == other.type and
+                  shader_stage_flags == other.shader_stage_flags and
+                  count == other.count;
+            };
          };
 
          struct DescriptorSet final
          {
             std::string name{};
             std::vector<DescriptorBinding> bindings{};
-            mutable std::uint32_t allocation_count{ 1 };
+            std::uint32_t allocation_count{ 1 };
 
             struct Equal final
             {
@@ -101,14 +108,15 @@ namespace eru
          [[nodiscard]] Pipeline build(Device const& device);
 
       private:
-         [[nodiscard]] std::unordered_map<std::string, vk::raii::DescriptorSetLayout> create_descriptor_set_layouts(
-            Device const& device) const;
+         using DescriptorSetLayouts =
+         std::unordered_map<std::string, std::pair<vk::raii::DescriptorSetLayout, Pipeline::DescriptorSetBindingMap>>;
+
+         [[nodiscard]] DescriptorSetLayouts create_descriptor_set_layouts(Device const& device) const;
          [[nodiscard]] vk::raii::DescriptorPool create_descriptor_pool(Device const& device) const;
-         [[nodiscard]] std::unordered_map<std::string, std::vector<vk::raii::DescriptorSet>> allocate_descriptor_sets(
-            Device const& device, std::unordered_map<std::string, vk::raii::DescriptorSetLayout> const& layouts,
+         [[nodiscard]] Pipeline::DescriptorSets allocate_descriptor_sets(Device const& device, DescriptorSetLayouts& layouts,
             vk::raii::DescriptorPool const& pool) const;
          [[nodiscard]] vk::raii::PipelineLayout create_pipeline_layout(Device const& device,
-            std::unordered_map<std::string, vk::raii::DescriptorSetLayout> const& descriptor_set_layouts);
+            DescriptorSetLayouts const& descriptor_set_layouts);
          [[nodiscard]] vk::raii::Pipeline create_pipeline(Device const& device,
             vk::raii::PipelineLayout const& pipeline_layout) const;
 
