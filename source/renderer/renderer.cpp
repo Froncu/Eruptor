@@ -5,9 +5,6 @@ namespace eru
    Renderer::Renderer(Window const& window)
       : window_{ window }
    {
-      // TODO: putting ANYTHING more here makes all the physical devices
-      // incompatible due to missing features?????????????
-
       camera.change_projection_extent(swap_chain_.extent());
    }
 
