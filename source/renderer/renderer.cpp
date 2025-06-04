@@ -21,8 +21,6 @@ namespace eru
       if (window_->minimised())
          return;
 
-      camera_buffers_[current_frame_].upload(&camera.data(), sizeof(camera.data()));
-
       vk::raii::Fence const& command_buffer_executed_fence{ command_buffer_executed_fences_[current_frame_] };
       vk::raii::Semaphore const& image_available_semaphore{ image_available_semaphores_[current_frame_] };
       vk::raii::Semaphore const& render_finished_semaphore{ render_finished_semaphores_[current_frame_] };
@@ -31,6 +29,8 @@ namespace eru
       if (device_.device().waitForFences({ command_buffer_executed_fence }, true,
          std::numeric_limits<std::uint64_t>::max()) not_eq vk::Result::eSuccess)
          exception("failed to wait for fences!");
+
+      camera_buffers_[current_frame_].upload(&camera.data(), sizeof(camera.data()));
 
       auto&& [result, image_index]{
          device_.device().acquireNextImage2KHR({
