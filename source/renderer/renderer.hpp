@@ -2,19 +2,20 @@
 #define RENDERER_HPP
 
 #include "buffer.hpp"
+#include "camera.hpp"
+#include "device.hpp"
+#include "pipeline.hpp"
+#include "shader.hpp"
 #include "builders/buffer_builder.hpp"
+#include "builders/descriptor_sets_builder.hpp"
 #include "builders/device_builder.hpp"
 #include "builders/image_builder.hpp"
 #include "builders/image_view_builder.hpp"
 #include "builders/pipeline_builder.hpp"
 #include "builders/swap_chain_builder.hpp"
-#include "camera.hpp"
-#include "device.hpp"
-#include "pipeline.hpp"
+#include "scene/material.hpp"
 #include "scene/scene.hpp"
 #include "scene/vertex.hpp"
-#include "shader.hpp"
-#include "scene/material.hpp"
 #include "window/window.hpp"
 
 namespace eru
@@ -67,23 +68,8 @@ namespace eru
 
          Shader vertex_shader_{ "resources/shaders/shader.vert", device_ };
          Shader fragment_shader_{ "resources/shaders/shader.frag", device_ };
-         Pipeline pipeline_{
-            PipelineBuilder{}
-            .change_color_attachment_format(swap_chain_.images().front().info().format)
-            .add_vertex_bindings(Vertex::BINDING_DESCRIPTIONS)
-            .add_vertex_attributes(Vertex::ATTRIBUTE_DESCRIPTIONS)
-            .add_shader_stages({
-               {
-                  .stage{ vk::ShaderStageFlagBits::eVertex },
-                  .module{ *vertex_shader_.module() },
-                  .pName{ "main" }
-               },
-               {
-                  .stage{ vk::ShaderStageFlagBits::eFragment },
-                  .module{ *fragment_shader_.module() },
-                  .pName{ "main" }
-               }
-            })
+         DescriptorSets descriptor_sets_{
+            DescriptorSetsBuilder{}
             .add_descriptor_sets({
                {
                   .name{ "camera" },
@@ -135,15 +121,34 @@ namespace eru
                   }
                }
             })
+            .build(device_)
+         };
+         Pipeline pipeline_{
+            PipelineBuilder{}
+            .change_color_attachment_format(swap_chain_.images().front().info().format)
+            .add_vertex_bindings(Vertex::BINDING_DESCRIPTIONS)
+            .add_vertex_attributes(Vertex::ATTRIBUTE_DESCRIPTIONS)
+            .add_shader_stages({
+               {
+                  .stage{ vk::ShaderStageFlagBits::eVertex },
+                  .module{ *vertex_shader_.module() },
+                  .pName{ "main" }
+               },
+               {
+                  .stage{ vk::ShaderStageFlagBits::eFragment },
+                  .module{ *fragment_shader_.module() },
+                  .pName{ "main" }
+               }
+            })
+            .assign_descriptor_set_layout("camera", 0)
+            .assign_descriptor_set_layout("texturing", 1)
             .add_push_constant_range({
                .stageFlags{ vk::ShaderStageFlagBits::eFragment },
                .offset{ 0 },
                .size{ sizeof(std::uint32_t) }
             })
-            .assign_slot_to_descriptor_set("camera", 0)
-            .assign_slot_to_descriptor_set("texturing", 1)
             .change_depth_attachment_format(vk::Format::eD32Sfloat)
-            .build(device_)
+            .build(device_, descriptor_sets_)
          };
 
          ImageBuilder depth_image_builder_{
@@ -252,8 +257,8 @@ namespace eru
                   });
 
                   writes.push_back({
-                     .dstSet{ *pipeline_.descriptor_sets("camera")[index] },
-                     .dstBinding{ pipeline_.descriptor_binding("camera", "data") },
+                     .dstSet{ *descriptor_sets_.sets("camera")[index] },
+                     .dstBinding{ descriptor_sets_.binding("camera", "data") },
                      .dstArrayElement{ 0 },
                      .descriptorCount{ 1 },
                      .descriptorType{ vk::DescriptorType::eUniformBuffer },
@@ -279,8 +284,8 @@ namespace eru
 
                device_.device().updateDescriptorSets({
                   {
-                     .dstSet{ pipeline_.descriptor_sets("texturing").front() },
-                     .dstBinding{ pipeline_.descriptor_binding("texturing", "materials") },
+                     .dstSet{ descriptor_sets_.sets("texturing").front() },
+                     .dstBinding{ descriptor_sets_.binding("texturing", "materials") },
                      .dstArrayElement{ 0 },
                      .descriptorCount{ 1 },
                      .descriptorType{ vk::DescriptorType::eStorageBuffer },
@@ -319,8 +324,8 @@ namespace eru
                });
 
                writes.push_back({
-                  .dstSet{ *pipeline_.descriptor_sets("texturing").front() },
-                  .dstBinding{ pipeline_.descriptor_binding("texturing", "sampler") },
+                  .dstSet{ *descriptor_sets_.sets("texturing").front() },
+                  .dstBinding{ descriptor_sets_.binding("texturing", "sampler") },
                   .dstArrayElement{ 0 },
                   .descriptorCount{ 1 },
                   .descriptorType{ vk::DescriptorType::eSampler },
@@ -340,8 +345,8 @@ namespace eru
                         });
 
                         writes.push_back({
-                           .dstSet{ *pipeline_.descriptor_sets(set).front() },
-                           .dstBinding{ pipeline_.descriptor_binding(set, binding) },
+                           .dstSet{ *descriptor_sets_.sets(set).front() },
+                           .dstBinding{ descriptor_sets_.binding(set, binding) },
                            .dstArrayElement{ index },
                            .descriptorCount{ 1 },
                            .descriptorType{ vk::DescriptorType::eSampledImage },

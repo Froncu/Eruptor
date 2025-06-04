@@ -124,8 +124,8 @@ namespace eru
       command_buffer.bindIndexBuffer(scene_.index_buffer().buffer(), 0, vk::IndexType::eUint32);
       command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline_.layout(), 0,
          {
-            pipeline_.descriptor_sets("camera")[image_index],
-            pipeline_.descriptor_sets("texturing").front()
+            descriptor_sets_.sets("camera")[image_index],
+            descriptor_sets_.sets("texturing").front()
          }, {});
       for (auto const& [vertex_offset, index_offset, index_count, material_index] : scene_.sub_meshes())
       {

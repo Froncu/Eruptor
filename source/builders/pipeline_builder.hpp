@@ -1,6 +1,7 @@
 #ifndef PIPELINE_BUILDER_HPP
 #define PIPELINE_BUILDER_HPP
 
+#include "renderer/descriptor_sets.hpp"
 #include "renderer/device.hpp"
 #include "renderer/pipeline.hpp"
 
@@ -9,70 +10,6 @@ namespace eru
    class PipelineBuilder final
    {
       public:
-         struct DescriptorBinding final
-         {
-            std::string name{};
-            vk::DescriptorBindingFlags flags{};
-            vk::DescriptorType type{ vk::DescriptorType::eUniformBuffer };
-            vk::ShaderStageFlags shader_stage_flags{ vk::ShaderStageFlagBits::eFragment };
-            std::uint32_t count{ 1 };
-
-            [[nodiscard]] bool operator==(DescriptorBinding const& other) const
-            {
-               return flags == other.flags and
-                  type == other.type and
-                  shader_stage_flags == other.shader_stage_flags and
-                  count == other.count;
-            };
-         };
-
-         struct DescriptorSet final
-         {
-            std::string name{};
-            std::vector<DescriptorBinding> bindings{};
-            std::uint32_t allocation_count{ 1 };
-
-            struct Equal final
-            {
-               using is_transparent = void;
-
-               [[nodiscard]] bool operator()(DescriptorSet const& a, DescriptorSet const& b) const
-               {
-                  return a.name == b.name;
-               }
-
-               [[nodiscard]] bool operator()(std::string_view const name, DescriptorSet const& set) const
-               {
-                  return name == set.name;
-               }
-
-               [[nodiscard]] bool operator()(DescriptorSet const& set, std::string_view const name) const
-               {
-                  return set.name == name;
-               }
-            };
-
-            struct Hasher final
-            {
-               using is_transparent = void;
-
-               [[nodiscard]] std::size_t operator()(DescriptorSet const& set) const
-               {
-                  return std::hash<std::string>{}(set.name);
-               }
-
-               [[nodiscard]] std::size_t operator()(std::string_view const name) const
-               {
-                  return std::hash<std::string_view>{}(name);
-               }
-
-               [[nodiscard]] std::size_t operator()(std::string const& name) const
-               {
-                  return std::hash<std::string>{}(name);
-               }
-            };
-         };
-
          PipelineBuilder() = default;
          PipelineBuilder(PipelineBuilder const&) = delete;
          PipelineBuilder(PipelineBuilder&&) = delete;
@@ -98,25 +35,16 @@ namespace eru
             vk::PipelineColorBlendAttachmentState const& color_blend_attachment_state);
          PipelineBuilder& add_dynamic_state(vk::DynamicState state);
          PipelineBuilder& add_dynamic_states(std::initializer_list<vk::DynamicState> states);
-         PipelineBuilder& add_descriptor_set(DescriptorSet descriptor_set);
-         PipelineBuilder& add_descriptor_sets(std::initializer_list<DescriptorSet> descriptor_sets);
-         PipelineBuilder& assign_slot_to_descriptor_set(std::string name, std::uint32_t slot);
-         PipelineBuilder& assign_slots_to_descriptor_set(std::string_view name, std::initializer_list<std::uint32_t> slots);
+         PipelineBuilder& assign_descriptor_set_layout(std::string name, std::uint32_t slot);
+         PipelineBuilder& assign_descriptor_set_layout(std::string_view name, std::initializer_list<std::uint32_t> slots);
          PipelineBuilder& add_push_constant_range(vk::PushConstantRange push_constant_range);
          PipelineBuilder& add_push_constant_ranges(std::initializer_list<vk::PushConstantRange> push_constant_ranges);
 
-         [[nodiscard]] Pipeline build(Device const& device);
+         [[nodiscard]] Pipeline build(Device const& device, DescriptorSets const& desriptor_sets);
 
       private:
-         using DescriptorSetLayouts =
-         std::unordered_map<std::string, std::pair<vk::raii::DescriptorSetLayout, Pipeline::DescriptorSetBindingMap>>;
-
-         [[nodiscard]] DescriptorSetLayouts create_descriptor_set_layouts(Device const& device) const;
-         [[nodiscard]] vk::raii::DescriptorPool create_descriptor_pool(Device const& device) const;
-         [[nodiscard]] Pipeline::DescriptorSets allocate_descriptor_sets(Device const& device, DescriptorSetLayouts& layouts,
-            vk::raii::DescriptorPool const& pool) const;
          [[nodiscard]] vk::raii::PipelineLayout create_pipeline_layout(Device const& device,
-            DescriptorSetLayouts const& descriptor_set_layouts);
+            DescriptorSets const& desriptor_sets);
          [[nodiscard]] vk::raii::Pipeline create_pipeline(Device const& device,
             vk::raii::PipelineLayout const& pipeline_layout) const;
 
@@ -158,7 +86,6 @@ namespace eru
             }
          };
          std::vector<vk::DynamicState> dynamic_states_{ vk::DynamicState::eViewport, vk::DynamicState::eScissor };
-         std::unordered_set<DescriptorSet, DescriptorSet::Hasher, DescriptorSet::Equal> descriptor_sets_{};
          std::vector<std::string> descriptor_set_slots_{};
          std::vector<vk::PushConstantRange> push_constant_ranges_{};
    };
