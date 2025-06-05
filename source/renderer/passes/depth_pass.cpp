@@ -8,23 +8,40 @@ namespace eru
       : swap_chain_extent_{ swap_chain_extent }
       , descriptor_sets_{ descriptor_sets }
       , vertex_shader_{ "resources/shaders/depth.vert", device }
+      , fragment_shader_{ "resources/shaders/depth.frag", device }
       , pipeline_{
          PipelineBuilder{}
          .change_depth_attachment_format(vk::Format::eD32Sfloat)
          .add_vertex_bindings(Vertex::BINDING_DESCRIPTIONS)
-         .add_vertex_attribute(Vertex::ATTRIBUTE_DESCRIPTIONS[0])
+         .add_vertex_attributes({
+            {
+               Vertex::ATTRIBUTE_DESCRIPTIONS[0],
+               Vertex::ATTRIBUTE_DESCRIPTIONS[1]
+            }
+         })
          .add_shader_stages({
             {
                .stage{ vk::ShaderStageFlagBits::eVertex },
                .module{ *vertex_shader_.module() },
                .pName{ "main" }
+            },
+            {
+               .stage{ vk::ShaderStageFlagBits::eFragment },
+               .module{ *fragment_shader_.module() },
+               .pName{ "main" }
             }
          })
          .assign_descriptor_set_layout("camera", 0)
+         .assign_descriptor_set_layout("texturing", 1)
          .change_depth_stencil_state({
             .depthTestEnable{ true },
             .depthWriteEnable{ true },
             .depthCompareOp{ vk::CompareOp::eLessOrEqual }
+         })
+         .add_push_constant_range({
+            .stageFlags{ vk::ShaderStageFlagBits::eFragment },
+            .offset{ 0 },
+            .size{ sizeof(std::uint32_t) }
          })
          .build(device, descriptor_sets)
       }
@@ -115,16 +132,25 @@ namespace eru
       command_buffer.bindIndexBuffer(scene.index_buffer().buffer(), 0, vk::IndexType::eUint32);
       command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline_.layout(), 0,
          {
-            descriptor_sets_.sets("camera")[current_frame]
+            descriptor_sets_.sets("camera")[current_frame],
+            descriptor_sets_.sets("texturing").front()
          }, {});
 
       for (auto const& [vertex_offset, index_offset, index_count, material_index] : scene.sub_meshes())
+      {
+         command_buffer.pushConstants<std::uint32_t>(
+            *pipeline_.layout(),
+            vk::ShaderStageFlagBits::eFragment,
+            0,
+            material_index);
+
          command_buffer.drawIndexed(
             index_count,
             1,
             index_offset,
             vertex_offset,
             0);
+      }
 
       command_buffer.endRendering();
 

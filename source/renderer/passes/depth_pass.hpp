@@ -30,6 +30,7 @@ namespace eru
          vk::Extent2D swap_chain_extent_;
          DescriptorSets const& descriptor_sets_;
          Shader vertex_shader_;
+         Shader fragment_shader_;
          Pipeline pipeline_;
          ImageBuilder depth_image_builder_;
          Image depth_image_;

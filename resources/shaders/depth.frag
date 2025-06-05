@@ -13,28 +13,18 @@ layout(push_constant) uniform PushConstants {
 
 layout(set = 1, binding = 1) uniform sampler texture_sampler;
 layout(set = 1, binding = 2) uniform texture2D base_color_textures[];
-layout(set = 1, binding = 3) uniform texture2D normal_textures[];
-layout(set = 1, binding = 4) uniform texture2D metalness_textures[];
 layout(set = 1, binding = 0) readonly buffer MaterialsBuffer{
    Material materials[];
 } materials_buffer;
 
-layout(location = 0) in vec3 in_position;
-layout(location = 1) in vec2 in_uv;
-layout(location = 2) in mat3 in_tbn;
-
-layout(location = 0) out vec4 out_color;
+layout(location = 0) in vec2 in_uv;
 
 void main()
 {
    const Material material = materials_buffer.materials[push_constants.material_index];
 
    const int base_color_index = material.base_color_index;
-   const int normal_index = material.normal_index;
-   const int metalness_index = material.metalness_index;
-
-   if (base_color_index >= 0)
-      out_color = texture(sampler2D(base_color_textures[base_color_index], texture_sampler), in_uv);
-   else
-      out_color = vec4(1.0, 0.0, 0.0, 1.0);
+   
+   const float alpha = texture(sampler2D(base_color_textures[base_color_index], texture_sampler), in_uv).a;
+   if (alpha < 0.5) discard;
 }
