@@ -58,6 +58,17 @@ namespace eru
          source_stage_mask = vk::PipelineStageFlagBits::eTopOfPipe;
          destination_stage_mask = vk::PipelineStageFlagBits::eEarlyFragmentTests;
       }
+      else if (info_.initialLayout == vk::ImageLayout::eUndefined &&
+         new_layout == vk::ImageLayout::eShaderReadOnlyOptimal)
+      {
+         source_access_mask = vk::AccessFlagBits::eNone;
+         destination_access_mask = vk::AccessFlagBits::eShaderRead;
+
+         image_aspect_flags = vk::ImageAspectFlagBits::eColor;
+
+         source_stage_mask = vk::PipelineStageFlagBits::eTopOfPipe;
+         destination_stage_mask = vk::PipelineStageFlagBits::eFragmentShader;
+      }
       else
          exception("unsupported layout transition!");
 

@@ -23,7 +23,14 @@ int main(int const, char** const)
       .enable_extension(eru::constants::DEBUG ? vk::EXTDebugUtilsExtensionName : "")
       .build());
 
-   eru::Eruptor{}.run();
+   try
+   {
+      eru::Eruptor{}.run();
+   }
+   catch (std::exception const& exception)
+   {
+      spdlog::error(exception.what());
+   }
 
    eru::Locator::reset();
 

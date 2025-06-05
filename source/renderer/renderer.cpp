@@ -38,8 +38,8 @@ namespace eru
          })
       };
 
-      Image const& image{ swap_chain_.images()[image_index] };
-      ImageView const& image_view{ swap_chain_.image_views()[image_index] };
+      Image const& swap_chain_image{ swap_chain_.images()[image_index] };
+      ImageView const& swap_chain_image_view{ swap_chain_.image_views()[image_index] };
 
       device_.device().resetFences({ command_buffer_executed_fence });
 
@@ -48,6 +48,7 @@ namespace eru
       command_buffer.begin({});
 
       depth_pass_.render(command_buffer, scene_, current_frame_);
+      geometry_pass_.render(command_buffer, scene_, current_frame_, depth_pass_.depth_image_views()[current_frame_]);
 
       vk::ImageMemoryBarrier2 const color_barrier{
          .srcStageMask{ vk::PipelineStageFlagBits2::eNone },
@@ -56,7 +57,7 @@ namespace eru
          .dstAccessMask{ vk::AccessFlagBits2::eColorAttachmentWrite },
          .oldLayout{ vk::ImageLayout::eUndefined },
          .newLayout{ vk::ImageLayout::eColorAttachmentOptimal },
-         .image{ image.image() },
+         .image{ swap_chain_image.image() },
          .subresourceRange{
             .aspectMask{ vk::ImageAspectFlagBits::eColor },
             .levelCount{ 1 },
@@ -70,7 +71,7 @@ namespace eru
       });
 
       vk::RenderingAttachmentInfo const color_attachment_info{
-         .imageView{ *image_view.image_view() },
+         .imageView{ *swap_chain_image_view.image_view() },
          .imageLayout{ vk::ImageLayout::eColorAttachmentOptimal },
          .loadOp{ vk::AttachmentLoadOp::eClear },
          .storeOp{ vk::AttachmentStoreOp::eStore },
@@ -81,21 +82,13 @@ namespace eru
          }
       };
 
-      vk::RenderingAttachmentInfo const depth_attachment_info{
-         .imageView{ *depth_pass_.depth_image_views()[current_frame_].image_view() },
-         .imageLayout{ vk::ImageLayout::eDepthStencilReadOnlyOptimal },
-         .loadOp{ vk::AttachmentLoadOp::eLoad },
-         .storeOp{ vk::AttachmentStoreOp::eDontCare }
-      };
-
       command_buffer.beginRendering({
          .renderArea{
             .extent{ swap_chain_.extent() }
          },
          .layerCount{ 1 },
          .colorAttachmentCount{ 1 },
-         .pColorAttachments{ &color_attachment_info },
-         .pDepthAttachment{ &depth_attachment_info }
+         .pColorAttachments{ &color_attachment_info }
       });
 
       command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline_.pipeline());
@@ -114,28 +107,18 @@ namespace eru
          }
       });
 
-      command_buffer.bindVertexBuffers(0, { scene_.vertex_buffer().buffer() }, { {} });
-      command_buffer.bindIndexBuffer(scene_.index_buffer().buffer(), 0, vk::IndexType::eUint32);
       command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline_.layout(), 0,
          {
-            descriptor_sets_.sets("camera")[current_frame_],
-            descriptor_sets_.sets("texturing").front()
+            descriptor_sets_.sets("geometry").front()
          }, {});
-      for (auto const& [vertex_offset, index_offset, index_count, material_index] : scene_.sub_meshes())
-      {
-         command_buffer.pushConstants<std::uint32_t>(
-            *pipeline_.layout(),
-            vk::ShaderStageFlagBits::eFragment,
-            0,
-            material_index);
 
-         command_buffer.drawIndexed(
-            index_count,
-            1,
-            index_offset,
-            vertex_offset,
-            0);
-      }
+      command_buffer.pushConstants<std::uint32_t>(
+         *pipeline_.layout(),
+         vk::ShaderStageFlagBits::eFragment,
+         0,
+         current_frame_);
+
+      command_buffer.draw(4, 1, 0, 0);
 
       command_buffer.endRendering();
 
@@ -146,7 +129,7 @@ namespace eru
          .dstAccessMask{ vk::AccessFlagBits2::eNone },
          .oldLayout{ vk::ImageLayout::eColorAttachmentOptimal },
          .newLayout{ vk::ImageLayout::ePresentSrcKHR },
-         .image{ image.image() },
+         .image{ swap_chain_image.image() },
          .subresourceRange{
             .aspectMask{ vk::ImageAspectFlagBits::eColor },
             .levelCount{ 1 },
@@ -191,7 +174,8 @@ namespace eru
          swap_chain_builder_.change_old_swap_chain(&swap_chain_);
          swap_chain_ = swap_chain_builder_.build(device_, *window_, device_.queues());
 
-         depth_pass_.recreate_depth_image(device_, swap_chain_.extent());
+         depth_pass_.recreate_depth_images(device_, swap_chain_.extent());
+         geometry_pass_.recreate_geometry_images(device_, swap_chain_.extent());
 
          camera.change_projection_extent(swap_chain_.extent());
       }

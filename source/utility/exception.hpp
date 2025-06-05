@@ -9,9 +9,7 @@ namespace eru
    [[noreturn]] void exception(std::format_string<Arguments...> const format,
       Arguments&&... arguments)
    {
-      std::string const message{ std::format(format, std::forward<Arguments>(arguments)...) };
-      spdlog::error(message);
-      throw std::runtime_error(message);
+      throw std::runtime_error(std::format(format, std::forward<Arguments>(arguments)...));
    }
 
    template <typename Message>

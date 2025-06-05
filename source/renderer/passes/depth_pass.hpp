@@ -25,7 +25,7 @@ namespace eru
          [[nodiscard]] std::span<ImageView const> depth_image_views() const;
 
          void render(vk::raii::CommandBuffer const& command_buffer, Scene const& scene, std::uint32_t current_frame) const;
-         void recreate_depth_image(Device const& device, vk::Extent2D swap_chain_extent);
+         void recreate_depth_images(Device const& device, vk::Extent2D swap_chain_extent);
 
       private:
          std::vector<Image> create_depth_images(Device const& device) const;
@@ -34,6 +34,7 @@ namespace eru
          vk::Extent2D swap_chain_extent_;
          DescriptorSets const& descriptor_sets_;
          std::uint32_t const frames_in_flight_;
+
          Shader vertex_shader_;
          Shader fragment_shader_;
          Pipeline pipeline_;

@@ -13,9 +13,9 @@
 #include "builders/pipeline_builder.hpp"
 #include "builders/swap_chain_builder.hpp"
 #include "passes/depth_pass.hpp"
+#include "passes/geometry_pass.hpp"
 #include "scene/material.hpp"
 #include "scene/scene.hpp"
-#include "scene/vertex.hpp"
 #include "window/window.hpp"
 
 namespace eru
@@ -57,17 +57,6 @@ namespace eru
             .add_queues({ vk::QueueFlagBits::eGraphics | vk::QueueFlagBits::eTransfer, window_->surface() })
             .build()
          };
-
-         SwapChainBuilder swap_chain_builder_{};
-         SwapChain swap_chain_{
-            swap_chain_builder_
-            .change_format({ vk::Format::eR8G8B8A8Srgb, vk::ColorSpaceKHR::eSrgbNonlinear })
-            .change_present_mode(vk::PresentModeKHR::eMailbox)
-            .build(device_, *window_, device_.queues())
-         };
-
-         Shader vertex_shader_{ "resources/shaders/shader.vert", device_ };
-         Shader fragment_shader_{ "resources/shaders/shader.frag", device_ };
          DescriptorSets descriptor_sets_{
             DescriptorSetsBuilder{}
             .add_descriptor_sets({
@@ -119,16 +108,60 @@ namespace eru
                         .count{ 100 }
                      }
                   }
+               },
+               {
+                  .name{ "geometry" },
+                  .bindings{
+                     {
+                        .name{ "sampler" },
+                        .type{ vk::DescriptorType::eSampler },
+                        .shader_stage_flags{ vk::ShaderStageFlagBits::eFragment }
+                     },
+                     {
+                        .name{ "position" },
+                        .type{ vk::DescriptorType::eSampledImage },
+                        .shader_stage_flags{ vk::ShaderStageFlagBits::eFragment },
+                        .count{ FRAMES_IN_FLIGHT }
+                     },
+                     {
+                        .name{ "base_color" },
+                        .type{ vk::DescriptorType::eSampledImage },
+                        .shader_stage_flags{ vk::ShaderStageFlagBits::eFragment },
+                        .count{ FRAMES_IN_FLIGHT }
+                     },
+                     {
+                        .name{ "normal" },
+                        .type{ vk::DescriptorType::eSampledImage },
+                        .shader_stage_flags{ vk::ShaderStageFlagBits::eFragment },
+                        .count{ FRAMES_IN_FLIGHT }
+                     },
+                     {
+                        .name{ "metalness" },
+                        .type{ vk::DescriptorType::eSampledImage },
+                        .shader_stage_flags{ vk::ShaderStageFlagBits::eFragment },
+                        .count{ FRAMES_IN_FLIGHT }
+                     }
+                  }
                }
             })
             .build(device_)
          };
+
+         SwapChainBuilder swap_chain_builder_{};
+         SwapChain swap_chain_{
+            swap_chain_builder_
+            .change_format({ vk::Format::eR8G8B8A8Srgb, vk::ColorSpaceKHR::eSrgbNonlinear })
+            .change_present_mode(vk::PresentModeKHR::eMailbox)
+            .build(device_, *window_, device_.queues())
+         };
+
+         DepthPass depth_pass_{ device_, swap_chain_.extent(), descriptor_sets_, FRAMES_IN_FLIGHT };
+         GeometryPass geometry_pass_{ device_, swap_chain_.extent(), descriptor_sets_, FRAMES_IN_FLIGHT };
+         Shader vertex_shader_{ "resources/shaders/lighting.vert", device_ };
+         Shader fragment_shader_{ "resources/shaders/lighting.frag", device_ };
          Pipeline pipeline_{
             PipelineBuilder{}
             .add_color_attachment_format(swap_chain_.images().front().info().format)
-            .change_depth_attachment_format(vk::Format::eD32Sfloat)
-            .add_vertex_bindings(Vertex::BINDING_DESCRIPTIONS)
-            .add_vertex_attributes(Vertex::ATTRIBUTE_DESCRIPTIONS)
             .add_shader_stages({
                {
                   .stage{ vk::ShaderStageFlagBits::eVertex },
@@ -141,12 +174,11 @@ namespace eru
                   .pName{ "main" }
                }
             })
-            .assign_descriptor_set_layout("camera", 0)
-            .assign_descriptor_set_layout("texturing", 1)
-            .change_depth_stencil_state({
-               .depthTestEnable{ true },
-               .depthCompareOp{ vk::CompareOp::eEqual }
+            .change_input_assembly_state({
+               .topology{ vk::PrimitiveTopology::eTriangleStrip }
             })
+            .assign_descriptor_set_layout("geometry", 0)
+            .change_depth_stencil_state({})
             .add_push_constant_range({
                .stageFlags{ vk::ShaderStageFlagBits::eFragment },
                .offset{ 0 },
@@ -154,56 +186,6 @@ namespace eru
             })
             .build(device_, descriptor_sets_)
          };
-
-         DepthPass depth_pass_{ device_, swap_chain_.extent(), descriptor_sets_, FRAMES_IN_FLIGHT };
-
-         std::vector<vk::raii::CommandBuffer> command_buffers_{
-            device_.device().allocateCommandBuffers({
-               .commandPool{ *device_.command_pool(device_.queues().front()) },
-               .level{ vk::CommandBufferLevel::ePrimary },
-               .commandBufferCount{ FRAMES_IN_FLIGHT }
-            })
-         };
-
-         std::vector<vk::raii::Semaphore> image_available_semaphores_{
-            [this]
-            {
-               std::vector<vk::raii::Semaphore> semaphores{};
-               semaphores.reserve(FRAMES_IN_FLIGHT);
-               for (std::size_t index{}; index < FRAMES_IN_FLIGHT; ++index)
-                  semaphores.emplace_back(device_.device().createSemaphore({}));
-
-               return semaphores;
-            }()
-         };
-
-         std::vector<vk::raii::Semaphore> render_finished_semaphores_{
-            [this]
-            {
-               std::vector<vk::raii::Semaphore> semaphores{};
-               semaphores.reserve(FRAMES_IN_FLIGHT);
-               for (std::size_t index{}; index < FRAMES_IN_FLIGHT; ++index)
-                  semaphores.emplace_back(device_.device().createSemaphore({}));
-
-               return semaphores;
-            }()
-         };
-
-         std::vector<vk::raii::Fence> command_buffer_executed_fences_{
-            [this]
-            {
-               std::vector<vk::raii::Fence> fences{};
-               fences.reserve(FRAMES_IN_FLIGHT);
-               for (std::size_t index{}; index < FRAMES_IN_FLIGHT; ++index)
-                  fences.emplace_back(device_.device().createFence({
-                     .flags{ vk::FenceCreateFlagBits::eSignaled }
-                  }));
-
-               return fences;
-            }()
-         };
-
-         Scene scene_{ device_, "resources/models/sponza/sponza.gltf" };
 
          std::vector<Buffer> camera_buffers_{
             [this]
@@ -251,10 +233,11 @@ namespace eru
             }()
          };
 
+         Scene scene_{ device_, "resources/models/sponza/sponza.gltf" };
+
          vk::raii::Sampler sampler_{
             [this]
             {
-               // NOTE: this could be done in the Scene's constructor body, but look at the comment there...
                vk::DescriptorBufferInfo const materials_info{
                   .buffer{ scene_.materials().buffer() },
                   .offset{ 0 },
@@ -273,13 +256,13 @@ namespace eru
                }, {});
 
                std::size_t const writes_count{
-                  1 +
+                  2 +
                   scene_.base_color_images().size() +
                   scene_.normal_images().size() +
                   scene_.metalness_images().size()
                };
                std::vector<vk::DescriptorImageInfo> infos{};
-               infos.reserve(writes_count);
+               infos.reserve(writes_count - 1);
                std::vector<vk::WriteDescriptorSet> writes{};
                writes.reserve(writes_count);
 
@@ -305,6 +288,15 @@ namespace eru
                writes.push_back({
                   .dstSet{ *descriptor_sets_.sets("texturing").front() },
                   .dstBinding{ descriptor_sets_.binding("texturing", "sampler") },
+                  .dstArrayElement{ 0 },
+                  .descriptorCount{ 1 },
+                  .descriptorType{ vk::DescriptorType::eSampler },
+                  .pImageInfo{ &infos.back() }
+               });
+
+               writes.push_back({
+                  .dstSet{ *descriptor_sets_.sets("geometry").front() },
+                  .dstBinding{ descriptor_sets_.binding("geometry", "sampler") },
                   .dstArrayElement{ 0 },
                   .descriptorCount{ 1 },
                   .descriptorType{ vk::DescriptorType::eSampler },
@@ -342,6 +334,52 @@ namespace eru
                device_.device().updateDescriptorSets(writes, {});
 
                return sampler;
+            }()
+         };
+
+         std::vector<vk::raii::CommandBuffer> command_buffers_{
+            device_.device().allocateCommandBuffers({
+               .commandPool{ *device_.command_pool(device_.queues().front()) },
+               .level{ vk::CommandBufferLevel::ePrimary },
+               .commandBufferCount{ FRAMES_IN_FLIGHT }
+            })
+         };
+
+         std::vector<vk::raii::Semaphore> image_available_semaphores_{
+            [this]
+            {
+               std::vector<vk::raii::Semaphore> semaphores{};
+               semaphores.reserve(FRAMES_IN_FLIGHT);
+               for (std::size_t index{}; index < FRAMES_IN_FLIGHT; ++index)
+                  semaphores.emplace_back(device_.device().createSemaphore({}));
+
+               return semaphores;
+            }()
+         };
+
+         std::vector<vk::raii::Semaphore> render_finished_semaphores_{
+            [this]
+            {
+               std::vector<vk::raii::Semaphore> semaphores{};
+               semaphores.reserve(FRAMES_IN_FLIGHT);
+               for (std::size_t index{}; index < FRAMES_IN_FLIGHT; ++index)
+                  semaphores.emplace_back(device_.device().createSemaphore({}));
+
+               return semaphores;
+            }()
+         };
+
+         std::vector<vk::raii::Fence> command_buffer_executed_fences_{
+            [this]
+            {
+               std::vector<vk::raii::Fence> fences{};
+               fences.reserve(FRAMES_IN_FLIGHT);
+               for (std::size_t index{}; index < FRAMES_IN_FLIGHT; ++index)
+                  fences.emplace_back(device_.device().createFence({
+                     .flags{ vk::FenceCreateFlagBits::eSignaled }
+                  }));
+
+               return fences;
             }()
          };
 

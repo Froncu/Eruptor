@@ -20,7 +20,7 @@ namespace eru
          PipelineBuilder& operator=(PipelineBuilder&&) = delete;
 
          PipelineBuilder& add_color_attachment_format(vk::Format color_attachment_format);
-         PipelineBuilder& add_color_attachment_formats(std::initializer_list<vk::Format> color_attachment_formats);
+         PipelineBuilder& add_color_attachment_formats(std::span<vk::Format const> color_attachment_formats);
          PipelineBuilder& change_depth_attachment_format(vk::Format depth_attachment_format);
          PipelineBuilder& add_vertex_binding(vk::VertexInputBindingDescription const& vertex_binding);
          PipelineBuilder& add_vertex_bindings(std::span<vk::VertexInputBindingDescription const> vertex_bindings);
@@ -32,8 +32,10 @@ namespace eru
          PipelineBuilder& change_rasterization_state(vk::PipelineRasterizationStateCreateInfo const& rasterization_state);
          PipelineBuilder& change_multisample_state(vk::PipelineMultisampleStateCreateInfo const& multisample_state);
          PipelineBuilder& change_depth_stencil_state(vk::PipelineDepthStencilStateCreateInfo const& depth_stencil_state);
-         PipelineBuilder& change_color_blend_attachment_state(
-            vk::PipelineColorBlendAttachmentState const& color_blend_attachment_state);
+         PipelineBuilder& add_color_blend_attachment_state(
+            vk::PipelineColorBlendAttachmentState const& color_blend_attachment_state, std::uint32_t count = 1);
+         PipelineBuilder& add_color_blend_attachment_states(
+            std::initializer_list<vk::PipelineColorBlendAttachmentState> color_blend_attachment_states);
          PipelineBuilder& add_dynamic_state(vk::DynamicState state);
          PipelineBuilder& add_dynamic_states(std::initializer_list<vk::DynamicState> states);
          PipelineBuilder& assign_descriptor_set_layout(std::string name, std::uint32_t slot);
@@ -71,19 +73,21 @@ namespace eru
             .depthWriteEnable{ true },
             .depthCompareOp{ vk::CompareOp::eLess },
          };
-         vk::PipelineColorBlendAttachmentState color_blend_state_{
-            .blendEnable{ true },
-            .srcColorBlendFactor{ vk::BlendFactor::eSrcAlpha },
-            .dstColorBlendFactor{ vk::BlendFactor::eOneMinusSrcAlpha },
-            .colorBlendOp{ vk::BlendOp::eAdd },
-            .srcAlphaBlendFactor{ vk::BlendFactor::eOne },
-            .dstAlphaBlendFactor{ vk::BlendFactor::eZero },
-            .alphaBlendOp{ vk::BlendOp::eAdd },
-            .colorWriteMask{
-               vk::ColorComponentFlagBits::eR |
-               vk::ColorComponentFlagBits::eG |
-               vk::ColorComponentFlagBits::eB |
-               vk::ColorComponentFlagBits::eA
+         std::vector<vk::PipelineColorBlendAttachmentState> color_blend_attachment_states_{
+            {
+               .blendEnable{ true },
+               .srcColorBlendFactor{ vk::BlendFactor::eSrcAlpha },
+               .dstColorBlendFactor{ vk::BlendFactor::eOneMinusSrcAlpha },
+               .colorBlendOp{ vk::BlendOp::eAdd },
+               .srcAlphaBlendFactor{ vk::BlendFactor::eOne },
+               .dstAlphaBlendFactor{ vk::BlendFactor::eZero },
+               .alphaBlendOp{ vk::BlendOp::eAdd },
+               .colorWriteMask{
+                  vk::ColorComponentFlagBits::eR |
+                  vk::ColorComponentFlagBits::eG |
+                  vk::ColorComponentFlagBits::eB |
+                  vk::ColorComponentFlagBits::eA
+               }
             }
          };
          std::vector<vk::DynamicState> dynamic_states_{ vk::DynamicState::eViewport, vk::DynamicState::eScissor };

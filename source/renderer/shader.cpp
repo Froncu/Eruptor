@@ -1,4 +1,5 @@
 #include "shader.hpp"
+#include "utility/exception.hpp"
 
 namespace eru
 {
@@ -10,7 +11,7 @@ namespace eru
          {
             std::string const file_name{ path.filename().string() };
             if (not std::filesystem::exists(path))
-               throw std::runtime_error(std::format("{} does not exist!", file_name));
+               exception(std::format("{} does not exist!", file_name));
 
             if (std::ifstream const file{ path, std::ifstream::in }; file.is_open())
             {
@@ -50,7 +51,7 @@ namespace eru
                else if (file_type == ".vert")
                   shader_type = shaderc_vertex_shader;
                else
-                  throw std::runtime_error(std::format("\"{}\" is not a known shader file extension!", file_type));
+                  exception(std::format("\"{}\" is not a known shader file extension!", file_type));
 
                shaderc::CompilationResult const result{
                   COMPILER.CompileGlslToSpv(code.str(), shader_type, file_name.c_str())
@@ -60,9 +61,9 @@ namespace eru
                {
                   if (result.GetCompilationStatus() == shaderc_compilation_status_invalid_stage and
                      shader_type == shaderc_glsl_infer_from_source)
-                     throw std::runtime_error("cannot detect the shader type; specify it in the source code!");
+                     exception("cannot detect the shader type; specify it in the source code!");
 
-                  throw std::runtime_error(
+                  exception(
                      std::format(
                         "failed to compile \"{}\"!\ncompilation status: {}\nerror: {}",
                         file_name,
@@ -77,7 +78,7 @@ namespace eru
                   .pCode{ byte_code.data() }
                });
             }
-            throw std::runtime_error(std::format("failed to open \"{}\"!", path.string()));
+            exception(std::format("failed to open \"{}\"!", path.string()));
          }()
       }
    {

@@ -9,7 +9,7 @@ namespace eru
       return *this;
    }
 
-   PipelineBuilder& PipelineBuilder::add_color_attachment_formats(std::initializer_list<vk::Format> color_attachment_formats)
+   PipelineBuilder& PipelineBuilder::add_color_attachment_formats(std::span<vk::Format const> const color_attachment_formats)
    {
       for (vk::Format const color_attachment_format : color_attachment_formats)
          add_color_attachment_format(color_attachment_format);
@@ -95,10 +95,21 @@ namespace eru
       return *this;
    }
 
-   PipelineBuilder& PipelineBuilder::change_color_blend_attachment_state(
-      vk::PipelineColorBlendAttachmentState const& color_blend_attachment_state)
+   PipelineBuilder& PipelineBuilder::add_color_blend_attachment_state(
+      vk::PipelineColorBlendAttachmentState const& color_blend_attachment_state, std::uint32_t count)
    {
-      color_blend_state_ = color_blend_attachment_state;
+      while (count--)
+         color_blend_attachment_states_.emplace_back(color_blend_attachment_state);
+
+      return *this;
+   }
+
+   PipelineBuilder& PipelineBuilder::add_color_blend_attachment_states(
+      std::initializer_list<vk::PipelineColorBlendAttachmentState> const color_blend_attachment_states)
+   {
+      for (vk::PipelineColorBlendAttachmentState const& color_blend_attachment_state : color_blend_attachment_states)
+         add_color_blend_attachment_state(color_blend_attachment_state);
+
       return *this;
    }
 
@@ -206,9 +217,9 @@ namespace eru
          .pDynamicStates{ dynamic_states_.data() }
       };
 
-      vk::PipelineColorBlendStateCreateInfo const color_blend_state{
-         .attachmentCount{ 1 },
-         .pAttachments{ &color_blend_state_ }
+      vk::PipelineColorBlendStateCreateInfo const color_blend_attachment_state{
+         .attachmentCount{ static_cast<std::uint32_t>(color_blend_attachment_states_.size()) },
+         .pAttachments{ color_blend_attachment_states_.data() }
       };
 
       return device.device().createGraphicsPipeline(nullptr, {
@@ -221,7 +232,7 @@ namespace eru
             .pRasterizationState{ &rasterization_state_ },
             .pMultisampleState{ &multisample_state_ },
             .pDepthStencilState{ &depth_stencil_state_ },
-            .pColorBlendState{ &color_blend_state },
+            .pColorBlendState{ &color_blend_attachment_state },
             .pDynamicState{ &dynamic_state },
             .layout{ *pipeline_layout }
          }

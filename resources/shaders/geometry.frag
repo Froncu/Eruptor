@@ -19,21 +19,40 @@ layout(set = 1, binding = 0) readonly buffer MaterialsBuffer{
    Material materials[];
 } materials_buffer;
 
-layout(location = 0) in vec2 in_uv;
-layout(location = 1) in mat3 in_tbn;
+layout(location = 0) in vec4 in_position;
+layout(location = 1) in vec2 in_uv;
+layout(location = 2) in mat3 in_tbn;
 
-layout(location = 0) out vec4 out_color;
+layout(location = 0) out vec4 out_position;
+layout(location = 1) out vec4 out_color;
+layout(location = 2) out vec4 out_normal;
+layout(location = 3) out vec4 out_metalness;
 
 void main()
 {
+   out_position = in_position;
+   
    const Material material = materials_buffer.materials[push_constants.material_index];
 
    const int base_color_index = material.base_color_index;
    const int normal_index = material.normal_index;
    const int metalness_index = material.metalness_index;
 
+   // Base color
    if (base_color_index >= 0)
       out_color = texture(sampler2D(base_color_textures[base_color_index], texture_sampler), in_uv);
    else
       out_color = vec4(1.0, 0.0, 0.0, 1.0);
+
+   // Normal
+   if (normal_index >= 0)
+      out_normal = texture(sampler2D(normal_textures[normal_index], texture_sampler), in_uv);
+   else
+      out_normal = vec4(0.5, 0.5, 1.0, 1.0);
+
+   // Metalness
+   if (metalness_index >= 0)
+      out_metalness = texture(sampler2D(metalness_textures[metalness_index], texture_sampler), in_uv);
+   else
+      out_metalness = vec4(0.0, 0.0, 0.0, 1.0);
 }

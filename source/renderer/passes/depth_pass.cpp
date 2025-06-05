@@ -45,13 +45,13 @@ namespace eru
             .offset{ 0 },
             .size{ sizeof(std::uint32_t) }
          })
-         .build(device, descriptor_sets)
+         .build(device, descriptor_sets_)
       }
       , depth_image_builder_{
          ImageBuilder{}
          .change_type(vk::ImageType::e2D)
          .change_format(vk::Format::eD32Sfloat)
-         .change_extent(swap_chain_extent)
+         .change_extent(swap_chain_extent_)
          .change_mip_levels(1)
          .change_array_layers(1)
          .change_samples(vk::SampleCountFlagBits::e1)
@@ -71,7 +71,8 @@ namespace eru
       return depth_image_views_;
    }
 
-   void DepthPass::render(vk::raii::CommandBuffer const& command_buffer, Scene const& scene, std::uint32_t current_frame) const
+   void DepthPass::render(vk::raii::CommandBuffer const& command_buffer, Scene const& scene,
+      std::uint32_t const current_frame) const
    {
       vk::ImageMemoryBarrier2 const begin_barrier{
          .srcStageMask{ vk::PipelineStageFlagBits2::eNone },
@@ -176,7 +177,7 @@ namespace eru
       });
    }
 
-   void DepthPass::recreate_depth_image(Device const& device, vk::Extent2D const swap_chain_extent)
+   void DepthPass::recreate_depth_images(Device const& device, vk::Extent2D const swap_chain_extent)
    {
       depth_image_builder_.change_extent(swap_chain_extent);
       depth_images_ = create_depth_images(device);
