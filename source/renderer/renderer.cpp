@@ -109,6 +109,7 @@ namespace eru
 
       command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline_.layout(), 0,
          {
+            descriptor_sets_.sets("camera")[current_frame_],
             descriptor_sets_.sets("geometry").front()
          }, {});
 

@@ -66,7 +66,7 @@ namespace eru
                      {
                         .name{ "data" },
                         .type{ vk::DescriptorType::eUniformBuffer },
-                        .shader_stage_flags{ vk::ShaderStageFlagBits::eVertex }
+                        .shader_stage_flags{ vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment },
                      }
                   },
                   .allocation_count{ FRAMES_IN_FLIGHT }
@@ -177,7 +177,8 @@ namespace eru
             .change_input_assembly_state({
                .topology{ vk::PrimitiveTopology::eTriangleStrip }
             })
-            .assign_descriptor_set_layout("geometry", 0)
+            .assign_descriptor_set_layout("camera", 0)
+            .assign_descriptor_set_layout("geometry", 1)
             .change_depth_stencil_state({})
             .add_push_constant_range({
                .stageFlags{ vk::ShaderStageFlagBits::eFragment },

@@ -14,7 +14,7 @@ namespace eru
    class GeometryPass final
    {
       static std::array<vk::Format, 4> constexpr FORMATS{
-         vk::Format::eR16G16B16A16Sfloat, // Position
+         vk::Format::eR32G32B32A32Sfloat, // Position
          vk::Format::eR8G8B8A8Srgb,       // Base Color
          vk::Format::eR8G8B8A8Unorm,      // Normal
          vk::Format::eR8G8B8A8Unorm       // Metalness
@@ -43,7 +43,7 @@ namespace eru
       private:
          [[nodiscard]] std::array<std::vector<Image>, FORMATS.size()> create_geometry_images(Device const& device);
          [[nodiscard]] std::array<std::vector<ImageView>, FORMATS.size()> create_geometry_image_views(Device const& device);
-         void write_descriptor_sets(Device const& device);
+         void write_descriptor_sets(Device const& device) const;
  
          vk::Extent2D swap_chain_extent_;
          DescriptorSets const& descriptor_sets_;

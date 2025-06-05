@@ -260,7 +260,7 @@ namespace eru
       return geometry_image_views;
    }
 
-   void GeometryPass::write_descriptor_sets(Device const& device)
+   void GeometryPass::write_descriptor_sets(Device const& device) const
    {
       std::vector<vk::DescriptorImageInfo> image_infos{};
       image_infos.reserve(FORMATS.size() * frames_in_flight_);
