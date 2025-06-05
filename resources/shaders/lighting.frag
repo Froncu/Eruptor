@@ -17,6 +17,7 @@ layout(location = 0) out vec4 out_color;
 void main()
 {
    const uint current_frame = push_constants.current_frame;
-   const vec2 uv = gl_FragCoord.xy / vec2(textureSize(base_color_textures[current_frame], 0));
-   out_color = vec4(texture(sampler2D(base_color_textures[current_frame], texture_sampler), uv).rgb, 1.0);
+   const vec2 uv = gl_FragCoord.xy / textureSize(position_textures[current_frame], 0);
+   
+   out_color = texture(sampler2D(normal_textures[current_frame], texture_sampler), uv);
 }

@@ -12,7 +12,7 @@ namespace eru
       }
    };
 
-   std::array<vk::VertexInputAttributeDescription, 4> const Vertex::ATTRIBUTE_DESCRIPTIONS{
+   std::array<vk::VertexInputAttributeDescription, 5> const Vertex::ATTRIBUTE_DESCRIPTIONS{
       {
          {
             .location{ 0 },
@@ -29,14 +29,20 @@ namespace eru
          {
             .location{ 2 },
             .binding{ BINDING_DESCRIPTIONS[0].binding },
-            .format{ vk::Format::eR32G32Sfloat },
+            .format{ vk::Format::eR32G32B32Sfloat },
             .offset{ offsetof(Vertex, normal) }
          },
          {
             .location{ 3 },
             .binding{ BINDING_DESCRIPTIONS[0].binding },
-            .format{ vk::Format::eR32G32Sfloat },
+            .format{ vk::Format::eR32G32B32Sfloat },
             .offset{ offsetof(Vertex, tangent) }
+         },
+         {
+            .location{ 4 },
+            .binding{ BINDING_DESCRIPTIONS[0].binding },
+            .format{ vk::Format::eR32G32B32Sfloat },
+            .offset{ offsetof(Vertex, bitangent) }
          }
       }
    };

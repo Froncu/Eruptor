@@ -89,7 +89,8 @@ namespace eru
                .position{ mesh->mVertices[index].x, mesh->mVertices[index].y, mesh->mVertices[index].z },
                .uv{ mesh->mTextureCoords[0][index].x, mesh->mTextureCoords[0][index].y },
                .normal{ mesh->mNormals[index].x, mesh->mNormals[index].y, mesh->mNormals[index].z },
-               .tangent{ mesh->mTangents[index].x, mesh->mTangents[index].y, mesh->mTangents[index].z }
+               .tangent{ mesh->mTangents[index].x, mesh->mTangents[index].y, mesh->mTangents[index].z },
+               .bitangent{ mesh->mBitangents[index].x, mesh->mBitangents[index].y, mesh->mBitangents[index].z }
             });
 
          std::uint32_t const index_count{ mesh->mNumFaces * 3 };
@@ -147,9 +148,6 @@ namespace eru
          .build(device);
       staging_buffer.copy(device, index_buffer_, buffer_size);
    }
-
-   static std::vector<std::string> metalness_maps{};
-   static std::vector<std::string> rougness_maps{};
 
    int Scene::load_texture(Device const& device, aiMaterial const& material, aiTextureType const type,
       std::filesystem::path const& scene_path, BufferBuilder& staging_buffer_builder, ImageBuilder& image_builder,

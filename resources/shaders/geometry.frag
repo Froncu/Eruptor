@@ -19,9 +19,11 @@ layout(set = 1, binding = 0) readonly buffer MaterialsBuffer{
    Material materials[];
 } materials_buffer;
 
-layout(location = 0) in vec4 in_position;
+layout(location = 0) in vec3 in_position;
 layout(location = 1) in vec2 in_uv;
-layout(location = 2) in mat3 in_tbn;
+layout(location = 2) in vec3 in_normal;
+layout(location = 3) in vec3 in_tangent;
+layout(location = 4) in vec3 in_bitangent;
 
 layout(location = 0) out vec4 out_position;
 layout(location = 1) out vec4 out_color;
@@ -30,7 +32,7 @@ layout(location = 3) out vec4 out_metalness;
 
 void main()
 {
-   out_position = in_position;
+   out_position = vec4(in_position, 1.0);
    
    const Material material = materials_buffer.materials[push_constants.material_index];
 
@@ -42,17 +44,22 @@ void main()
    if (base_color_index >= 0)
       out_color = texture(sampler2D(base_color_textures[base_color_index], texture_sampler), in_uv);
    else
-      out_color = vec4(1.0, 0.0, 0.0, 1.0);
+      out_color = vec4(1.0, 1.0, 1.0, 1.0); // TODO: use the interpolated vertex color
 
    // Normal
    if (normal_index >= 0)
-      out_normal = texture(sampler2D(normal_textures[normal_index], texture_sampler), in_uv);
+   {
+      const mat3 tbn = mat3(normalize(in_tangent), normalize(in_bitangent), normalize(in_normal));
+      vec3 normal_map = texture(sampler2D(normal_textures[normal_index], texture_sampler), in_uv).rgb;
+      normal_map = normal_map * 2.0 - 1;
+      out_normal = vec4(tbn * normal_map, 1.0);
+   } 
    else
-      out_normal = vec4(0.5, 0.5, 1.0, 1.0);
+      out_normal = vec4(in_normal, 1.0);
 
    // Metalness
    if (metalness_index >= 0)
       out_metalness = texture(sampler2D(metalness_textures[metalness_index], texture_sampler), in_uv);
    else
-      out_metalness = vec4(0.0, 0.0, 0.0, 1.0);
+      out_metalness = vec4(0.0, 0.0, 0.0, 1.0); // TODO: use the interpolated metalness value
 }
