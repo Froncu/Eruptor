@@ -23,6 +23,8 @@ namespace eru
          Camera& operator=(Camera const&) = delete;
          Camera& operator=(Camera&&) = delete;
 
+         [[nodiscard]] glm::vec3 position() const;
+
          void translate_in_direction(glm::vec3 const& translation);
          void translate(glm::vec3 const& translation);
          void rotate(float yaw, float pitch);

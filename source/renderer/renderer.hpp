@@ -157,6 +157,13 @@ namespace eru
 
          DepthPass depth_pass_{ device_, swap_chain_.extent(), descriptor_sets_, FRAMES_IN_FLIGHT };
          GeometryPass geometry_pass_{ device_, swap_chain_.extent(), descriptor_sets_, FRAMES_IN_FLIGHT };
+
+         struct alignas(16) PushConstants
+         {
+            glm::vec3 camera_position;
+            std::uint32_t current_frame;
+         };
+
          Shader vertex_shader_{ "resources/shaders/lighting.vert", device_ };
          Shader fragment_shader_{ "resources/shaders/lighting.frag", device_ };
          Pipeline pipeline_{
@@ -177,13 +184,12 @@ namespace eru
             .change_input_assembly_state({
                .topology{ vk::PrimitiveTopology::eTriangleStrip }
             })
-            .assign_descriptor_set_layout("camera", 0)
-            .assign_descriptor_set_layout("geometry", 1)
+            .assign_descriptor_set_layout("geometry", 0)
             .change_depth_stencil_state({})
             .add_push_constant_range({
                .stageFlags{ vk::ShaderStageFlagBits::eFragment },
                .offset{ 0 },
-               .size{ sizeof(std::uint32_t) }
+               .size{ sizeof(PushConstants) }
             })
             .build(device_, descriptor_sets_)
          };

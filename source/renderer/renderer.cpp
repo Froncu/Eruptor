@@ -109,15 +109,15 @@ namespace eru
 
       command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline_.layout(), 0,
          {
-            descriptor_sets_.sets("camera")[current_frame_],
             descriptor_sets_.sets("geometry").front()
          }, {});
 
-      command_buffer.pushConstants<std::uint32_t>(
-         *pipeline_.layout(),
-         vk::ShaderStageFlagBits::eFragment,
-         0,
-         current_frame_);
+      command_buffer.pushConstants<PushConstants>(*pipeline_.layout(), vk::ShaderStageFlagBits::eFragment, 0, {
+         {
+            .camera_position{ camera.position() },
+            .current_frame{ current_frame_ }
+         }
+      });
 
       command_buffer.draw(4, 1, 0, 0);
 

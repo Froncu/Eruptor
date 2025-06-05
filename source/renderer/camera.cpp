@@ -2,6 +2,11 @@
 
 namespace eru
 {
+   glm::vec3 Camera::position() const
+   {
+      return position_;
+   }
+
    void Camera::translate_in_direction(glm::vec3 const& translation)
    {
       if (not translation.x and not translation.y and not translation.z)
