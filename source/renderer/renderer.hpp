@@ -37,7 +37,7 @@ namespace eru
          Camera camera{};
 
       private:
-         static std::uint32_t constexpr FRAMES_IN_FLIGHT{ 2 };
+         static std::uint32_t constexpr FRAMES_IN_FLIGHT{ 3 };
 
          Reference<Window const> const window_;
 
@@ -155,7 +155,7 @@ namespace eru
             .build(device_, descriptor_sets_)
          };
 
-         DepthPass depth_pass_{ device_, swap_chain_.extent(), descriptor_sets_ };
+         DepthPass depth_pass_{ device_, swap_chain_.extent(), descriptor_sets_, FRAMES_IN_FLIGHT };
 
          std::vector<vk::raii::CommandBuffer> command_buffers_{
             device_.device().allocateCommandBuffers({

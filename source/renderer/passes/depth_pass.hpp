@@ -12,7 +12,8 @@ namespace eru
    class DepthPass final
    {
       public:
-         DepthPass(Device const& device, vk::Extent2D swap_chain_extent, DescriptorSets const& descriptor_sets);
+         DepthPass(Device const& device, vk::Extent2D swap_chain_extent, DescriptorSets const& descriptor_sets,
+            std::uint32_t frames_in_flight);
          DepthPass(DepthPass const&) = delete;
          DepthPass(DepthPass&&) = default;
 
@@ -21,30 +22,35 @@ namespace eru
          DepthPass& operator=(DepthPass const&) = delete;
          DepthPass& operator=(DepthPass&&) = delete;
 
-         [[nodiscard]] ImageView const& depth_image_view() const;
+         [[nodiscard]] std::span<ImageView const> depth_image_views() const;
 
          void render(vk::raii::CommandBuffer const& command_buffer, Scene const& scene, std::uint32_t current_frame) const;
          void recreate_depth_image(Device const& device, vk::Extent2D swap_chain_extent);
 
       private:
+         std::vector<Image> create_depth_images(Device const& device) const;
+         std::vector<ImageView> create_depth_image_views(Device const& device) const;
+
          vk::Extent2D swap_chain_extent_;
          DescriptorSets const& descriptor_sets_;
+         std::uint32_t const frames_in_flight_;
          Shader vertex_shader_;
          Shader fragment_shader_;
          Pipeline pipeline_;
+
          ImageBuilder depth_image_builder_;
-         Image depth_image_;
+         std::vector<Image> depth_images_;
          ImageViewBuilder depth_image_view_builder_{
             ImageViewBuilder{}
             .change_view_type(vk::ImageViewType::e2D)
-            .change_format(depth_image_.info().format)
+            .change_format(depth_images_.front().info().format)
             .change_subresource_range({
                .aspectMask{ vk::ImageAspectFlagBits::eDepth },
                .levelCount{ 1 },
                .layerCount{ 1 }
             })
          };
-         ImageView depth_image_view_;
+         std::vector<ImageView> depth_image_views_;
    };
 }
 

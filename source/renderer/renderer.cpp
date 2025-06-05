@@ -82,7 +82,7 @@ namespace eru
       };
 
       vk::RenderingAttachmentInfo const depth_attachment_info{
-         .imageView{ *depth_pass_.depth_image_view().image_view() },
+         .imageView{ *depth_pass_.depth_image_views()[current_frame_].image_view() },
          .imageLayout{ vk::ImageLayout::eDepthStencilReadOnlyOptimal },
          .loadOp{ vk::AttachmentLoadOp::eLoad },
          .storeOp{ vk::AttachmentStoreOp::eDontCare }
