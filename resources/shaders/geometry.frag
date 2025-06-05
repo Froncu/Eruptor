@@ -52,7 +52,8 @@ void main()
       const mat3 tbn = mat3(normalize(in_tangent), normalize(in_bitangent), normalize(in_normal));
       vec3 normal_map = texture(sampler2D(normal_textures[normal_index], texture_sampler), in_uv).rgb;
       normal_map = normal_map * 2.0 - 1;
-      out_normal = vec4(tbn * normal_map, 1.0);
+      normal_map = tbn * normal_map;
+      out_normal = vec4(normalize(normal_map), 1.0);
    } 
    else
       out_normal = vec4(in_normal, 1.0);
