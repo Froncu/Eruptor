@@ -10,13 +10,11 @@ layout(location = 1) in vec2 in_uv;
 layout(location = 2) in vec3 in_normal;
 layout(location = 3) in vec3 in_tangent;
 
-layout(location = 0) out vec3 out_position;
-layout(location = 1) out vec2 out_uv;
-layout(location = 2) out mat3 out_tbn;
+layout(location = 0) out vec2 out_uv;
+layout(location = 1) out mat3 out_tbn;
 
 void main()
 {
-   out_position = in_position;
    gl_Position = camera.projection * camera.view * vec4(in_position, 1.0);
    
    out_uv = in_uv;

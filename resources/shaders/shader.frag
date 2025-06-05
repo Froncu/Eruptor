@@ -19,9 +19,8 @@ layout(set = 1, binding = 0) readonly buffer MaterialsBuffer{
    Material materials[];
 } materials_buffer;
 
-layout(location = 0) in vec3 in_position;
-layout(location = 1) in vec2 in_uv;
-layout(location = 2) in mat3 in_tbn;
+layout(location = 0) in vec2 in_uv;
+layout(location = 1) in mat3 in_tbn;
 
 layout(location = 0) out vec4 out_color;
 
