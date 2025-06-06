@@ -18,10 +18,10 @@ namespace eru
          ContextBuilder& operator=(ContextBuilder&&) = delete;
 
          ContextBuilder& change_api_version(std::uint32_t api_version);
-         ContextBuilder& enable_validation_layer(std::string validation_layer_name);
-         ContextBuilder& enable_validation_layers(std::vector<std::string> validation_layer_names);
-         ContextBuilder& enable_extension(std::string extenion_name);
-         ContextBuilder& enable_extensions(std::vector<std::string> extenion_names);
+         ContextBuilder& enable_validation_layer(std::string_view validation_layer_name);
+         ContextBuilder& enable_validation_layers(std::initializer_list<std::string_view> validation_layer_names);
+         ContextBuilder& enable_extension(std::string_view extenion_name);
+         ContextBuilder& enable_extensions(std::initializer_list<std::string_view> extenion_names);
 
          [[nodiscard]] Context build();
 

@@ -8,34 +8,34 @@ namespace eru
       return *this;
    }
 
-   ContextBuilder& ContextBuilder::enable_validation_layer(std::string validation_layer_name)
+   ContextBuilder& ContextBuilder::enable_validation_layer(std::string_view const validation_layer_name)
    {
       if (not validation_layer_name.empty())
-         validation_layer_names_.insert(std::move(validation_layer_name));
+         validation_layer_names_.insert(validation_layer_name.data());
 
       return *this;
    }
 
-   ContextBuilder& ContextBuilder::enable_validation_layers(std::vector<std::string> validation_layer_names)
+   ContextBuilder& ContextBuilder::enable_validation_layers(std::initializer_list<std::string_view> validation_layer_names)
    {
-      for (std::string& validation_layer_name : validation_layer_names)
-         enable_validation_layer(std::move(validation_layer_name));
+      for (std::string_view const validation_layer_name : validation_layer_names)
+         enable_validation_layer(validation_layer_name);
 
       return *this;
    }
 
-   ContextBuilder& ContextBuilder::enable_extension(std::string extenion_name)
+   ContextBuilder& ContextBuilder::enable_extension(std::string_view const extenion_name)
    {
       if (not extenion_name.empty())
-         extension_names_.insert(std::move(extenion_name));
+         extension_names_.insert(extenion_name.data());
 
       return *this;
    }
 
-   ContextBuilder& ContextBuilder::enable_extensions(std::vector<std::string> extenion_names)
+   ContextBuilder& ContextBuilder::enable_extensions(std::initializer_list<std::string_view> extenion_names)
    {
-      for (std::string& extenion_name : extenion_names)
-         enable_extension(std::move(extenion_name));
+      for (std::string_view const extenion_name : extenion_names)
+         enable_extension(extenion_name);
 
       return *this;
    }
