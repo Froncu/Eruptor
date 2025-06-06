@@ -69,7 +69,7 @@ namespace eru
          };
 
          float movement_speed_{ 1.0f };
-         float rotation_speed_{ 128.0f };
+         float rotation_speed_{ 180.0f };
          bool is_running_{ true };
    };
 }

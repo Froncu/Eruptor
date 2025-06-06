@@ -55,6 +55,7 @@ namespace eru
          up_down *= movement_speed_ * delta_seconds;
          renderer_.camera.translate({ 0.0f, up_down, 0.0f });
 
+         // TODO: mouse rotation sort of snaps to a line
          glm::vec2 rotation{ user_input_.vector_action_strength("rotate") };
          rotation *= rotation_speed_ * delta_seconds;
          renderer_.camera.rotate(rotation.x, rotation.y);
