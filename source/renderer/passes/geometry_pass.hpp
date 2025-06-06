@@ -44,7 +44,7 @@ namespace eru
          [[nodiscard]] std::array<std::vector<Image>, FORMATS.size()> create_images(Device const& device);
          [[nodiscard]] std::array<std::vector<ImageView>, FORMATS.size()> create_image_views(Device const& device);
          void write_descriptor_sets(Device const& device) const;
- 
+
          vk::Extent2D swap_chain_extent_;
          DescriptorSets const& descriptor_sets_;
          std::uint32_t const frames_in_flight_;

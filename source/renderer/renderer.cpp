@@ -67,6 +67,7 @@ namespace eru
 
       depth_pass_.render(command_buffer, scene_, current_frame_);
       geometry_pass_.render(command_buffer, scene_, current_frame_, depth_pass_.depth_image_views()[current_frame_]);
+      lighting_pass_.render(command_buffer, current_frame_, camera.position());
 
       vk::ImageMemoryBarrier2 const color_barrier{
          .srcStageMask{ vk::PipelineStageFlagBits2::eNone },
@@ -127,15 +128,13 @@ namespace eru
 
       command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline_.layout(), 0,
          {
-            descriptor_sets_.sets("geometry").front()
+            descriptor_sets_.sets("hdr").front()
          }, {});
 
-      command_buffer.pushConstants<PushConstants>(*pipeline_.layout(), vk::ShaderStageFlagBits::eFragment, 0, {
-         {
-            .camera_position{ camera.position() },
-            .current_frame{ current_frame_ }
-         }
-      });
+      command_buffer.pushConstants<std::uint32_t>(*pipeline_.layout(),
+         vk::ShaderStageFlagBits::eFragment, 0, {
+            current_frame_
+         });
 
       command_buffer.draw(4, 1, 0, 0);
 
@@ -195,10 +194,10 @@ namespace eru
 
          depth_pass_.recreate_depth_images(device_, swap_chain_.extent());
          geometry_pass_.recreate_geometry_images(device_, swap_chain_.extent());
+         lighting_pass_.recreate_hdr_images(device_, swap_chain_.extent());
 
          camera.change_projection_extent(swap_chain_.extent());
       }
-
       current_frame_ = (current_frame_ + 1) % FRAMES_IN_FLIGHT;
    }
 }

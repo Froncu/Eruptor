@@ -14,6 +14,7 @@
 #include "builders/swap_chain_builder.hpp"
 #include "passes/depth_pass.hpp"
 #include "passes/geometry_pass.hpp"
+#include "passes/lighting_pass.hpp"
 #include "scene/scene.hpp"
 #include "window/window.hpp"
 
@@ -141,6 +142,22 @@ namespace eru
                         .count{ FRAMES_IN_FLIGHT }
                      }
                   }
+               },
+               {
+                  .name{ "hdr" },
+                  .bindings{
+                     {
+                        .name{ "sampler" },
+                        .type{ vk::DescriptorType::eSampler },
+                        .shader_stage_flags{ vk::ShaderStageFlagBits::eFragment }
+                     },
+                     {
+                        .name{ "image" },
+                        .type{ vk::DescriptorType::eSampledImage },
+                        .shader_stage_flags{ vk::ShaderStageFlagBits::eFragment },
+                        .count{ FRAMES_IN_FLIGHT }
+                     }
+                  }
                }
             })
             .build(device_)
@@ -156,15 +173,10 @@ namespace eru
 
          DepthPass depth_pass_{ device_, swap_chain_.extent(), descriptor_sets_, FRAMES_IN_FLIGHT };
          GeometryPass geometry_pass_{ device_, swap_chain_.extent(), descriptor_sets_, FRAMES_IN_FLIGHT };
+         LightingPass lighting_pass_{ device_, swap_chain_.extent(), descriptor_sets_, FRAMES_IN_FLIGHT };
 
-         struct alignas(16) PushConstants
-         {
-            glm::vec3 camera_position;
-            std::uint32_t current_frame;
-         };
-
-         Shader vertex_shader_{ "resources/shaders/lighting.vert", device_ };
-         Shader fragment_shader_{ "resources/shaders/lighting.frag", device_ };
+         Shader vertex_shader_{ "resources/shaders/fullscreen_quad.vert", device_ };
+         Shader fragment_shader_{ "resources/shaders/tone_mapping.frag", device_ };
          Pipeline pipeline_{
             PipelineBuilder{}
             .add_color_attachment_format(swap_chain_.images().front().info().format)
@@ -183,12 +195,12 @@ namespace eru
             .change_input_assembly_state({
                .topology{ vk::PrimitiveTopology::eTriangleStrip }
             })
-            .assign_descriptor_set_layout("geometry", 0)
+            .assign_descriptor_set_layout("hdr", 0)
             .change_depth_stencil_state({})
             .add_push_constant_range({
                .stageFlags{ vk::ShaderStageFlagBits::eFragment },
                .offset{ 0 },
-               .size{ sizeof(PushConstants) }
+               .size{ sizeof(std::uint32_t) }
             })
             .build(device_, descriptor_sets_)
          };
@@ -245,7 +257,7 @@ namespace eru
             [this]
             {
                std::size_t const writes_count{
-                  2 +
+                  3 +
                   scene_.base_color_images().size() +
                   scene_.normal_images().size() +
                   scene_.metalness_images().size()
@@ -286,6 +298,15 @@ namespace eru
                writes.push_back({
                   .dstSet{ *descriptor_sets_.sets("geometry").front() },
                   .dstBinding{ descriptor_sets_.binding("geometry", "sampler") },
+                  .dstArrayElement{ 0 },
+                  .descriptorCount{ 1 },
+                  .descriptorType{ vk::DescriptorType::eSampler },
+                  .pImageInfo{ &infos.back() }
+               });
+
+               writes.push_back({
+                  .dstSet{ *descriptor_sets_.sets("hdr").front() },
+                  .dstBinding{ descriptor_sets_.binding("hdr", "sampler") },
                   .dstArrayElement{ 0 },
                   .descriptorCount{ 1 },
                   .descriptorType{ vk::DescriptorType::eSampler },

@@ -7,14 +7,14 @@ const float pi = 3.14159265359;
 // TODO: upload this data from the application
 const int light_count = 3;
 const vec3 point_lights[light_count] = vec3[](
-    vec3(-5.0, 1.0, 0.2),
-    vec3(0.0, 1.0, 0.2),
-    vec3(5.0, 1.0, 0.2)
+    vec3(-5.0, 0.5, 0.3),
+    vec3(0.0, 0.5, 0.3),
+    vec3(5.0, 0.5, 0.3)
 );
 const vec3 point_light_colors[light_count] = vec3[](
-   vec3(10.0, 1.0, 1.0),
-   vec3(1.0, 10.0, 1.0),
-   vec3(1.0, 1.0, 10.0)
+   vec3(20.0, 0.0, 0.0),
+   vec3(0.0, 20.0, 0.0),
+   vec3(0.0, 0.0, 20.0)
 );
 const vec3 directional_lights[light_count] = vec3[](
     normalize(vec3(-0.5, -1.0, -0.3)),
@@ -22,9 +22,9 @@ const vec3 directional_lights[light_count] = vec3[](
     normalize(vec3(0.5, -1.0, 0.3))
 );
 const vec3 directional_light_colors[light_count] = vec3[](
-    vec3(1.2, 1.1, 1.0),
-    vec3(1.0, 1.6, 2.0),
-    vec3(2.5, 2.4, 2.2)
+   vec3(4.8, 4.4, 4.0),
+   vec3(4.0, 6.4, 4.0),
+   vec3(10.0, 9.6, 8.8)
 );
 //const vec3 directional_light_colors[light_count] = vec3[](
 //    vec3(60.0, 56.0, 50.0),   // Warm white (incandescent)
@@ -153,7 +153,9 @@ void main()
       lo += (specular + base_color * kd / pi) * radiance * n_dot_l;
    }
 
-   const vec3 ambient = vec3(0.03) * base_color * 1.0;
+   // TODO: ambient oclusion maps
+   const float ambient_oclusion = 0.0;
+   const vec3 ambient = vec3(0.03) * base_color * ambient_oclusion;
    base_color = ambient + lo;
 
    base_color = base_color / (base_color + vec3(1.0));
