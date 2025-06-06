@@ -17,43 +17,39 @@ layout(location = 0) out vec4 out_color;
 
 const float PI = 3.14159265359;
 
-vec3 fresnelSchlick(float cosTheta, vec3 F0)
+vec3 fresnel_schlick(float cosine_theta, vec3 base_reflectability)
 {
-   return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+   return base_reflectability + (1.0 - base_reflectability) * pow(clamp(1.0 - cosine_theta, 0.0, 1.0), 5.0);
 }
 
-float DistributionGGX(vec3 N, vec3 H, float roughness)
+float distribution_ggx(vec3 n, vec3 h, float roughness)
 {
-   float a      = roughness*roughness;
-   float a2     = a*a;
-   float NdotH  = max(dot(N, H), 0.0);
-   float NdotH2 = NdotH*NdotH;
-
-   float num   = a2;
-   float denom = (NdotH2 * (a2 - 1.0) + 1.0);
-   denom = PI * denom * denom;
-
-   return num / denom;
+   const float a = roughness * roughness;
+   const float n_dot_h = max(dot(n, h), 0.0);
+   const float n_dot_h_squared = n_dot_h * n_dot_h;
+   
+   float denominator = (n_dot_h_squared * (a - 1.0) + 1.0);
+   denominator = PI * denominator * denominator;
+   
+   return a / denominator;
 }
 
-float GeometrySchlickGGX(float NdotV, float roughness)
+float geometry_schlick_ggx(float n_dot_v, float roughness)
 {
-   float r = (roughness + 1.0);
-   float k = (r*r) / 8.0;
-
-   float num   = NdotV;
-   float denom = NdotV * (1.0 - k) + k;
-
-   return num / denom;
+   const float r = roughness + 1.0;
+   const float k = r * r / 8.0;
+   
+   return n_dot_v / (n_dot_v * (1.0 - k) + k);
 }
-float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
-{
-   float NdotV = max(dot(N, V), 0.0);
-   float NdotL = max(dot(N, L), 0.0);
-   float ggx2  = GeometrySchlickGGX(NdotV, roughness);
-   float ggx1  = GeometrySchlickGGX(NdotL, roughness);
 
-   return ggx1 * ggx2;
+float geometry_smith(vec3 n, vec3 v, vec3 l, float roughness)
+{
+   const float n_dot_l = max(dot(n, l), 0.0);
+   const float n_dot_v = max(dot(n, v), 0.0);
+   
+   return
+      geometry_schlick_ggx(n_dot_v, roughness) *
+      geometry_schlick_ggx(n_dot_l, roughness);
 }
 
 vec3 lightPositions[3] = vec3[3](
@@ -71,57 +67,47 @@ vec3 lightColors[3] = vec3[3](
 void main()
 {
    const uint current_frame = push_constants.current_frame;
-   const vec2 uv = gl_FragCoord.xy / textureSize(position_textures[current_frame], 0);
+   const ivec2 uv = ivec2(gl_FragCoord.xy);
 
-   vec3 camPos = push_constants.camera_position;
-   vec3 WorldPos = texture(sampler2D(position_textures[current_frame], texture_sampler), uv).rgb;
-   vec3 Normal = texture(sampler2D(normal_textures[current_frame], texture_sampler), uv).rgb;
-   vec3 albedo = texture(sampler2D(base_color_textures[current_frame], texture_sampler), uv).rgb;
-   albedo = pow(albedo, vec3(2.2));
-   vec3 metalness = texture(sampler2D(metalness_textures[current_frame], texture_sampler), uv).rgb;
-   float metallic = metalness.b;
-   float roughness = metalness.g;
+   const vec3 position = texelFetch(sampler2D(position_textures[current_frame], texture_sampler), uv, 0).rgb;
+   vec3 base_color = pow(texelFetch(sampler2D(base_color_textures[current_frame], texture_sampler), uv, 0).rgb, vec3(2.2));
+   const vec3 n = texelFetch(sampler2D(normal_textures[current_frame], texture_sampler), uv, 0).rgb;
+   const vec3 metalness = texelFetch(sampler2D(metalness_textures[current_frame], texture_sampler), uv, 0).rgb;
+   const float metallic = metalness.b;
+   const float roughness = metalness.g;
+   
+   const vec3 v = normalize(push_constants.camera_position - position);
+   const vec3 base_reflectability = mix(vec3(0.04), base_color, metallic);
 
-   vec3 N = Normal;
-   vec3 V = normalize(camPos - WorldPos);
-
-   vec3 F0 = vec3(0.04);
-   F0 = mix(F0, albedo, metallic);
-
-   // reflectance equation
-   vec3 Lo = vec3(0.0);
-   for(int i = 0; i < 3; ++i)
+   vec3 lo = vec3(0.0);
+   for (int index = 0; index < 3; ++index)
    {
-      // calculate per-light radiance
-      vec3 L = normalize(lightPositions[i] - WorldPos);
-      vec3 H = normalize(V + L);
-      float distance    = length(lightPositions[i] - WorldPos);
-      float attenuation = 1.0 / (distance * distance);
-      vec3 radiance     = lightColors[i] * attenuation;
+      const vec3 l = normalize(lightPositions[index] - position);
+      const vec3 h = normalize(v + l);
 
-      // cook-torrance brdf
-      float NDF = DistributionGGX(N, H, roughness);
-      float G   = GeometrySmith(N, V, L, roughness);
-      vec3 F    = fresnelSchlick(max(dot(H, V), 0.0), F0);
+      const float distribution = distribution_ggx(n, h, roughness);
+      const float geometry = geometry_smith(n, v, l, roughness);
+      const vec3 fresnel = fresnel_schlick(max(dot(h, v), 0.0), base_reflectability);
+      const vec3 numerator = distribution * geometry * fresnel;
+      const float denominator = 4.0 * max(dot(n, v), 0.0) * max(dot(n, l), 0.0) + 0.0001;
+      const vec3 specular = numerator / denominator;
 
-      vec3 kS = F;
-      vec3 kD = vec3(1.0) - kS;
-      kD *= 1.0 - metallic;
-
-      vec3 numerator    = NDF * G * F;
-      float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001;
-      vec3 specular     = numerator / denominator;
-
-      // add to outgoing radiance Lo
-      float NdotL = max(dot(N, L), 0.0);
-      Lo += (kD * albedo / PI + specular) * radiance * NdotL;
+      const vec3 kd = (vec3(1.0) - fresnel) * (1.0 - metallic);
+      
+      const float distance = length(lightPositions[index] - position);
+      const float attenuation = 1.0 / (distance * distance);
+      const vec3 radiance = lightColors[index] * attenuation;
+      
+      const float n_dot_l = max(dot(n, l), 0.0);
+      
+      lo += (specular + base_color * kd / PI) * radiance * n_dot_l;
    }
 
-   vec3 ambient = vec3(0.03) * albedo * 1.0;
-   vec3 color = ambient + Lo;
+   const vec3 ambient = vec3(0.03) * base_color * 1.0;
+   base_color = ambient + lo;
 
-   color = color / (color + vec3(1.0));
-   color = pow(color, vec3(1.0/2.2));
+   base_color = base_color / (base_color + vec3(1.0));
+   base_color = pow(base_color, vec3(1.0/2.2));
 
-   out_color = vec4(color, 1.0);
+   out_color = vec4(base_color, 1.0);
 }
