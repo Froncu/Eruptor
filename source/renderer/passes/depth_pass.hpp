@@ -28,8 +28,8 @@ namespace eru
          void recreate_depth_images(Device const& device, vk::Extent2D swap_chain_extent);
 
       private:
-         std::vector<Image> create_depth_images(Device const& device) const;
-         std::vector<ImageView> create_depth_image_views(Device const& device) const;
+         std::vector<Image> create_images(Device const& device) const;
+         std::vector<ImageView> create_image_views(Device const& device) const;
 
          vk::Extent2D swap_chain_extent_;
          DescriptorSets const& descriptor_sets_;
@@ -39,19 +39,19 @@ namespace eru
          Shader fragment_shader_;
          Pipeline pipeline_;
 
-         ImageBuilder depth_image_builder_;
-         std::vector<Image> depth_images_;
-         ImageViewBuilder depth_image_view_builder_{
+         ImageBuilder image_builder_;
+         std::vector<Image> images_;
+         ImageViewBuilder image_view_builder_{
             ImageViewBuilder{}
             .change_view_type(vk::ImageViewType::e2D)
-            .change_format(depth_images_.front().info().format)
+            .change_format(images_.front().info().format)
             .change_subresource_range({
                .aspectMask{ vk::ImageAspectFlagBits::eDepth },
                .levelCount{ 1 },
                .layerCount{ 1 }
             })
          };
-         std::vector<ImageView> depth_image_views_;
+         std::vector<ImageView> image_views_;
    };
 }
 

@@ -41,8 +41,8 @@ namespace eru
          void recreate_geometry_images(Device const& device, vk::Extent2D swap_chain_extent);
 
       private:
-         [[nodiscard]] std::array<std::vector<Image>, FORMATS.size()> create_geometry_images(Device const& device);
-         [[nodiscard]] std::array<std::vector<ImageView>, FORMATS.size()> create_geometry_image_views(Device const& device);
+         [[nodiscard]] std::array<std::vector<Image>, FORMATS.size()> create_images(Device const& device);
+         [[nodiscard]] std::array<std::vector<ImageView>, FORMATS.size()> create_image_views(Device const& device);
          void write_descriptor_sets(Device const& device) const;
  
          vk::Extent2D swap_chain_extent_;
@@ -54,7 +54,7 @@ namespace eru
          Pipeline pipeline_;
 
          ImageBuilder image_builder_;
-         std::array<std::vector<Image>, FORMATS.size()> geometry_images_;
+         std::array<std::vector<Image>, FORMATS.size()> images_;
          ImageViewBuilder image_view_builder_{
             ImageViewBuilder{}
             .change_view_type(vk::ImageViewType::e2D)
@@ -64,7 +64,7 @@ namespace eru
                .layerCount{ 1 }
             })
          };
-         std::array<std::vector<ImageView>, FORMATS.size()> geometry_image_views_;
+         std::array<std::vector<ImageView>, FORMATS.size()> image_views_;
    };
 }
 

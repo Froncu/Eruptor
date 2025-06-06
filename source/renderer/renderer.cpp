@@ -1,10 +1,28 @@
 #include "renderer.hpp"
+#include "scene/material.hpp"
 
 namespace eru
 {
    Renderer::Renderer(Window const& window)
       : window_{ window }
    {
+      vk::DescriptorBufferInfo const materials_info{
+         .buffer{ scene_.materials().buffer() },
+         .offset{ 0 },
+         .range{ sizeof(Material) * scene_.materials_count() }
+      };
+
+      device_.device().updateDescriptorSets({
+         {
+            .dstSet{ descriptor_sets_.sets("texturing").front() },
+            .dstBinding{ descriptor_sets_.binding("texturing", "materials") },
+            .dstArrayElement{ 0 },
+            .descriptorCount{ 1 },
+            .descriptorType{ vk::DescriptorType::eStorageBuffer },
+            .pBufferInfo{ &materials_info }
+         }
+      }, {});
+
       camera.change_projection_extent(swap_chain_.extent());
    }
 

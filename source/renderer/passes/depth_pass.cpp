@@ -47,7 +47,7 @@ namespace eru
          })
          .build(device, descriptor_sets_)
       }
-      , depth_image_builder_{
+      , image_builder_{
          ImageBuilder{}
          .change_type(vk::ImageType::e2D)
          .change_format(vk::Format::eD32Sfloat)
@@ -61,14 +61,14 @@ namespace eru
          .change_initial_layout(vk::ImageLayout::eUndefined)
          .change_allocation_required_flags(vk::MemoryPropertyFlagBits::eDeviceLocal)
       }
-      , depth_images_{ create_depth_images(device) }
-      , depth_image_views_{ create_depth_image_views(device) }
+      , images_{ create_images(device) }
+      , image_views_{ create_image_views(device) }
    {
    }
 
    std::span<ImageView const> DepthPass::depth_image_views() const
    {
-      return depth_image_views_;
+      return image_views_;
    }
 
    void DepthPass::render(vk::raii::CommandBuffer const& command_buffer, Scene const& scene,
@@ -81,7 +81,7 @@ namespace eru
          .dstAccessMask{ vk::AccessFlagBits2::eDepthStencilAttachmentWrite },
          .oldLayout{ vk::ImageLayout::eDepthStencilReadOnlyOptimal },
          .newLayout{ vk::ImageLayout::eDepthStencilAttachmentOptimal },
-         .image{ depth_images_[current_frame].image() },
+         .image{ images_[current_frame].image() },
          .subresourceRange{
             .aspectMask{ vk::ImageAspectFlagBits::eDepth },
             .levelCount{ 1 },
@@ -95,7 +95,7 @@ namespace eru
       });
 
       vk::RenderingAttachmentInfo const depth_attachment_info{
-         .imageView{ *depth_image_views_[current_frame].image_view() },
+         .imageView{ *image_views_[current_frame].image_view() },
          .imageLayout{ vk::ImageLayout::eDepthStencilAttachmentOptimal },
          .loadOp{ vk::AttachmentLoadOp::eClear },
          .storeOp{ vk::AttachmentStoreOp::eStore },
@@ -163,7 +163,7 @@ namespace eru
          .dstAccessMask{ vk::AccessFlagBits2::eDepthStencilAttachmentRead },
          .oldLayout{ vk::ImageLayout::eDepthStencilAttachmentOptimal },
          .newLayout{ vk::ImageLayout::eDepthStencilReadOnlyOptimal },
-         .image{ depth_images_[current_frame].image() },
+         .image{ images_[current_frame].image() },
          .subresourceRange{
             .aspectMask{ vk::ImageAspectFlagBits::eDepth },
             .levelCount{ 1 },
@@ -179,29 +179,29 @@ namespace eru
 
    void DepthPass::recreate_depth_images(Device const& device, vk::Extent2D const swap_chain_extent)
    {
-      depth_image_builder_.change_extent(swap_chain_extent);
-      depth_images_ = create_depth_images(device);
-      depth_image_views_ = create_depth_image_views(device);
+      image_builder_.change_extent(swap_chain_extent);
+      images_ = create_images(device);
+      image_views_ = create_image_views(device);
       swap_chain_extent_ = swap_chain_extent;
    }
 
-   std::vector<Image> DepthPass::create_depth_images(Device const& device) const
+   std::vector<Image> DepthPass::create_images(Device const& device) const
    {
       std::vector<Image> images{};
       images.reserve(frames_in_flight_);
       for (std::uint32_t index{}; index < frames_in_flight_; ++index)
-         images.emplace_back(depth_image_builder_.build(device))
+         images.emplace_back(image_builder_.build(device))
                .transition_layout(device, vk::ImageLayout::eDepthStencilReadOnlyOptimal);
 
       return images;
    }
 
-   std::vector<ImageView> DepthPass::create_depth_image_views(Device const& device) const
+   std::vector<ImageView> DepthPass::create_image_views(Device const& device) const
    {
       std::vector<ImageView> views{};
-      views.reserve(depth_images_.size());
-      for (auto const& image : depth_images_)
-         views.emplace_back(depth_image_view_builder_.build(device, image));
+      views.reserve(images_.size());
+      for (auto const& image : images_)
+         views.emplace_back(image_view_builder_.build(device, image));
 
       return views;
    }

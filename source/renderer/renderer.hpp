@@ -14,7 +14,6 @@
 #include "builders/swap_chain_builder.hpp"
 #include "passes/depth_pass.hpp"
 #include "passes/geometry_pass.hpp"
-#include "scene/material.hpp"
 #include "scene/scene.hpp"
 #include "window/window.hpp"
 
@@ -245,23 +244,6 @@ namespace eru
          vk::raii::Sampler sampler_{
             [this]
             {
-               vk::DescriptorBufferInfo const materials_info{
-                  .buffer{ scene_.materials().buffer() },
-                  .offset{ 0 },
-                  .range{ sizeof(Material) * scene_.materials_count() }
-               };
-
-               device_.device().updateDescriptorSets({
-                  {
-                     .dstSet{ descriptor_sets_.sets("texturing").front() },
-                     .dstBinding{ descriptor_sets_.binding("texturing", "materials") },
-                     .dstArrayElement{ 0 },
-                     .descriptorCount{ 1 },
-                     .descriptorType{ vk::DescriptorType::eStorageBuffer },
-                     .pBufferInfo{ &materials_info }
-                  }
-               }, {});
-
                std::size_t const writes_count{
                   2 +
                   scene_.base_color_images().size() +

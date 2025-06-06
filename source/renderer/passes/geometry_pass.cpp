@@ -70,7 +70,7 @@ namespace eru
          .change_initial_layout(vk::ImageLayout::eUndefined)
          .change_allocation_required_flags(vk::MemoryPropertyFlagBits::eDeviceLocal)
       }
-      , geometry_images_{ create_geometry_images(device) }
+      , images_{ create_images(device) }
       , image_view_builder_{
          ImageViewBuilder{}
          .change_view_type(vk::ImageViewType::e2D)
@@ -80,29 +80,29 @@ namespace eru
             .layerCount{ 1 }
          })
       }
-      , geometry_image_views_{ create_geometry_image_views(device) }
+      , image_views_{ create_image_views(device) }
    {
       write_descriptor_sets(device);
    }
 
    std::span<ImageView const> GeometryPass::position_image_view() const
    {
-      return geometry_image_views_[0];
+      return image_views_[0];
    }
 
    std::span<ImageView const> GeometryPass::base_color_image_view() const
    {
-      return geometry_image_views_[1];
+      return image_views_[1];
    }
 
    std::span<ImageView const> GeometryPass::normal_image_view() const
    {
-      return geometry_image_views_[2];
+      return image_views_[2];
    }
 
    std::span<ImageView const> GeometryPass::metalness_image_view() const
    {
-      return geometry_image_views_[3];
+      return image_views_[3];
    }
 
    void GeometryPass::render(vk::raii::CommandBuffer const& command_buffer, Scene const& scene,
@@ -117,7 +117,7 @@ namespace eru
          begin_barriers[index].dstAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite;
          begin_barriers[index].oldLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
          begin_barriers[index].newLayout = vk::ImageLayout::eColorAttachmentOptimal;
-         begin_barriers[index].image = geometry_images_[index][current_frame].image();
+         begin_barriers[index].image = images_[index][current_frame].image();
          begin_barriers[index].subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
          begin_barriers[index].subresourceRange.levelCount = 1;
          begin_barriers[index].subresourceRange.layerCount = 1;
@@ -131,7 +131,7 @@ namespace eru
       std::array<vk::RenderingAttachmentInfo, FORMATS.size()> color_attachment_infos{};
       for (std::size_t index{}; index < FORMATS.size(); ++index)
       {
-         color_attachment_infos[index].imageView = geometry_image_views_[index][current_frame].image_view();
+         color_attachment_infos[index].imageView = image_views_[index][current_frame].image_view();
          color_attachment_infos[index].imageLayout = vk::ImageLayout::eColorAttachmentOptimal;
          color_attachment_infos[index].loadOp = vk::AttachmentLoadOp::eClear;
          color_attachment_infos[index].storeOp = vk::AttachmentStoreOp::eStore;
@@ -206,7 +206,7 @@ namespace eru
          end_barriers[index].dstAccessMask = vk::AccessFlagBits2::eShaderSampledRead;
          end_barriers[index].oldLayout = vk::ImageLayout::eColorAttachmentOptimal;
          end_barriers[index].newLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-         end_barriers[index].image = geometry_images_[index][current_frame].image();
+         end_barriers[index].image = images_[index][current_frame].image();
          end_barriers[index].subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
          end_barriers[index].subresourceRange.levelCount = 1;
          end_barriers[index].subresourceRange.layerCount = 1;
@@ -221,13 +221,13 @@ namespace eru
    void GeometryPass::recreate_geometry_images(Device const& device, vk::Extent2D const swap_chain_extent)
    {
       image_builder_.change_extent(swap_chain_extent);
-      geometry_images_ = create_geometry_images(device);
-      geometry_image_views_ = create_geometry_image_views(device);
+      images_ = create_images(device);
+      image_views_ = create_image_views(device);
       write_descriptor_sets(device);
       swap_chain_extent_ = swap_chain_extent;
    }
 
-   std::array<std::vector<Image>, GeometryPass::FORMATS.size()> GeometryPass::create_geometry_images(Device const& device)
+   std::array<std::vector<Image>, GeometryPass::FORMATS.size()> GeometryPass::create_images(Device const& device)
    {
       std::array<std::vector<Image>, FORMATS.size()> geometry_images{};
       for (std::size_t index{}; index < FORMATS.size(); ++index)
@@ -244,16 +244,16 @@ namespace eru
       return geometry_images;
    }
 
-   std::array<std::vector<ImageView>, GeometryPass::FORMATS.size()> GeometryPass::create_geometry_image_views(
+   std::array<std::vector<ImageView>, GeometryPass::FORMATS.size()> GeometryPass::create_image_views(
       Device const& device)
    {
       std::array<std::vector<ImageView>, FORMATS.size()> geometry_image_views{};
       for (std::size_t index{}; index < FORMATS.size(); ++index)
       {
          std::vector<ImageView>& views{ geometry_image_views[index] };
-         views.reserve(geometry_images_[index].size());
+         views.reserve(images_[index].size());
 
-         for (Image const& image : geometry_images_[index])
+         for (Image const& image : images_[index])
             views.emplace_back(image_view_builder_.change_format(image.info().format).build(device, image));
       }
 
@@ -271,7 +271,7 @@ namespace eru
          for (std::uint32_t image_index{}; image_index < frames_in_flight_; ++image_index)
          {
             image_infos.push_back({
-               .imageView{ *geometry_image_views_[format_index][image_index].image_view() },
+               .imageView{ *image_views_[format_index][image_index].image_view() },
                .imageLayout{ vk::ImageLayout::eShaderReadOnlyOptimal }
             });
 
