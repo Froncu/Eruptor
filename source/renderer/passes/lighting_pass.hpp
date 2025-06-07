@@ -7,7 +7,6 @@
 #include "renderer/descriptor_sets.hpp"
 #include "renderer/pipeline.hpp"
 #include "renderer/shader.hpp"
-#include "scene/scene.hpp"
 
 namespace eru
 {

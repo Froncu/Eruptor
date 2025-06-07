@@ -113,12 +113,14 @@ void main()
    {
       const vec3 l = normalize(point_lights[index] - position);
       const vec3 h = normalize(v + l);
+      
+      const float n_dot_l = max(dot(n, l), 0.0);
 
       const float distribution = distribution_ggx(n, h, roughness);
       const float geometry = geometry_smith(n, v, l, roughness, true);
       const vec3 fresnel = fresnel_schlick(max(dot(h, v), 0.0), base_reflectability);
       const vec3 numerator = distribution * geometry * fresnel;
-      const float denominator = 4.0 * max(dot(n, v), 0.0) * max(dot(n, l), 0.0) + 0.0001;
+      const float denominator = 4.0 * max(dot(n, v), 0.0) * n_dot_l + 0.0001;
       const vec3 specular = numerator / denominator;
 
       const vec3 kd = (vec3(1.0) - fresnel) * (1.0 - metallic);
@@ -127,8 +129,6 @@ void main()
       const float attenuation = 1.0 / (distance * distance);
       const vec3 radiance = point_light_colors[index] * attenuation;
 
-      const float n_dot_l = max(dot(n, l), 0.0);
-
       lo += (specular + base_color * kd / pi) * radiance * n_dot_l;
    }
 
@@ -136,20 +136,20 @@ void main()
    {
       const vec3 l = normalize(point_lights[index]);
       const vec3 h = normalize(v + l);
+      
+      const float n_dot_l = max(dot(n, l), 0.0);
 
       const float distribution = distribution_ggx(n, h, roughness);
       const float geometry = geometry_smith(n, v, l, roughness, true);
       const vec3 fresnel = fresnel_schlick(max(dot(h, v), 0.0), base_reflectability);
       const vec3 numerator = distribution * geometry * fresnel;
-      const float denominator = 4.0 * max(dot(n, v), 0.0) * max(dot(n, l), 0.0) + 0.0001;
+      const float denominator = 4.0 * max(dot(n, v), 0.0) * n_dot_l + 0.0001;
       const vec3 specular = numerator / denominator;
 
       const vec3 kd = (vec3(1.0) - fresnel) * (1.0 - metallic);
 
       const vec3 radiance = directional_light_colors[index];
-
-      const float n_dot_l = max(dot(n, l), 0.0);
-
+      
       lo += (specular + base_color * kd / pi) * radiance * n_dot_l;
    }
 
@@ -157,8 +157,6 @@ void main()
    const float ambient_oclusion = 0.0;
    const vec3 ambient = vec3(0.03) * base_color * ambient_oclusion;
    base_color = ambient + lo;
-
-   base_color = base_color / (base_color + vec3(1.0));
 
    out_color = vec4(base_color, 1.0);
 }
