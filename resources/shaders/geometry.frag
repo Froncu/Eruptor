@@ -56,7 +56,7 @@ void main()
       out_normal = vec4(normalize(normal_map), 1.0);
    } 
    else
-      out_normal = vec4(in_normal, 1.0);
+      out_normal = vec4(normalize(in_normal), 1.0);
 
    // Metalness
    if (metalness_index >= 0)
