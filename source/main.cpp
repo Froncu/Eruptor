@@ -20,7 +20,7 @@ int main(int const, char** const)
       eru::ContextBuilder{}
       .change_api_version(vk::ApiVersion13)
       .enable_validation_layer(eru::constants::DEBUG ? "VK_LAYER_KHRONOS_validation" : "")
-      .enable_extension(eru::constants::DEBUG ? vk::EXTDebugUtilsExtensionName : "")
+      .enable_instance_extension(eru::constants::DEBUG ? vk::EXTDebugUtilsExtensionName : "")
       .build());
 
    try

@@ -44,47 +44,47 @@ namespace eru
 
       private:
          // TODO: this is a cool idea, but it's dangerous
-         // template <PhysicaDeviceFeatureStruct FeatureStruct>
-         // static void enable_features(FeatureStruct& target, FeatureStruct const& source)
-         // {
-         //    std::size_t offset{};
-         //    if (not std::is_same_v<FeatureStruct, vk::PhysicalDeviceFeatures>)
-         //       offset = alignof(FeatureStruct) * 2;
-         //
-         //    std::size_t const feature_count{ (sizeof(FeatureStruct) - offset) / sizeof(VkBool32) };
-         //    auto const source_features{
-         //       reinterpret_cast<vk::Bool32 const*>(reinterpret_cast<std::byte const*>(&source) + offset)
-         //    };
-         //    auto const target_features{
-         //       reinterpret_cast<vk::Bool32* const>(reinterpret_cast<std::byte* const>(&target) + offset)
-         //    };
-         //
-         //    for (std::size_t index{}; index < feature_count; ++index)
-         //       if (not target_features[index] and source_features[index])
-         //          target_features[index] = true;
-         // }
-         //
-         // template <PhysicaDeviceFeatureStruct FeatureStruct>
-         // [[nodiscard]] static bool any_requested_feature_missing(FeatureStruct const& requested, FeatureStruct const& available)
-         // {
-         //    std::size_t offset{};
-         //    if (not std::is_same_v<FeatureStruct, vk::PhysicalDeviceFeatures>)
-         //       offset = alignof(FeatureStruct) * 2;
-         //
-         //    std::size_t const feature_count{ (sizeof(FeatureStruct) - offset) / sizeof(VkBool32) };
-         //    auto const requested_features{
-         //       reinterpret_cast<vk::Bool32 const*>(reinterpret_cast<std::byte const*>(&requested) + offset)
-         //    };
-         //    auto const available_features{
-         //       reinterpret_cast<vk::Bool32 const* const>(reinterpret_cast<std::byte const* const>(&available) + offset)
-         //    };
-         //
-         //    for (std::size_t index{}; index < feature_count; ++index)
-         //       if (requested_features[index] and not available_features[index])
-         //          return true;
-         //
-         //    return false;
-         // }
+         template <PhysicaDeviceFeatureStruct FeatureStruct>
+         static void enable_features(FeatureStruct& target, FeatureStruct const& source)
+         {
+            std::size_t offset{};
+            if (not std::is_same_v<FeatureStruct, vk::PhysicalDeviceFeatures>)
+               offset = alignof(FeatureStruct) * 2;
+
+            std::size_t const feature_count{ (sizeof(FeatureStruct) - offset) / sizeof(VkBool32) };
+            auto const source_features{
+               reinterpret_cast<vk::Bool32 const*>(reinterpret_cast<std::byte const*>(&source) + offset)
+            };
+            auto const target_features{
+               reinterpret_cast<vk::Bool32* const>(reinterpret_cast<std::byte* const>(&target) + offset)
+            };
+
+            for (std::size_t index{}; index < feature_count; ++index)
+               if (not target_features[index] and source_features[index])
+                  target_features[index] = true;
+         }
+
+         template <PhysicaDeviceFeatureStruct FeatureStruct>
+         [[nodiscard]] static bool any_requested_feature_missing(FeatureStruct const& requested, FeatureStruct const& available)
+         {
+            std::size_t offset{};
+            if (not std::is_same_v<FeatureStruct, vk::PhysicalDeviceFeatures>)
+               offset = alignof(FeatureStruct) * 2;
+
+            std::size_t const feature_count{ (sizeof(FeatureStruct) - offset) / sizeof(VkBool32) };
+            auto const requested_features{
+               reinterpret_cast<vk::Bool32 const*>(reinterpret_cast<std::byte const*>(&requested) + offset)
+            };
+            auto const available_features{
+               reinterpret_cast<vk::Bool32 const* const>(reinterpret_cast<std::byte const* const>(&available) + offset)
+            };
+
+            for (std::size_t index{}; index < feature_count; ++index)
+               if (requested_features[index] and not available_features[index])
+                  return true;
+
+            return false;
+         }
 
          [[nodiscard]] static UniquePointer<VmaAllocator_T> create_allocator(vk::raii::PhysicalDevice const& physical_device,
             vk::raii::Device const& device);

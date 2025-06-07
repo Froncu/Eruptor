@@ -117,6 +117,7 @@ namespace eru
    {
       vk::raii::PhysicalDevice physical_device{ pick_physical_device() };
       vk::raii::Device device{ create_device(physical_device) };
+
       return {
          std::move(physical_device), std::move(device),
          retrieve_queues(device),

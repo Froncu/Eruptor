@@ -1,10 +1,24 @@
 #include "context_builder.hpp"
 
+#include "utility/exception.hpp"
+
 namespace eru
 {
    ContextBuilder& ContextBuilder::change_api_version(std::uint32_t const api_version)
    {
-      api_version_ = api_version;
+      switch (api_version)
+      {
+         case vk::ApiVersion10:
+         case vk::ApiVersion11:
+         case vk::ApiVersion12:
+         case vk::ApiVersion13:
+            api_version_ = api_version;
+            break;
+
+         default:
+            exception("invalid Vulkan API version specified: {}", api_version);
+      }
+
       return *this;
    }
 
@@ -16,7 +30,8 @@ namespace eru
       return *this;
    }
 
-   ContextBuilder& ContextBuilder::enable_validation_layers(std::initializer_list<std::string_view> validation_layer_names)
+   ContextBuilder& ContextBuilder::enable_validation_layers(
+      std::initializer_list<std::string_view> const validation_layer_names)
    {
       for (std::string_view const validation_layer_name : validation_layer_names)
          enable_validation_layer(validation_layer_name);
@@ -24,18 +39,18 @@ namespace eru
       return *this;
    }
 
-   ContextBuilder& ContextBuilder::enable_extension(std::string_view const extenion_name)
+   ContextBuilder& ContextBuilder::enable_instance_extension(std::string_view const extenion_name)
    {
       if (not extenion_name.empty())
-         extension_names_.insert(extenion_name.data());
+         instance_extension_names_.insert(extenion_name.data());
 
       return *this;
    }
 
-   ContextBuilder& ContextBuilder::enable_extensions(std::initializer_list<std::string_view> extenion_names)
+   ContextBuilder& ContextBuilder::enable_instance_extensions(std::initializer_list<std::string_view> const extenion_names)
    {
       for (std::string_view const extenion_name : extenion_names)
-         enable_extension(extenion_name);
+         enable_instance_extension(extenion_name);
 
       return *this;
    }
@@ -45,10 +60,10 @@ namespace eru
       std::uint32_t sdl_extension_count;
       char const* const* const sdl_extension_names{ SDL_Vulkan_GetInstanceExtensions(&sdl_extension_count) };
 
-      extension_names_.insert(sdl_extension_names, sdl_extension_names + sdl_extension_count);
+      instance_extension_names_.insert(sdl_extension_names, sdl_extension_names + sdl_extension_count);
 
       if (not validation_layer_names_.empty())
-         extension_names_.insert(vk::EXTDebugUtilsExtensionName);
+         instance_extension_names_.insert(vk::EXTDebugUtilsExtensionName);
 
       auto validation_layer_names_view{
          std::views::transform(validation_layer_names_,
@@ -60,7 +75,7 @@ namespace eru
       std::vector<char const*> validation_layer_names{ validation_layer_names_view.begin(), validation_layer_names_view.end() };
 
       auto extension_names_view{
-         std::views::transform(extension_names_,
+         std::views::transform(instance_extension_names_,
             [](std::string const& extension_name)
             {
                return extension_name.c_str();
