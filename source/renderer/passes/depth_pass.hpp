@@ -3,7 +3,8 @@
 
 #include "builders/image_builder.hpp"
 #include "builders/image_view_builder.hpp"
-#include "builders/pipeline_builder.hpp"
+#include "renderer/descriptor_sets.hpp"
+#include "renderer/pipeline.hpp"
 #include "renderer/shader.hpp"
 #include "scene/scene.hpp"
 

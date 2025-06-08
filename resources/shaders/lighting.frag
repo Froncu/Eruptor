@@ -17,9 +17,9 @@ const vec3 point_light_colors[light_count] = vec3[](
    vec3(0.0, 0.0, 20.0)
 );
 const vec3 directional_lights[light_count] = vec3[](
-    normalize(vec3(-0.5, -1.0, -0.3)),
-    normalize(vec3(0.0, -1.0, 0.0)),
-    normalize(vec3(0.5, -1.0, 0.3))
+    normalize(vec3(-0.5, 1.0, -0.3)),
+    normalize(vec3(0.0, 1.0, 0.0)),
+    normalize(vec3(0.3, 1.0, 0.5))
 );
 const vec3 directional_light_colors[light_count] = vec3[](
    vec3(4.8, 4.4, 4.0),
@@ -56,31 +56,32 @@ float distribution_ggx(vec3 n, vec3 h, float roughness)
    const float n_dot_h = max(dot(n, h), 0.0);
    const float n_dot_h_squared = n_dot_h * n_dot_h;
    
-   float denominator = (n_dot_h_squared * (a - 1.0) + 1.0);
+   float denominator = n_dot_h_squared * (a - 1.0) + 1.0;
    denominator = pi * denominator * denominator;
    
    return a / denominator;
 }
 
-float geometry_schlick_ggx_direct(float n_dot_v, float roughness)
+float geometry_schlick_ggx_direct(float n_dot_x, float roughness)
 {
    const float r = roughness + 1.0;
    const float k = r * r / 8.0;
    
-   return n_dot_v / (n_dot_v * (1.0 - k) + k);
+   return n_dot_x / (n_dot_x * (1.0 - k) + k);
 }
 
-float geometry_schlick_ggx_indirect(float n_dot_v, float roughness)
+float geometry_schlick_ggx_indirect(float n_dot_x, float roughness)
 {
    const float k = roughness * roughness / 8.0;
    
-   return n_dot_v / (n_dot_v * (1.0 - k) + k);
+   return n_dot_x / (n_dot_x * (1.0 - k) + k);
 }
 
+// TODO: this sometimes returns 0.0 when it shouldn't
 float geometry_smith(vec3 n, vec3 v, vec3 l, float roughness, bool direct)
 {
-   const float n_dot_l = max(dot(n, l), 0.0);
    const float n_dot_v = max(dot(n, v), 0.0);
+   const float n_dot_l = max(dot(n, l), 0.0);
    
    if (direct)
       return
@@ -111,37 +112,39 @@ void main()
    
    for (int index = 0; index < light_count; ++index)
    {
-      const vec3 l = normalize(point_lights[index] - position);
+      vec3 l = normalize(point_lights[index] - position);
+      const float distance = length(l);
+      l /= distance;
       const vec3 h = normalize(v + l);
       
       const float n_dot_l = max(dot(n, l), 0.0);
 
+      const vec3 fresnel = fresnel_schlick(max(dot(h, v), 0.0), base_reflectability);
       const float distribution = distribution_ggx(n, h, roughness);
       const float geometry = geometry_smith(n, v, l, roughness, true);
-      const vec3 fresnel = fresnel_schlick(max(dot(h, v), 0.0), base_reflectability);
       const vec3 numerator = distribution * geometry * fresnel;
       const float denominator = 4.0 * max(dot(n, v), 0.0) * n_dot_l + 0.0001;
       const vec3 specular = numerator / denominator;
 
       const vec3 kd = (vec3(1.0) - fresnel) * (1.0 - metallic);
 
-      const float distance = length(point_lights[index] - position);
       const float attenuation = 1.0 / (distance * distance);
       const vec3 radiance = point_light_colors[index] * attenuation;
 
       lo += (specular + base_color * kd / pi) * radiance * n_dot_l;
+//      lo += geometry;
    }
 
    for (int index = 0; index < light_count; ++index)
    {
-      const vec3 l = normalize(point_lights[index]);
+      const vec3 l = normalize(directional_lights[index]);
       const vec3 h = normalize(v + l);
       
       const float n_dot_l = max(dot(n, l), 0.0);
 
+      const vec3 fresnel = fresnel_schlick(max(dot(h, v), 0.0), base_reflectability);
       const float distribution = distribution_ggx(n, h, roughness);
       const float geometry = geometry_smith(n, v, l, roughness, true);
-      const vec3 fresnel = fresnel_schlick(max(dot(h, v), 0.0), base_reflectability);
       const vec3 numerator = distribution * geometry * fresnel;
       const float denominator = 4.0 * max(dot(n, v), 0.0) * n_dot_l + 0.0001;
       const vec3 specular = numerator / denominator;
@@ -151,6 +154,7 @@ void main()
       const vec3 radiance = directional_light_colors[index];
       
       lo += (specular + base_color * kd / pi) * radiance * n_dot_l;
+//      lo += geometry;
    }
 
    // TODO: ambient oclusion maps

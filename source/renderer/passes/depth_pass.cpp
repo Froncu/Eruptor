@@ -1,4 +1,6 @@
 #include "depth_pass.hpp"
+
+#include "builders/pipeline_builder.hpp"
 #include "erupch/erupch.hpp"
 #include "scene/vertex.hpp"
 

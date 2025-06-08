@@ -16,7 +16,7 @@ namespace eru
       static std::array<vk::Format, 4> constexpr FORMATS{
          vk::Format::eR32G32B32A32Sfloat, // Position
          vk::Format::eR8G8B8A8Srgb,       // Base Color
-         vk::Format::eR16G16B16A16Snorm,  // Normal
+         vk::Format::eR8G8B8A8Snorm,      // Normal
          vk::Format::eR8G8B8A8Unorm       // Metalness
       };
 
