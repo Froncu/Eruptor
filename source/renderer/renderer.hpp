@@ -9,8 +9,8 @@
 #include "builders/buffer_builder.hpp"
 #include "builders/descriptor_sets_builder.hpp"
 #include "builders/device_builder.hpp"
+#include "builders/graphics_pipeline_builder.hpp"
 #include "builders/image_builder.hpp"
-#include "builders/pipeline_builder.hpp"
 #include "builders/swap_chain_builder.hpp"
 #include "passes/depth_pass.hpp"
 #include "passes/geometry_pass.hpp"
@@ -178,7 +178,7 @@ namespace eru
          Shader vertex_shader_{ "resources/shaders/fullscreen_quad.vert", device_ };
          Shader fragment_shader_{ "resources/shaders/tone_mapping.frag", device_ };
          Pipeline pipeline_{
-            PipelineBuilder{}
+            GraphicsPipelineBuilder{}
             .add_color_attachment_format(swap_chain_.images().front().info().format)
             .add_shader_stages({
                {

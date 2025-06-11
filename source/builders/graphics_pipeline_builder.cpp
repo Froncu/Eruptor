@@ -1,15 +1,15 @@
-#include "pipeline_builder.hpp"
+#include "graphics_pipeline_builder.hpp"
 #include "utility/exception.hpp"
 
 namespace eru
 {
-   PipelineBuilder& PipelineBuilder::add_color_attachment_format(vk::Format const color_attachment_format)
+   GraphicsPipelineBuilder& GraphicsPipelineBuilder::add_color_attachment_format(vk::Format const color_attachment_format)
    {
       color_attachment_formats_.emplace_back(color_attachment_format);
       return *this;
    }
 
-   PipelineBuilder& PipelineBuilder::add_color_attachment_formats(std::span<vk::Format const> const color_attachment_formats)
+   GraphicsPipelineBuilder& GraphicsPipelineBuilder::add_color_attachment_formats(std::span<vk::Format const> const color_attachment_formats)
    {
       for (vk::Format const color_attachment_format : color_attachment_formats)
          add_color_attachment_format(color_attachment_format);
@@ -17,19 +17,19 @@ namespace eru
       return *this;
    }
 
-   PipelineBuilder& PipelineBuilder::change_depth_attachment_format(vk::Format const depth_attachment_format)
+   GraphicsPipelineBuilder& GraphicsPipelineBuilder::change_depth_attachment_format(vk::Format const depth_attachment_format)
    {
       depth_attachment_format_ = depth_attachment_format;
       return *this;
    }
 
-   PipelineBuilder& PipelineBuilder::add_vertex_binding(vk::VertexInputBindingDescription const& vertex_binding)
+   GraphicsPipelineBuilder& GraphicsPipelineBuilder::add_vertex_binding(vk::VertexInputBindingDescription const& vertex_binding)
    {
       vertex_bindings_.emplace_back(vertex_binding);
       return *this;
    }
 
-   PipelineBuilder& PipelineBuilder::add_vertex_bindings(
+   GraphicsPipelineBuilder& GraphicsPipelineBuilder::add_vertex_bindings(
       std::span<vk::VertexInputBindingDescription const> const vertex_bindings)
    {
       for (vk::VertexInputBindingDescription const vertex_binding : vertex_bindings)
@@ -38,13 +38,13 @@ namespace eru
       return *this;
    }
 
-   PipelineBuilder& PipelineBuilder::add_vertex_attribute(vk::VertexInputAttributeDescription const& vertex_attribute)
+   GraphicsPipelineBuilder& GraphicsPipelineBuilder::add_vertex_attribute(vk::VertexInputAttributeDescription const& vertex_attribute)
    {
       vertex_attributes_.emplace_back(vertex_attribute);
       return *this;
    }
 
-   PipelineBuilder& PipelineBuilder::add_vertex_attributes(
+   GraphicsPipelineBuilder& GraphicsPipelineBuilder::add_vertex_attributes(
       std::span<vk::VertexInputAttributeDescription const> const vertex_attributes)
    {
       for (vk::VertexInputAttributeDescription const vertex_attribute : vertex_attributes)
@@ -53,13 +53,13 @@ namespace eru
       return *this;
    }
 
-   PipelineBuilder& PipelineBuilder::add_shader_stage(vk::PipelineShaderStageCreateInfo const& shader_stage)
+   GraphicsPipelineBuilder& GraphicsPipelineBuilder::add_shader_stage(vk::PipelineShaderStageCreateInfo const& shader_stage)
    {
       shader_stages_.emplace_back(shader_stage);
       return *this;
    }
 
-   PipelineBuilder& PipelineBuilder::add_shader_stages(
+   GraphicsPipelineBuilder& GraphicsPipelineBuilder::add_shader_stages(
       std::initializer_list<vk::PipelineShaderStageCreateInfo> const shader_stages)
    {
       for (vk::PipelineShaderStageCreateInfo const shader_stage : shader_stages)
@@ -68,34 +68,34 @@ namespace eru
       return *this;
    }
 
-   PipelineBuilder& PipelineBuilder::change_input_assembly_state(
+   GraphicsPipelineBuilder& GraphicsPipelineBuilder::change_input_assembly_state(
       vk::PipelineInputAssemblyStateCreateInfo const& input_assembly_state)
    {
       input_assembly_state_ = input_assembly_state;
       return *this;
    }
 
-   PipelineBuilder& PipelineBuilder::change_rasterization_state(
+   GraphicsPipelineBuilder& GraphicsPipelineBuilder::change_rasterization_state(
       vk::PipelineRasterizationStateCreateInfo const& rasterization_state)
    {
       rasterization_state_ = rasterization_state;
       return *this;
    }
 
-   PipelineBuilder& PipelineBuilder::change_multisample_state(vk::PipelineMultisampleStateCreateInfo const& multisample_state)
+   GraphicsPipelineBuilder& GraphicsPipelineBuilder::change_multisample_state(vk::PipelineMultisampleStateCreateInfo const& multisample_state)
    {
       multisample_state_ = multisample_state;
       return *this;
    }
 
-   PipelineBuilder& PipelineBuilder::change_depth_stencil_state(
+   GraphicsPipelineBuilder& GraphicsPipelineBuilder::change_depth_stencil_state(
       vk::PipelineDepthStencilStateCreateInfo const& depth_stencil_state)
    {
       depth_stencil_state_ = depth_stencil_state;
       return *this;
    }
 
-   PipelineBuilder& PipelineBuilder::add_color_blend_attachment_state(
+   GraphicsPipelineBuilder& GraphicsPipelineBuilder::add_color_blend_attachment_state(
       vk::PipelineColorBlendAttachmentState const& color_blend_attachment_state, std::uint32_t count)
    {
       while (count--)
@@ -104,7 +104,7 @@ namespace eru
       return *this;
    }
 
-   PipelineBuilder& PipelineBuilder::add_color_blend_attachment_states(
+   GraphicsPipelineBuilder& GraphicsPipelineBuilder::add_color_blend_attachment_states(
       std::initializer_list<vk::PipelineColorBlendAttachmentState> const color_blend_attachment_states)
    {
       for (vk::PipelineColorBlendAttachmentState const& color_blend_attachment_state : color_blend_attachment_states)
@@ -113,13 +113,13 @@ namespace eru
       return *this;
    }
 
-   PipelineBuilder& PipelineBuilder::add_dynamic_state(vk::DynamicState const state)
+   GraphicsPipelineBuilder& GraphicsPipelineBuilder::add_dynamic_state(vk::DynamicState const state)
    {
       dynamic_states_.emplace_back(state);
       return *this;
    }
 
-   PipelineBuilder& PipelineBuilder::add_dynamic_states(std::initializer_list<vk::DynamicState> const states)
+   GraphicsPipelineBuilder& GraphicsPipelineBuilder::add_dynamic_states(std::initializer_list<vk::DynamicState> const states)
    {
       for (vk::DynamicState const state : states)
          add_dynamic_state(state);
@@ -127,7 +127,7 @@ namespace eru
       return *this;
    }
 
-   PipelineBuilder& PipelineBuilder::assign_descriptor_set_layout(std::string name, std::uint32_t slot)
+   GraphicsPipelineBuilder& GraphicsPipelineBuilder::assign_descriptor_set_layout(std::string name, std::uint32_t slot)
    {
       if (name.empty())
          exception("the descriptor set name cannot be empty!");
@@ -139,7 +139,7 @@ namespace eru
       return *this;
    }
 
-   PipelineBuilder& PipelineBuilder::assign_descriptor_set_layout(std::string_view const name,
+   GraphicsPipelineBuilder& GraphicsPipelineBuilder::assign_descriptor_set_layout(std::string_view const name,
       std::initializer_list<std::uint32_t> const slots)
    {
       for (std::uint32_t const slot : slots)
@@ -148,13 +148,13 @@ namespace eru
       return *this;
    }
 
-   PipelineBuilder& PipelineBuilder::add_push_constant_range(vk::PushConstantRange const push_constant_range)
+   GraphicsPipelineBuilder& GraphicsPipelineBuilder::add_push_constant_range(vk::PushConstantRange const push_constant_range)
    {
       push_constant_ranges_.emplace_back(push_constant_range);
       return *this;
    }
 
-   PipelineBuilder& PipelineBuilder::add_push_constant_ranges(
+   GraphicsPipelineBuilder& GraphicsPipelineBuilder::add_push_constant_ranges(
       std::initializer_list<vk::PushConstantRange> const push_constant_ranges)
    {
       for (vk::PushConstantRange const push_constant_range : push_constant_ranges)
@@ -163,13 +163,13 @@ namespace eru
       return *this;
    }
 
-   Pipeline PipelineBuilder::build(Device const& device, DescriptorSets const& desriptor_sets)
+   Pipeline GraphicsPipelineBuilder::build(Device const& device, DescriptorSets const& desriptor_sets)
    {
       vk::raii::PipelineLayout pipeline_layout{ create_pipeline_layout(device, desriptor_sets) };
       return { std::move(pipeline_layout), create_pipeline(device, pipeline_layout) };
    }
 
-   vk::raii::PipelineLayout PipelineBuilder::create_pipeline_layout(Device const& device, DescriptorSets const& desriptor_sets)
+   vk::raii::PipelineLayout GraphicsPipelineBuilder::create_pipeline_layout(Device const& device, DescriptorSets const& desriptor_sets)
    {
       if (std::ranges::any_of(descriptor_set_slots_,
          [](std::string_view const name)
@@ -191,7 +191,7 @@ namespace eru
       });
    }
 
-   vk::raii::Pipeline PipelineBuilder::create_pipeline(Device const& device,
+   vk::raii::Pipeline GraphicsPipelineBuilder::create_pipeline(Device const& device,
       vk::raii::PipelineLayout const& pipeline_layout) const
    {
       vk::PipelineRenderingCreateInfo const rendering_create_info{

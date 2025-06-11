@@ -1,6 +1,6 @@
 #include "depth_pass.hpp"
 
-#include "builders/pipeline_builder.hpp"
+#include "builders/graphics_pipeline_builder.hpp"
 #include "erupch/erupch.hpp"
 #include "scene/vertex.hpp"
 
@@ -14,7 +14,7 @@ namespace eru
       , vertex_shader_{ "resources/shaders/depth.vert", device }
       , fragment_shader_{ "resources/shaders/depth.frag", device }
       , pipeline_{
-         PipelineBuilder{}
+         GraphicsPipelineBuilder{}
          .change_depth_attachment_format(vk::Format::eD32Sfloat)
          .add_vertex_bindings(Vertex::BINDING_DESCRIPTIONS)
          .add_vertex_attributes({

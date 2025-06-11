@@ -1,5 +1,5 @@
 #include "geometry_pass.hpp"
-#include "builders/pipeline_builder.hpp"
+#include "builders/graphics_pipeline_builder.hpp"
 #include "scene/vertex.hpp"
 
 namespace eru
@@ -12,7 +12,7 @@ namespace eru
       , vertex_shader_{ "resources/shaders/geometry.vert", device }
       , fragment_shader_{ "resources/shaders/geometry.frag", device }
       , pipeline_{
-         PipelineBuilder{}
+         GraphicsPipelineBuilder{}
          .add_color_attachment_formats(FORMATS)
          .change_depth_attachment_format(vk::Format::eD32Sfloat)
          .add_vertex_bindings(Vertex::BINDING_DESCRIPTIONS)

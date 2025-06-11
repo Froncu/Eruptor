@@ -1,5 +1,5 @@
-#ifndef PIPELINE_BUILDER_HPP
-#define PIPELINE_BUILDER_HPP
+#ifndef GRAPHICS_PIPELINE_BUILDER_HPP
+#define GRAPHICS_PIPELINE_BUILDER_HPP
 
 #include "renderer/descriptor_sets.hpp"
 #include "renderer/device.hpp"
@@ -7,41 +7,41 @@
 
 namespace eru
 {
-   class PipelineBuilder final
+   class GraphicsPipelineBuilder final
    {
       public:
-         PipelineBuilder() = default;
-         PipelineBuilder(PipelineBuilder const&) = delete;
-         PipelineBuilder(PipelineBuilder&&) = delete;
+         GraphicsPipelineBuilder() = default;
+         GraphicsPipelineBuilder(GraphicsPipelineBuilder const&) = delete;
+         GraphicsPipelineBuilder(GraphicsPipelineBuilder&&) = delete;
 
-         ~PipelineBuilder() = default;
+         ~GraphicsPipelineBuilder() = default;
 
-         PipelineBuilder& operator=(PipelineBuilder const&) = delete;
-         PipelineBuilder& operator=(PipelineBuilder&&) = delete;
+         GraphicsPipelineBuilder& operator=(GraphicsPipelineBuilder const&) = delete;
+         GraphicsPipelineBuilder& operator=(GraphicsPipelineBuilder&&) = delete;
 
-         PipelineBuilder& add_color_attachment_format(vk::Format color_attachment_format);
-         PipelineBuilder& add_color_attachment_formats(std::span<vk::Format const> color_attachment_formats);
-         PipelineBuilder& change_depth_attachment_format(vk::Format depth_attachment_format);
-         PipelineBuilder& add_vertex_binding(vk::VertexInputBindingDescription const& vertex_binding);
-         PipelineBuilder& add_vertex_bindings(std::span<vk::VertexInputBindingDescription const> vertex_bindings);
-         PipelineBuilder& add_vertex_attribute(vk::VertexInputAttributeDescription const& vertex_attribute);
-         PipelineBuilder& add_vertex_attributes(std::span<vk::VertexInputAttributeDescription const> vertex_attributes);
-         PipelineBuilder& add_shader_stage(vk::PipelineShaderStageCreateInfo const& shader_stage);
-         PipelineBuilder& add_shader_stages(std::initializer_list<vk::PipelineShaderStageCreateInfo> shader_stages);
-         PipelineBuilder& change_input_assembly_state(vk::PipelineInputAssemblyStateCreateInfo const& input_assembly_state);
-         PipelineBuilder& change_rasterization_state(vk::PipelineRasterizationStateCreateInfo const& rasterization_state);
-         PipelineBuilder& change_multisample_state(vk::PipelineMultisampleStateCreateInfo const& multisample_state);
-         PipelineBuilder& change_depth_stencil_state(vk::PipelineDepthStencilStateCreateInfo const& depth_stencil_state);
-         PipelineBuilder& add_color_blend_attachment_state(
+         GraphicsPipelineBuilder& add_color_attachment_format(vk::Format color_attachment_format);
+         GraphicsPipelineBuilder& add_color_attachment_formats(std::span<vk::Format const> color_attachment_formats);
+         GraphicsPipelineBuilder& change_depth_attachment_format(vk::Format depth_attachment_format);
+         GraphicsPipelineBuilder& add_vertex_binding(vk::VertexInputBindingDescription const& vertex_binding);
+         GraphicsPipelineBuilder& add_vertex_bindings(std::span<vk::VertexInputBindingDescription const> vertex_bindings);
+         GraphicsPipelineBuilder& add_vertex_attribute(vk::VertexInputAttributeDescription const& vertex_attribute);
+         GraphicsPipelineBuilder& add_vertex_attributes(std::span<vk::VertexInputAttributeDescription const> vertex_attributes);
+         GraphicsPipelineBuilder& add_shader_stage(vk::PipelineShaderStageCreateInfo const& shader_stage);
+         GraphicsPipelineBuilder& add_shader_stages(std::initializer_list<vk::PipelineShaderStageCreateInfo> shader_stages);
+         GraphicsPipelineBuilder& change_input_assembly_state(vk::PipelineInputAssemblyStateCreateInfo const& input_assembly_state);
+         GraphicsPipelineBuilder& change_rasterization_state(vk::PipelineRasterizationStateCreateInfo const& rasterization_state);
+         GraphicsPipelineBuilder& change_multisample_state(vk::PipelineMultisampleStateCreateInfo const& multisample_state);
+         GraphicsPipelineBuilder& change_depth_stencil_state(vk::PipelineDepthStencilStateCreateInfo const& depth_stencil_state);
+         GraphicsPipelineBuilder& add_color_blend_attachment_state(
             vk::PipelineColorBlendAttachmentState const& color_blend_attachment_state, std::uint32_t count = 1);
-         PipelineBuilder& add_color_blend_attachment_states(
+         GraphicsPipelineBuilder& add_color_blend_attachment_states(
             std::initializer_list<vk::PipelineColorBlendAttachmentState> color_blend_attachment_states);
-         PipelineBuilder& add_dynamic_state(vk::DynamicState state);
-         PipelineBuilder& add_dynamic_states(std::initializer_list<vk::DynamicState> states);
-         PipelineBuilder& assign_descriptor_set_layout(std::string name, std::uint32_t slot);
-         PipelineBuilder& assign_descriptor_set_layout(std::string_view name, std::initializer_list<std::uint32_t> slots);
-         PipelineBuilder& add_push_constant_range(vk::PushConstantRange push_constant_range);
-         PipelineBuilder& add_push_constant_ranges(std::initializer_list<vk::PushConstantRange> push_constant_ranges);
+         GraphicsPipelineBuilder& add_dynamic_state(vk::DynamicState state);
+         GraphicsPipelineBuilder& add_dynamic_states(std::initializer_list<vk::DynamicState> states);
+         GraphicsPipelineBuilder& assign_descriptor_set_layout(std::string name, std::uint32_t slot);
+         GraphicsPipelineBuilder& assign_descriptor_set_layout(std::string_view name, std::initializer_list<std::uint32_t> slots);
+         GraphicsPipelineBuilder& add_push_constant_range(vk::PushConstantRange push_constant_range);
+         GraphicsPipelineBuilder& add_push_constant_ranges(std::initializer_list<vk::PushConstantRange> push_constant_ranges);
 
          [[nodiscard]] Pipeline build(Device const& device, DescriptorSets const& desriptor_sets);
 

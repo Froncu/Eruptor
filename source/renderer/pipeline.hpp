@@ -5,7 +5,8 @@ namespace eru
 {
    class Pipeline
    {
-      friend class PipelineBuilder;
+      friend class GraphicsPipelineBuilder;
+      friend class ComputePipelineBuilder;
 
       public:
          Pipeline(Pipeline const&) = delete;

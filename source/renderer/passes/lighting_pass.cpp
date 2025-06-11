@@ -1,5 +1,5 @@
 #include "lighting_pass.hpp"
-#include "builders/pipeline_builder.hpp"
+#include "builders/graphics_pipeline_builder.hpp"
 
 namespace eru
 {
@@ -11,7 +11,7 @@ namespace eru
       , vertex_shader_{ "resources/shaders/fullscreen_quad.vert", device }
       , fragment_shader_{ "resources/shaders/lighting.frag", device }
       , pipeline_{
-         PipelineBuilder{}
+         GraphicsPipelineBuilder{}
          .add_color_attachment_format(vk::Format::eR32G32B32A32Sfloat)
          .add_shader_stages({
             {
