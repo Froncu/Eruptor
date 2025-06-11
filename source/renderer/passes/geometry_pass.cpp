@@ -106,7 +106,7 @@ namespace eru
    }
 
    void GeometryPass::render(vk::raii::CommandBuffer const& command_buffer, Scene const& scene,
-      std::uint32_t const current_frame, ImageView const& depth_image_view) const
+      ImageView const& depth_image_view, std::uint32_t const current_frame) const
    {
       std::array<vk::ImageMemoryBarrier2, FORMATS.size()> begin_barriers{};
       for (std::size_t index{}; index < FORMATS.size(); ++index)

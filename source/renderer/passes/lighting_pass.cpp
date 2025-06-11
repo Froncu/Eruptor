@@ -57,8 +57,8 @@ namespace eru
       write_descriptor_sets(device);
    }
 
-   void LightingPass::render(vk::raii::CommandBuffer const& command_buffer, std::uint32_t current_frame,
-      glm::vec3 camera_position) const
+   void LightingPass::render(vk::raii::CommandBuffer const& command_buffer, glm::vec3 const camera_position,
+      std::uint32_t const current_frame) const
    {
       vk::ImageMemoryBarrier2 const begin_barrier{
          .srcStageMask{ vk::PipelineStageFlagBits2::eNone },

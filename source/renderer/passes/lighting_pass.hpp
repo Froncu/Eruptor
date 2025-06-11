@@ -23,8 +23,8 @@ namespace eru
          LightingPass& operator=(LightingPass const&) = delete;
          LightingPass& operator=(LightingPass&&) = delete;
 
-         void render(vk::raii::CommandBuffer const& command_buffer, std::uint32_t current_frame,
-            glm::vec3 camera_position) const;
+         void render(vk::raii::CommandBuffer const& command_buffer, glm::vec3 camera_position,
+            std::uint32_t current_frame) const;
          void recreate_hdr_images(Device const& device, vk::Extent2D swap_chain_extent);
 
       private:

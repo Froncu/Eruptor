@@ -36,8 +36,8 @@ namespace eru
          [[nodiscard]] std::span<ImageView const> normal_image_view() const;
          [[nodiscard]] std::span<ImageView const> metalness_image_view() const;
 
-         void render(vk::raii::CommandBuffer const& command_buffer, Scene const& scene, std::uint32_t current_frame,
-            ImageView const& depth_image_view) const;
+         void render(vk::raii::CommandBuffer const& command_buffer, Scene const& scene, ImageView const& depth_image_view,
+            std::uint32_t current_frame) const;
          void recreate_geometry_images(Device const& device, vk::Extent2D swap_chain_extent);
 
       private:

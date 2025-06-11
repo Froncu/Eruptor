@@ -15,6 +15,7 @@
 #include "passes/depth_pass.hpp"
 #include "passes/geometry_pass.hpp"
 #include "passes/lighting_pass.hpp"
+#include "passes/tone_map_pass.hpp"
 #include "scene/scene.hpp"
 #include "window/window.hpp"
 
@@ -174,36 +175,7 @@ namespace eru
          DepthPass depth_pass_{ device_, swap_chain_.extent(), descriptor_sets_, FRAMES_IN_FLIGHT };
          GeometryPass geometry_pass_{ device_, swap_chain_.extent(), descriptor_sets_, FRAMES_IN_FLIGHT };
          LightingPass lighting_pass_{ device_, swap_chain_.extent(), descriptor_sets_, FRAMES_IN_FLIGHT };
-
-         Shader vertex_shader_{ "resources/shaders/fullscreen_quad.vert", device_ };
-         Shader fragment_shader_{ "resources/shaders/tone_mapping.frag", device_ };
-         Pipeline pipeline_{
-            GraphicsPipelineBuilder{}
-            .add_color_attachment_format(swap_chain_.images().front().info().format)
-            .add_shader_stages({
-               {
-                  .stage{ vk::ShaderStageFlagBits::eVertex },
-                  .module{ *vertex_shader_.module() },
-                  .pName{ "main" }
-               },
-               {
-                  .stage{ vk::ShaderStageFlagBits::eFragment },
-                  .module{ *fragment_shader_.module() },
-                  .pName{ "main" }
-               }
-            })
-            .change_input_assembly_state({
-               .topology{ vk::PrimitiveTopology::eTriangleStrip }
-            })
-            .assign_descriptor_set_layout("hdr", 0)
-            .change_depth_stencil_state({})
-            .add_push_constant_range({
-               .stageFlags{ vk::ShaderStageFlagBits::eFragment },
-               .offset{ 0 },
-               .size{ sizeof(std::uint32_t) }
-            })
-            .build(device_, descriptor_sets_)
-         };
+         ToneMapPass tone_map_pass_{ device_, swap_chain_.images().front().info().format, descriptor_sets_ };
 
          std::vector<Buffer> camera_buffers_{
             [this]
