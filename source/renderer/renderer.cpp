@@ -128,7 +128,7 @@ namespace eru
 
       command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline_.layout(), 0,
          {
-            descriptor_sets_.sets("hdr").front()
+            descriptor_sets_.sets("hdr_read").front()
          }, {});
 
       command_buffer.pushConstants<std::uint32_t>(*pipeline_.layout(),
