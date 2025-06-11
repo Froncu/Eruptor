@@ -144,7 +144,7 @@ namespace eru
                   }
                },
                {
-                  .name{ "hdr_read" },
+                  .name{ "hdr" },
                   .bindings{
                      {
                         .name{ "sampler" },
@@ -155,17 +155,6 @@ namespace eru
                         .name{ "image" },
                         .type{ vk::DescriptorType::eSampledImage },
                         .shader_stage_flags{ vk::ShaderStageFlagBits::eFragment },
-                        .count{ FRAMES_IN_FLIGHT }
-                     }
-                  }
-               },
-               {
-                  .name{ "hdr_read_write" },
-                  .bindings{
-                     {
-                        .name{ "image" },
-                        .type{ vk::DescriptorType::eStorageImage },
-                        .shader_stage_flags{ vk::ShaderStageFlagBits::eCompute },
                         .count{ FRAMES_IN_FLIGHT }
                      }
                   }
@@ -206,7 +195,7 @@ namespace eru
             .change_input_assembly_state({
                .topology{ vk::PrimitiveTopology::eTriangleStrip }
             })
-            .assign_descriptor_set_layout("hdr_read", 0)
+            .assign_descriptor_set_layout("hdr", 0)
             .change_depth_stencil_state({})
             .add_push_constant_range({
                .stageFlags{ vk::ShaderStageFlagBits::eFragment },
@@ -316,8 +305,8 @@ namespace eru
                });
 
                writes.push_back({
-                  .dstSet{ *descriptor_sets_.sets("hdr_read").front() },
-                  .dstBinding{ descriptor_sets_.binding("hdr_read", "sampler") },
+                  .dstSet{ *descriptor_sets_.sets("hdr").front() },
+                  .dstBinding{ descriptor_sets_.binding("hdr", "sampler") },
                   .dstArrayElement{ 0 },
                   .descriptorCount{ 1 },
                   .descriptorType{ vk::DescriptorType::eSampler },

@@ -46,9 +46,7 @@ namespace eru
          .change_array_layers(1)
          .change_samples(vk::SampleCountFlagBits::e1)
          .change_tiling(vk::ImageTiling::eOptimal)
-         .change_usage(vk::ImageUsageFlagBits::eColorAttachment |
-            vk::ImageUsageFlagBits::eStorage |
-            vk::ImageUsageFlagBits::eSampled)
+         .change_usage(vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled)
          .change_sharing_mode(vk::SharingMode::eExclusive)
          .change_initial_layout(vk::ImageLayout::eUndefined)
          .change_allocation_required_flags(vk::MemoryPropertyFlagBits::eDeviceLocal)
@@ -189,9 +187,9 @@ namespace eru
    void LightingPass::write_descriptor_sets(Device const& device) const
    {
       std::vector<vk::DescriptorImageInfo> image_infos{};
-      image_infos.reserve(frames_in_flight_ * 2);
+      image_infos.reserve(frames_in_flight_);
       std::vector<vk::WriteDescriptorSet> writes{};
-      writes.reserve(frames_in_flight_ * 2);
+      writes.reserve(frames_in_flight_);
 
       for (std::uint32_t index{}; index < frames_in_flight_; ++index)
       {
@@ -201,25 +199,11 @@ namespace eru
          });
 
          writes.push_back({
-            .dstSet{ *descriptor_sets_.sets("hdr_read").front() },
-            .dstBinding{ descriptor_sets_.binding("hdr_read", "image") },
+            .dstSet{ *descriptor_sets_.sets("hdr").front() },
+            .dstBinding{ descriptor_sets_.binding("hdr", "image") },
             .dstArrayElement{ index },
             .descriptorCount{ 1 },
             .descriptorType{ vk::DescriptorType::eSampledImage },
-            .pImageInfo{ &image_infos.back() }
-         });
-
-         image_infos.push_back({
-            .imageView{ *image_views_[index].image_view() },
-            .imageLayout{ vk::ImageLayout::eGeneral }
-         });
-
-         writes.push_back({
-            .dstSet{ *descriptor_sets_.sets("hdr_read_write").front() },
-            .dstBinding{ descriptor_sets_.binding("hdr_read_write", "image") },
-            .dstArrayElement{ index },
-            .descriptorCount{ 1 },
-            .descriptorType{ vk::DescriptorType::eStorageImage },
             .pImageInfo{ &image_infos.back() }
          });
       }
