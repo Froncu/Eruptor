@@ -44,6 +44,7 @@ namespace eru
       if (device_.device().waitForFences({ command_buffer_executed_fence }, true,
          std::numeric_limits<std::uint64_t>::max()) not_eq vk::Result::eSuccess)
          exception("failed to wait for fences!");
+      device_.device().resetFences({ command_buffer_executed_fence });
 
       camera_buffers_[current_frame_].upload(&camera.data(), sizeof(camera.data()));
 
@@ -58,8 +59,6 @@ namespace eru
 
       Image const& swap_chain_image{ swap_chain_.images()[image_index] };
       ImageView const& swap_chain_image_view{ swap_chain_.image_views()[image_index] };
-
-      device_.device().resetFences({ command_buffer_executed_fence });
 
       command_buffer.reset();
 
