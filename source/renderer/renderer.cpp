@@ -36,10 +36,10 @@ namespace eru
       if (window_->minimised())
          return;
 
+      vk::raii::CommandBuffer const& command_buffer{ command_buffers_[current_frame_] };
       vk::raii::Fence const& command_buffer_executed_fence{ command_buffer_executed_fences_[current_frame_] };
       vk::raii::Semaphore const& image_available_semaphore{ image_available_semaphores_[current_frame_] };
       vk::raii::Semaphore const& render_finished_semaphore{ render_finished_semaphores_[current_frame_] };
-      vk::raii::CommandBuffer const& command_buffer{ command_buffers_[current_frame_] };
 
       if (device_.device().waitForFences({ command_buffer_executed_fence }, true,
          std::numeric_limits<std::uint64_t>::max()) not_eq vk::Result::eSuccess)
@@ -71,20 +71,33 @@ namespace eru
 
       command_buffer.end();
 
-      std::array<vk::PipelineStageFlags, 1> constexpr wait_stages{ vk::PipelineStageFlagBits::eColorAttachmentOutput };
       // TODO: this waits on the image to be available in the first color attachment output stage
       // for the current command buffer, which happens in the geometry pass; not good!
       // The compute shader stage is also waiting until the entire render is finished,
       // which probably could be improved as well.
-      device_.queues().front().queue().submit({
+
+      vk::SemaphoreSubmitInfo const wait_semaphore_info{
+         .semaphore{ *image_available_semaphore },
+         .stageMask{ vk::PipelineStageFlagBits2::eColorAttachmentOutput },
+      };
+
+      vk::CommandBufferSubmitInfo const command_buffer_info{
+         .commandBuffer{ *command_buffers_[current_frame_] }
+      };
+
+      vk::SemaphoreSubmitInfo const signal_semaphore_info{
+         .semaphore{ *render_finished_semaphore },
+         .stageMask{ vk::PipelineStageFlagBits2::eColorAttachmentOutput }
+      };
+
+      device_.queues().front().queue().submit2({
          {
-            .waitSemaphoreCount{ 1 },
-            .pWaitSemaphores{ &*image_available_semaphore },
-            .pWaitDstStageMask{ wait_stages.data() },
-            .commandBufferCount{ 1 },
-            .pCommandBuffers{ &*command_buffers_[current_frame_] },
-            .signalSemaphoreCount{ 1 },
-            .pSignalSemaphores{ &*render_finished_semaphore },
+            .waitSemaphoreInfoCount{ 1 },
+            .pWaitSemaphoreInfos{ &wait_semaphore_info },
+            .commandBufferInfoCount{ 1 },
+            .pCommandBufferInfos{ &command_buffer_info },
+            .signalSemaphoreInfoCount{ 1 },
+            .pSignalSemaphoreInfos{ &signal_semaphore_info }
          }
       }, command_buffer_executed_fence);
 
