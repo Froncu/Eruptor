@@ -168,9 +168,10 @@ namespace eru
                         .name{ "bins" },
                         .type{ vk::DescriptorType::eStorageBuffer },
                         .shader_stage_flags{ vk::ShaderStageFlagBits::eCompute },
-                        .count{ 256 * FRAMES_IN_FLIGHT }
+                        .count{ 256 }
                      }
-                  }
+                  },
+                  .allocation_count{ FRAMES_IN_FLIGHT }
                },
                {
                   .name{ "avarage_luminance" },
@@ -178,10 +179,10 @@ namespace eru
                      {
                         .name{ "value" },
                         .type{ vk::DescriptorType::eStorageBuffer },
-                        .shader_stage_flags{ vk::ShaderStageFlagBits::eCompute | vk::ShaderStageFlagBits::eFragment },
-                        .count{ FRAMES_IN_FLIGHT }
+                        .shader_stage_flags{ vk::ShaderStageFlagBits::eCompute | vk::ShaderStageFlagBits::eFragment }
                      }
-                  }
+                  },
+                  .allocation_count{ FRAMES_IN_FLIGHT }
                }
             })
             .build(device_)
