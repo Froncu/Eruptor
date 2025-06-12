@@ -4,8 +4,6 @@
 #include "buffer.hpp"
 #include "camera.hpp"
 #include "device.hpp"
-#include "pipeline.hpp"
-#include "shader.hpp"
 #include "builders/buffer_builder.hpp"
 #include "builders/descriptor_sets_builder.hpp"
 #include "builders/device_builder.hpp"
@@ -55,7 +53,10 @@ namespace eru
                .synchronization2{ true },
                .dynamicRendering{ true }
             })
-            .add_queues({ vk::QueueFlagBits::eGraphics | vk::QueueFlagBits::eTransfer, window_->surface() })
+            .add_queues({
+               vk::QueueFlagBits::eGraphics | vk::QueueFlagBits::eTransfer | vk::QueueFlagBits::eCompute,
+               window_->surface()
+            })
             .build()
          };
          DescriptorSets descriptor_sets_{
@@ -155,7 +156,29 @@ namespace eru
                      {
                         .name{ "image" },
                         .type{ vk::DescriptorType::eSampledImage },
-                        .shader_stage_flags{ vk::ShaderStageFlagBits::eFragment },
+                        .shader_stage_flags{ vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eCompute },
+                        .count{ FRAMES_IN_FLIGHT }
+                     }
+                  }
+               },
+               {
+                  .name{ "histogram" },
+                  .bindings{
+                     {
+                        .name{ "bins" },
+                        .type{ vk::DescriptorType::eStorageBuffer },
+                        .shader_stage_flags{ vk::ShaderStageFlagBits::eCompute },
+                        .count{ 256 * FRAMES_IN_FLIGHT }
+                     }
+                  }
+               },
+               {
+                  .name{ "avarage_luminance" },
+                  .bindings{
+                     {
+                        .name{ "value" },
+                        .type{ vk::DescriptorType::eStorageBuffer },
+                        .shader_stage_flags{ vk::ShaderStageFlagBits::eCompute | vk::ShaderStageFlagBits::eFragment },
                         .count{ FRAMES_IN_FLIGHT }
                      }
                   }
