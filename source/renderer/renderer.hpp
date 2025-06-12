@@ -47,7 +47,8 @@ namespace eru
             .enable_features12({
                .shaderSampledImageArrayNonUniformIndexing{ true },
                .descriptorBindingPartiallyBound{ true }, // QUESTION: my bindless setup worked without this, why?
-               .runtimeDescriptorArray{ true }
+               .runtimeDescriptorArray{ true },
+               .timelineSemaphore{ true }
             })
             .enable_features13({
                .synchronization2{ true },
@@ -388,6 +389,20 @@ namespace eru
                return fences;
             }()
          };
+
+         vk::raii::Semaphore timeline_semaphore_{
+            [this]
+            {
+               vk::SemaphoreTypeCreateInfo constexpr timeline_info{
+                  .semaphoreType{ vk::SemaphoreType::eTimeline }
+              };
+
+               return device_.device().createSemaphore({
+                  .pNext{ &timeline_info }
+               });
+            }()
+         };
+         std::uint64_t timeline_semaphore_value_{};
 
          std::uint32_t current_frame_{};
    };

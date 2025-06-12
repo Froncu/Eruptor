@@ -73,31 +73,47 @@ namespace eru
 
       // TODO: this waits on the image to be available in the first color attachment output stage
       // for the current command buffer, which happens in the geometry pass; not good!
-      // The compute shader stage is also waiting until the entire render is finished,
-      // which probably could be improved as well.
 
-      vk::SemaphoreSubmitInfo const wait_semaphore_info{
-         .semaphore{ *image_available_semaphore },
-         .stageMask{ vk::PipelineStageFlagBits2::eColorAttachmentOutput },
+      std::array<vk::SemaphoreSubmitInfo, 2> const wait_semaphore_infos{
+         {
+            {
+               .semaphore{ *image_available_semaphore },
+               .stageMask{ vk::PipelineStageFlagBits2::eColorAttachmentOutput }
+            },
+            {
+               .semaphore{ *timeline_semaphore_ },
+               .value{ timeline_semaphore_value_++ },
+               .stageMask{ vk::PipelineStageFlagBits2::eComputeShader }
+            }
+         }
       };
 
       vk::CommandBufferSubmitInfo const command_buffer_info{
          .commandBuffer{ *command_buffers_[current_frame_] }
       };
 
-      vk::SemaphoreSubmitInfo const signal_semaphore_info{
-         .semaphore{ *render_finished_semaphore },
-         .stageMask{ vk::PipelineStageFlagBits2::eColorAttachmentOutput }
+      std::array<vk::SemaphoreSubmitInfo, 2> const signal_semaphore_infos{
+         {
+            {
+               .semaphore{ *render_finished_semaphore },
+               .stageMask{ vk::PipelineStageFlagBits2::eColorAttachmentOutput }
+            },
+            {
+               .semaphore{ *timeline_semaphore_ },
+               .value{ timeline_semaphore_value_ },
+               .stageMask{ vk::PipelineStageFlagBits2::eComputeShader },
+            }
+         }
       };
 
       device_.queues().front().queue().submit2({
          {
-            .waitSemaphoreInfoCount{ 1 },
-            .pWaitSemaphoreInfos{ &wait_semaphore_info },
+            .waitSemaphoreInfoCount{ static_cast<std::uint32_t>(wait_semaphore_infos.size()) },
+            .pWaitSemaphoreInfos{ wait_semaphore_infos.data() },
             .commandBufferInfoCount{ 1 },
             .pCommandBufferInfos{ &command_buffer_info },
-            .signalSemaphoreInfoCount{ 1 },
-            .pSignalSemaphoreInfos{ &signal_semaphore_info }
+            .signalSemaphoreInfoCount{ static_cast<std::uint32_t>(signal_semaphore_infos.size()) },
+            .pSignalSemaphoreInfos{ signal_semaphore_infos.data() }
          }
       }, command_buffer_executed_fence);
 
