@@ -72,6 +72,10 @@ namespace eru
       command_buffer.end();
 
       std::array<vk::PipelineStageFlags, 1> constexpr wait_stages{ vk::PipelineStageFlagBits::eColorAttachmentOutput };
+      // TODO: this waits on the image to be available in the first color attachment output stage
+      // for the current command buffer, which happens in the geometry pass; not good!
+      // The compute shader stage is also waiting until the entire render is finished,
+      // which probably could be improved as well.
       device_.queues().front().queue().submit({
          {
             .waitSemaphoreCount{ 1 },
