@@ -13,6 +13,7 @@
 #include "passes/depth_pass.hpp"
 #include "passes/geometry_pass.hpp"
 #include "passes/lighting_pass.hpp"
+#include "passes/luminance_pass.hpp"
 #include "passes/tone_map_pass.hpp"
 #include "scene/scene.hpp"
 #include "window/window.hpp"
@@ -152,7 +153,7 @@ namespace eru
                      {
                         .name{ "sampler" },
                         .type{ vk::DescriptorType::eSampler },
-                        .shader_stage_flags{ vk::ShaderStageFlagBits::eFragment }
+                        .shader_stage_flags{ vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eCompute }
                      },
                      {
                         .name{ "image" },
@@ -167,6 +168,7 @@ namespace eru
                   .bindings{
                      {
                         .name{ "bins" },
+                        .flags{ vk::DescriptorBindingFlagBits::ePartiallyBound },
                         .type{ vk::DescriptorType::eStorageBuffer },
                         .shader_stage_flags{ vk::ShaderStageFlagBits::eCompute },
                         .count{ 256 }
@@ -200,6 +202,7 @@ namespace eru
          DepthPass depth_pass_{ device_, swap_chain_.extent(), descriptor_sets_, FRAMES_IN_FLIGHT };
          GeometryPass geometry_pass_{ device_, swap_chain_.extent(), descriptor_sets_, FRAMES_IN_FLIGHT };
          LightingPass lighting_pass_{ device_, swap_chain_.extent(), descriptor_sets_, FRAMES_IN_FLIGHT };
+         LuminancePass luminance_pass_{ device_, descriptor_sets_, FRAMES_IN_FLIGHT };
          ToneMapPass tone_map_pass_{ device_, swap_chain_.images().front().info().format, descriptor_sets_ };
 
          std::vector<Buffer> camera_buffers_{

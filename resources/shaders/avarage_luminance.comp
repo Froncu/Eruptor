@@ -1,0 +1,70 @@
+#version 450
+#extension GL_EXT_nonuniform_qualifier : enable
+#extension GL_EXT_control_flow_attributes : enable
+
+#define LOCAL_SIZE_X 16
+#define LOCAL_SIZE_Y 16
+#define LOCAL_SIZE_Z 1
+#define HISTOGRAM_BIN_COUNT (LOCAL_SIZE_X * LOCAL_SIZE_Y * LOCAL_SIZE_Z)
+
+layout(push_constant) uniform PushConstants {
+   uint current_frame;
+} push_constants;
+
+layout(set = 0, binding = 0) uniform sampler texture_sampler;
+layout(set = 0, binding = 1) uniform texture2D hdr_textures[];
+
+layout(set = 1, binding = 0) buffer HistogramBuffer{
+   uint bins[];
+} histogram_buffer;
+
+layout(set = 2, binding = 0) readonly buffer PreviousLuminance{
+   float value;
+} previous_luminance;
+
+layout(set = 3, binding = 0) writeonly buffer CurrentLuminance{
+   float value;
+} current_luminance;
+
+layout(local_size_x = LOCAL_SIZE_X, local_size_y = LOCAL_SIZE_Y, local_size_z = LOCAL_SIZE_Z) in;
+
+shared uint histogram_shared[HISTOGRAM_BIN_COUNT];
+
+void main()
+{
+   const uint bin_count = histogram_buffer.bins[gl_LocalInvocationIndex];
+   histogram_shared[gl_LocalInvocationIndex] = bin_count * gl_LocalInvocationIndex;
+
+   barrier();
+
+   histogram_buffer.bins[gl_LocalInvocationIndex] = 0;
+
+   [[unroll]]
+   for (uint cutoff = HISTOGRAM_BIN_COUNT >> 1; cutoff > 0; cutoff >>= 1)
+   {
+      if (gl_LocalInvocationIndex < cutoff)
+         histogram_shared[gl_LocalInvocationIndex] += histogram_shared[gl_LocalInvocationIndex + cutoff];
+      
+      barrier();
+   }
+
+   if (gl_LocalInvocationIndex == 0)
+   {
+      // TODO: pass these values from the application & add delta seconds
+      const float minimal_log_luminance = -4.0;
+      const float log_luminance_range = 16.0;
+      const float time_coefficient = 0.01;
+
+      const ivec2 dimensions = textureSize(sampler2D(hdr_textures[push_constants.current_frame], texture_sampler), 0);
+      const int pixel_count = dimensions.x * dimensions.y;
+      const float weighted_log_average = float(histogram_shared[0]) / max(pixel_count - bin_count, 1) - 1.0;
+      
+      const float weighted_avarage_luminance
+         = exp2(((weighted_log_average / (HISTOGRAM_BIN_COUNT - 2)) * log_luminance_range) + minimal_log_luminance);
+
+      const float adapted_luminance
+         = previous_luminance.value + (weighted_avarage_luminance - previous_luminance.value) * time_coefficient;
+
+      current_luminance.value = adapted_luminance;
+   }
+}

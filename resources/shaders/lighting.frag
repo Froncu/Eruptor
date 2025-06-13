@@ -12,25 +12,20 @@ const vec3 point_lights[light_count] = vec3[](
     vec3(5.0, 0.5, 0.3)
 );
 const vec3 point_light_colors[light_count] = vec3[](
-   vec3(20.0, 0.0, 0.0),
-   vec3(0.0, 20.0, 0.0),
-   vec3(0.0, 0.0, 20.0)
+   vec3(200.0, 0.0, 0.0),
+   vec3(0.0, 200.0, 0.0),
+   vec3(0.0, 0.0, 200.0)
 );
 const vec3 directional_lights[light_count] = vec3[](
-    normalize(vec3(-0.5, 1.0, -0.3)),
-    normalize(vec3(0.0, 1.0, 0.0)),
-    normalize(vec3(0.3, 1.0, 0.5))
+   normalize(vec3(-0.7, 1.0, -0.2)),
+   normalize(vec3(0.0, 1.0, 0.5)),
+   normalize(vec3(0.6, 1.0, -0.4))
 );
 const vec3 directional_light_colors[light_count] = vec3[](
-   vec3(4.8, 4.4, 4.0),
-   vec3(4.0, 6.4, 4.0),
-   vec3(10.0, 9.6, 8.8)
+    vec3(255.0, 255.0, 255.0),
+    vec3(200.0, 220.0, 255.0),
+    vec3(255.0, 244.0, 214.0)
 );
-//const vec3 directional_light_colors[light_count] = vec3[](
-//    vec3(60.0, 56.0, 50.0),   // Warm white (incandescent)
-//    vec3(50.0, 80.0, 100.0),  // Cool white (daylight)
-//    vec3(255.0, 241.0, 224.0) // Sunlight (D65)
-//);
 
 layout(push_constant) uniform PushConstants {
    vec3 camera_position;

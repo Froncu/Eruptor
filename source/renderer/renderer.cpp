@@ -67,6 +67,7 @@ namespace eru
       depth_pass_.render(command_buffer, scene_, current_frame_);
       geometry_pass_.render(command_buffer, scene_, depth_pass_.depth_image_views()[current_frame_], current_frame_);
       lighting_pass_.render(command_buffer, camera.position(), current_frame_);
+      luminance_pass_.compute(command_buffer, current_frame_);
       tone_map_pass_.render(command_buffer, swap_chain_image, swap_chain_image_view, swap_chain_.extent(), current_frame_);
 
       command_buffer.end();

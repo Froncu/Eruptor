@@ -26,6 +26,7 @@ namespace eru
             .topology{ vk::PrimitiveTopology::eTriangleStrip }
          })
          .assign_descriptor_set_layout("hdr", 0)
+         .assign_descriptor_set_layout("avarage_luminance", 1)
          .change_depth_stencil_state({})
          .add_push_constant_range({
             .stageFlags{ vk::ShaderStageFlagBits::eFragment },
@@ -99,7 +100,8 @@ namespace eru
 
       command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline_.layout(), 0,
          {
-            descriptor_sets_.sets("hdr").front()
+            descriptor_sets_.sets("hdr").front(),
+            descriptor_sets_.sets("avarage_luminance")[current_frame]
          }, {});
 
       command_buffer.pushConstants<std::uint32_t>(*pipeline_.layout(),
