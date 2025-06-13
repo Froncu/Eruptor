@@ -112,7 +112,7 @@ void main()
    
    for (int index = 0; index < light_count; ++index)
    {
-      vec3 l = normalize(point_lights[index] - position);
+      vec3 l = point_lights[index] - position;
       const float distance = length(l);
       l /= distance;
       const vec3 h = normalize(v + l);
