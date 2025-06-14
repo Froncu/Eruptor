@@ -9,6 +9,10 @@
 
 layout(push_constant) uniform PushConstants {
    uint current_frame;
+   float minimal_log_luminance;
+   float log_luminance_range;
+   float time_coefficient;
+   float delta_seconds;
 } push_constants;
 
 layout(set = 0, binding = 0) uniform sampler texture_sampler;
@@ -50,14 +54,14 @@ void main()
 
    if (gl_LocalInvocationIndex == 0)
    {
-      // TODO: pass these values from the application & add delta seconds
-      const float minimal_log_luminance = -4.0;
-      const float log_luminance_range = 16.0;
-      const float time_coefficient = 0.01;
-
       const ivec2 dimensions = textureSize(sampler2D(hdr_textures[push_constants.current_frame], texture_sampler), 0);
       const int pixel_count = dimensions.x * dimensions.y;
       const float weighted_log_average = float(histogram_shared[0]) / max(pixel_count - bin_count, 1) - 1.0;
+
+      const float minimal_log_luminance = push_constants.minimal_log_luminance;
+      const float log_luminance_range = push_constants.log_luminance_range;
+      const float time_coefficient = push_constants.time_coefficient;
+      const float delta_seconds = push_constants.delta_seconds;
       
       const float weighted_avarage_luminance
          = exp2(((weighted_log_average / (HISTOGRAM_BIN_COUNT - 2)) * log_luminance_range) + minimal_log_luminance);

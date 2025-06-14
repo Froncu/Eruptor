@@ -60,7 +60,7 @@ namespace eru
          rotation *= rotation_speed_ * delta_seconds;
          renderer_.camera.rotate(rotation.x, rotation.y);
 
-         renderer_.render();
+         renderer_.render(delta_seconds);
       }
    }
 }

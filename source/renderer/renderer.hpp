@@ -32,7 +32,7 @@ namespace eru
          Renderer& operator=(Renderer const&) = delete;
          Renderer& operator=(Renderer&&) = delete;
 
-         void render();
+         void render(float delta_seconds);
 
          Camera camera{};
 

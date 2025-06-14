@@ -11,7 +11,30 @@ namespace eru
 {
    class LuminancePass final
    {
+      struct HistogramPushConstants final
+      {
+         std::uint32_t current_frame;
+         float minimal_log_luminance;
+         float inverse_log_luminance_range;
+      };
+
+      struct AvarageLuminancePushConstants final
+      {
+         std::uint32_t current_frame;
+         float minimal_log_luminance;
+         float log_luminance_range;
+         float time_coefficient;
+         float delta_seconds;
+      };
+
       public:
+         struct Settings final
+         {
+            float minimal_log_luminance{ -4.0f };
+            float maximal_log_luminance{ 16.0f };
+            float time_coefficient{ 0.01f };
+         };
+
          LuminancePass(Device const& device, DescriptorSets const& descciptor_sets, std::uint32_t frames_in_flight);
          LuminancePass(LuminancePass const&) = delete;
          LuminancePass(LuminancePass&&) = default;
@@ -21,7 +44,11 @@ namespace eru
          LuminancePass& operator=(LuminancePass const&) = delete;
          LuminancePass& operator=(LuminancePass&&) = delete;
 
-         void compute(vk::raii::CommandBuffer const& command_buffer, std::uint32_t current_frame) const;
+         void change_minimal_log_luminance(float minimal_log_luminance);
+         void change_maximal_log_luminance(float maximal_log_luminance);
+         void change_time_coefficient(float time_coefficient);
+
+         void compute(vk::raii::CommandBuffer const& command_buffer, std::uint32_t current_frame, float delta_seconds) const;
 
       private:
          static std::uint32_t constexpr HISTOGRAM_BIN_COUNT{ 256 };
@@ -36,6 +63,8 @@ namespace eru
 
          std::vector<Buffer> histogram_buffers_;
          std::vector<Buffer> avarage_luminance_buffers_;
+
+         Settings settings_{};
    };
 }
 

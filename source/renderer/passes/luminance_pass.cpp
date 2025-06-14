@@ -1,4 +1,5 @@
 #include "luminance_pass.hpp"
+#include "luminance_pass.hpp"
 #include "builders/compute_pipeline_builder.hpp"
 
 namespace eru
@@ -19,7 +20,7 @@ namespace eru
          .assign_descriptor_set_layout("histogram", 1)
          .add_push_constant_range({
             .stageFlags{ vk::ShaderStageFlagBits::eCompute },
-            .size{ sizeof(std::uint32_t) }
+            .size{ sizeof(HistogramPushConstants) }
          })
          .build(device, descriptor_sets_)
       }
@@ -37,7 +38,7 @@ namespace eru
          .assign_descriptor_set_layout("avarage_luminance", 3)
          .add_push_constant_range({
             .stageFlags{ vk::ShaderStageFlagBits::eCompute },
-            .size{ sizeof(std::uint32_t) }
+            .size{ sizeof(AvarageLuminancePushConstants) }
          })
          .build(device, descriptor_sets_)
       }
@@ -115,7 +116,23 @@ namespace eru
       device.device().updateDescriptorSets(writes, {});
    }
 
-   void LuminancePass::compute(vk::raii::CommandBuffer const& command_buffer, std::uint32_t const current_frame) const
+   void LuminancePass::change_minimal_log_luminance(float const minimal_log_luminance)
+   {
+      settings_.minimal_log_luminance = minimal_log_luminance;
+   }
+
+   void LuminancePass::change_maximal_log_luminance(float const maximal_log_luminance)
+   {
+      settings_.maximal_log_luminance = maximal_log_luminance;
+   }
+
+   void LuminancePass::change_time_coefficient(float const time_coefficient)
+   {
+      settings_.time_coefficient = time_coefficient;
+   }
+
+   void LuminancePass::compute(vk::raii::CommandBuffer const& command_buffer, std::uint32_t const current_frame,
+      float const delta_seconds) const
    {
       // TODO: is this needed?
       vk::BufferMemoryBarrier2 const histogram_begin_barrier{
@@ -140,11 +157,17 @@ namespace eru
             descriptor_sets_.sets("histogram")[current_frame]
          }, {});
 
-      command_buffer.pushConstants<std::uint32_t>(
+      float const log_luminance_range{ settings_.maximal_log_luminance - settings_.minimal_log_luminance };
+
+      command_buffer.pushConstants<HistogramPushConstants>(
          histogram_pipeline_.layout(),
          vk::ShaderStageFlagBits::eCompute,
          0,
-         current_frame);
+         HistogramPushConstants{
+            .current_frame{ current_frame },
+            .minimal_log_luminance{ settings_.minimal_log_luminance },
+            .inverse_log_luminance_range{ 1.0f / log_luminance_range }
+         });
 
       // TODO: this should be based on the size of the input image.
       command_buffer.dispatch(128, 128, 1);
@@ -188,11 +211,17 @@ namespace eru
             descriptor_sets_.sets("avarage_luminance")[current_frame]
          }, {});
 
-      command_buffer.pushConstants<std::uint32_t>(
-         histogram_pipeline_.layout(),
+      command_buffer.pushConstants<AvarageLuminancePushConstants>(
+         avarage_luminance_pipeline_.layout(),
          vk::ShaderStageFlagBits::eCompute,
          0,
-         current_frame);
+         AvarageLuminancePushConstants{
+            .current_frame{ current_frame },
+            .minimal_log_luminance{ settings_.minimal_log_luminance },
+            .log_luminance_range{ log_luminance_range },
+            .time_coefficient{ settings_.time_coefficient },
+            .delta_seconds{ delta_seconds }
+         });
 
       command_buffer.dispatch(1, 1, 1);
 
