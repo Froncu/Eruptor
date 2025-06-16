@@ -1,6 +1,6 @@
 # Eruptor - Vulkan PBR Renderer
 
-A high-performance Physically Based Rendering (PBR) engine built in C++ using Vulkan. This project leverages modern Vulkan features and C++ design patterns to deliver a clean, efficient, and extensible rendering pipeline.
+A Physically Based Rendering (PBR) engine built in C++ using Vulkan.
 
 ## Features
 
@@ -9,6 +9,10 @@ A high-performance Physically Based Rendering (PBR) engine built in C++ using Vu
 
 - ✅ **Deferred Rendering Pipeline**  
   Efficient lighting using a deferred shading setup with support for tone-mapping.
+
+- ✅ **Automatic Exposure (Eye Adaptation)**  
+  Real-time luminance adaptation using **compute shaders** and the **histogram-based technique**.  
+  Adjustable via exposed parameters for controlling adaptation speed and the luminance range.
 
 - ✅ **Modern Vulkan Techniques**
   
