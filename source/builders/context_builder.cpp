@@ -96,33 +96,31 @@ namespace eru
             .enabledExtensionCount{ static_cast<std::uint32_t>(extension_names.size()) },
             .ppEnabledExtensionNames{ extension_names.data() }
          }
-      };
+      };;
 
       auto debug_messenger{
          validation_layer_names_.empty()
             ? nullptr
-            : vk::raii::DebugUtilsMessengerEXT{
-               instance, {
-                  .messageSeverity{
-                     vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose |
-                     vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning |
-                     vk::DebugUtilsMessageSeverityFlagBitsEXT::eError
-                  },
-                  .messageType{
-                     vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral |
-                     vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation |
-                     vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance
-                  },
-                  .pfnUserCallback{
-                     [](VkDebugUtilsMessageSeverityFlagBitsEXT, VkDebugUtilsMessageTypeFlagsEXT,
-                     VkDebugUtilsMessengerCallbackDataEXT const* callback_data, void*) -> VkBool32
-                     {
-                        std::cout << std::format("[VALIDATION LAYER MESSAGE]\n{}\n\n", callback_data->pMessage);
-                        return false;
-                     }
+            : instance.createDebugUtilsMessengerEXT({
+               .messageSeverity{
+                  vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose |
+                  vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning |
+                  vk::DebugUtilsMessageSeverityFlagBitsEXT::eError
+               },
+               .messageType{
+                  vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral |
+                  vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation |
+                  vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance
+               },
+               .pfnUserCallback{
+                  [](vk::DebugUtilsMessageSeverityFlagBitsEXT, vk::DebugUtilsMessageTypeFlagsEXT,
+                  vk::DebugUtilsMessengerCallbackDataEXT const* callback_data, void*) -> vk::Bool32
+                  {
+                     std::cout << std::format("[VALIDATION LAYER MESSAGE]\n{}\n\n", callback_data->pMessage);
+                     return false;
                   }
                }
-            }
+            })
       };
 
       return { std::move(context), std::move(instance), std::move(debug_messenger), api_version_ };
