@@ -371,8 +371,8 @@ namespace eru
             [this]
             {
                std::vector<vk::raii::Semaphore> semaphores{};
-               semaphores.reserve(FRAMES_IN_FLIGHT);
-               for (std::size_t index{}; index < FRAMES_IN_FLIGHT; ++index)
+               semaphores.reserve(swap_chain_.images().size());
+               for (std::size_t index{}; index < swap_chain_.images().size(); ++index)
                   semaphores.emplace_back(device_.device().createSemaphore({}));
 
                return semaphores;

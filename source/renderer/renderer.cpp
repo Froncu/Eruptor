@@ -36,18 +36,18 @@ namespace eru
       if (window_->minimised())
          return;
 
-      vk::raii::CommandBuffer const& command_buffer{ command_buffers_[current_frame_] };
       vk::raii::Fence const& command_buffer_executed_fence{ command_buffer_executed_fences_[current_frame_] };
-      vk::raii::Semaphore const& image_available_semaphore{ image_available_semaphores_[current_frame_] };
-      vk::raii::Semaphore const& render_finished_semaphore{ render_finished_semaphores_[current_frame_] };
-
       if (device_.device().waitForFences({ command_buffer_executed_fence }, true,
          std::numeric_limits<std::uint64_t>::max()) not_eq vk::Result::eSuccess)
          exception("failed to wait for fences!");
       device_.device().resetFences({ command_buffer_executed_fence });
 
+      vk::raii::CommandBuffer const& command_buffer{ command_buffers_[current_frame_] };
+      command_buffer.reset();
+
       camera_buffers_[current_frame_].upload(&camera.data(), sizeof(camera.data()));
 
+      vk::raii::Semaphore const& image_available_semaphore{ image_available_semaphores_[current_frame_] };
       auto&& [result, image_index]{
          device_.device().acquireNextImage2KHR({
             .swapchain{ *swap_chain_.swap_chain() },
@@ -59,8 +59,6 @@ namespace eru
 
       Image const& swap_chain_image{ swap_chain_.images()[image_index] };
       ImageView const& swap_chain_image_view{ swap_chain_.image_views()[image_index] };
-
-      command_buffer.reset();
 
       command_buffer.begin({});
 
@@ -93,6 +91,7 @@ namespace eru
          .commandBuffer{ *command_buffers_[current_frame_] }
       };
 
+      vk::raii::Semaphore const& render_finished_semaphore{ render_finished_semaphores_[image_index] };
       std::array<vk::SemaphoreSubmitInfo, 2> const signal_semaphore_infos{
          {
             {
