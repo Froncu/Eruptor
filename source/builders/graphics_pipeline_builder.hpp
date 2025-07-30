@@ -36,6 +36,10 @@ namespace eru
             vk::PipelineColorBlendAttachmentState const& color_blend_attachment_state, std::uint32_t count = 1);
          GraphicsPipelineBuilder& add_color_blend_attachment_states(
             std::initializer_list<vk::PipelineColorBlendAttachmentState> color_blend_attachment_states);
+         GraphicsPipelineBuilder& change_color_blend_attachment_state(
+            vk::PipelineColorBlendAttachmentState const& color_blend_attachment_state, std::uint32_t count = 1);
+         GraphicsPipelineBuilder& change_color_blend_attachment_states(
+            std::initializer_list<vk::PipelineColorBlendAttachmentState> color_blend_attachment_states);
          GraphicsPipelineBuilder& add_dynamic_state(vk::DynamicState state);
          GraphicsPipelineBuilder& add_dynamic_states(std::initializer_list<vk::DynamicState> states);
          GraphicsPipelineBuilder& assign_descriptor_set_layout(std::string name, std::uint32_t slot);

@@ -35,7 +35,7 @@ namespace eru
             .depthTestEnable{ true },
             .depthCompareOp{ vk::CompareOp::eEqual }
          })
-         .add_color_blend_attachment_state({
+         .change_color_blend_attachment_state({
             .blendEnable{ true },
             .srcColorBlendFactor{ vk::BlendFactor::eSrcAlpha },
             .dstColorBlendFactor{ vk::BlendFactor::eOneMinusSrcAlpha },
@@ -49,7 +49,7 @@ namespace eru
                vk::ColorComponentFlagBits::eB |
                vk::ColorComponentFlagBits::eA
             }
-         }, frames_in_flight_)
+         }, static_cast<std::uint32_t>(FORMATS.size()))
          .add_push_constant_range({
             .stageFlags{ vk::ShaderStageFlagBits::eFragment },
             .offset{ 0 },

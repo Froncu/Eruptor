@@ -113,6 +113,20 @@ namespace eru
       return *this;
    }
 
+   GraphicsPipelineBuilder& GraphicsPipelineBuilder::change_color_blend_attachment_state(
+      vk::PipelineColorBlendAttachmentState const& color_blend_attachment_state, std::uint32_t const count)
+   {
+      color_blend_attachment_states_.assign(count, color_blend_attachment_state);
+      return *this;
+   }
+
+   GraphicsPipelineBuilder& GraphicsPipelineBuilder::change_color_blend_attachment_states(
+      std::initializer_list<vk::PipelineColorBlendAttachmentState> const color_blend_attachment_states)
+   {
+      color_blend_attachment_states_ = color_blend_attachment_states;
+      return *this;
+   }
+
    GraphicsPipelineBuilder& GraphicsPipelineBuilder::add_dynamic_state(vk::DynamicState const state)
    {
       dynamic_states_.emplace_back(state);
