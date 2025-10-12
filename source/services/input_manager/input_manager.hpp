@@ -37,7 +37,7 @@ namespace eru
          EventDispatcher<Gamepad const> gamepad_connected_event{};
          EventDispatcher<Gamepad const> gamepad_disconnected_event{};
 
-         EventListener<MouseInputEvent const> on_mouse_button_event
+         EventListener<MouseInputEvent const> on_mouse_event
          {
             VariantVisitor
             {

@@ -38,19 +38,38 @@ namespace eru
 
             case SDL_EVENT_MOUSE_MOTION:
                if (native_event.motion.xrel)
+               {
+                  MouseAxis const current_mouse_axis{ native_event.motion.xrel > 0.0 ? MouseAxis::EAST : MouseAxis::WEST };
+
+                  if (MouseAxis const old_mouse_axis{ old_mouse_x_ > 0.0 ? MouseAxis::EAST : MouseAxis::WEST };
+                     old_mouse_x_ and current_mouse_axis not_eq old_mouse_axis)
+                     mouse_input_event.notify(MouseAxisEvent{ .axis{ old_mouse_axis }, .value{} });
+
                   mouse_input_event.notify(MouseAxisEvent{
-                     .axis{ native_event.motion.xrel > 0.0 ? MouseAxis::EAST : MouseAxis::WEST },
+                     .axis{ current_mouse_axis },
                      .value{ std::abs(native_event.motion.xrel) }
                   });
 
+                  old_mouse_x_ = native_event.motion.xrel;
+               }
+
                if (native_event.motion.yrel)
+               {
+                  MouseAxis const current_mouse_axis{ native_event.motion.yrel > 0.0 ? MouseAxis::SOUTH : MouseAxis::NORTH };
+
+                  if (MouseAxis const old_mouse_axis{ old_mouse_y_ > 0.0 ? MouseAxis::SOUTH : MouseAxis::NORTH };
+                     old_mouse_y_ and current_mouse_axis not_eq old_mouse_axis)
+                     mouse_input_event.notify(MouseAxisEvent{ .axis{ old_mouse_axis }, .value{} });
+
                   mouse_input_event.notify(MouseAxisEvent{
                      .axis{ native_event.motion.yrel > 0.0 ? MouseAxis::SOUTH : MouseAxis::NORTH },
                      .value{ std::abs(native_event.motion.yrel) }
                   });
 
+                  old_mouse_y_ = native_event.motion.yrel;
+               }
+
                did_mouse_move_now = true;
-               did_mouse_move_previously_ = true;
 
             case SDL_EVENT_KEY_DOWN:
                key_event.notify(KeyDownEvent{ .key{ convert_sdl_key_code(native_event.key.key) } });
@@ -138,13 +157,19 @@ namespace eru
                break;
          }
 
-      if (not did_mouse_move_now and did_mouse_move_previously_)
+      if (not did_mouse_move_now)
       {
-         mouse_input_event.notify(MouseAxisEvent{ .axis{ MouseAxis::EAST }, .value{} });
-         mouse_input_event.notify(MouseAxisEvent{ .axis{ MouseAxis::WEST }, .value{} });
-         mouse_input_event.notify(MouseAxisEvent{ .axis{ MouseAxis::NORTH }, .value{} });
-         mouse_input_event.notify(MouseAxisEvent{ .axis{ MouseAxis::SOUTH }, .value{} });
-         did_mouse_move_previously_ = false;
+         if (old_mouse_x_)
+         {
+            mouse_input_event.notify(MouseAxisEvent{ .axis{ old_mouse_x_ > 0.0 ? MouseAxis::EAST : MouseAxis::WEST }, .value{} });
+            old_mouse_x_ = 0.0f;
+         }
+
+         if (old_mouse_y_)
+         {
+            mouse_input_event.notify(MouseAxisEvent{ .axis{ old_mouse_y_ > 0.0 ? MouseAxis::SOUTH : MouseAxis::NORTH }, .value{} });
+            old_mouse_y_ = 0.0f;
+         }
       }
    }
 }

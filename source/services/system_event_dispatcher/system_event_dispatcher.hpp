@@ -36,8 +36,9 @@ namespace eru
          EventDispatcher<GamepadInputEvent const> gamepad_input_event{};
 
       private:
-         bool did_mouse_move_previously_{};
          std::unordered_map<std::uint32_t, GamepadStickValues> previous_gamepad_stick_values_{};
+         float old_mouse_x_{};
+         float old_mouse_y_{};
    };
 }
 
