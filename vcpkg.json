@@ -1,0 +1,15 @@
+{
+   "dependencies": [
+      {
+         "name": "sdl3",
+         "features": ["vulkan"]
+      },
+      {
+         "name": "sdl3-image",
+         "features": ["jpeg", "png"]
+      },
+      "glm",
+      "assimp",
+      "spdlog"
+   ]
+}
