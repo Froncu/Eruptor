@@ -18,7 +18,7 @@ target_precompile_headers(${PROJECT_NAME}
 target_include_directories(${PROJECT_NAME}
    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/source)
 
-find_package(Vulkan CONFIG REQUIRED COMPONENTS shaderc_combined)
+find_package(Vulkan REQUIRED COMPONENTS shaderc_combined)
 find_package(SDL3 CONFIG REQUIRED COMPONENTS SDL3-shared)
 find_package(SDL3_image CONFIG REQUIRED COMPONENTS SDL3_image-shared)
 find_package(glm CONFIG REQUIRED)
