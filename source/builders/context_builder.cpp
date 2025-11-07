@@ -12,6 +12,7 @@ namespace eru
          case vk::ApiVersion11:
          case vk::ApiVersion12:
          case vk::ApiVersion13:
+         case vk::ApiVersion14:
             api_version_ = api_version;
             break;
 

@@ -18,7 +18,7 @@ int main(int const, char** const)
 
    eru::Locator::set<eru::Context, eru::Context>(
       eru::ContextBuilder{}
-      .change_api_version(vk::ApiVersion13)
+      .change_api_version(vk::ApiVersion14)
       .enable_validation_layer(eru::constants::DEBUG ? "VK_LAYER_KHRONOS_validation" : "")
       .enable_instance_extension(eru::constants::DEBUG ? vk::EXTDebugUtilsExtensionName : "")
       .build());
