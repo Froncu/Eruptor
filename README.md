@@ -2,13 +2,15 @@
 
 A PBR renderer built in C++20 using modern Vulkan practices. Serves as a way of exploring the world of Graphics Programming.
 
+![alt text](Spozna.jpg)
+
 ## Features
 
 - **Physically Based Rendering (PBR)**  
 Realistic lighting and material representation using PBR techniques.
 
 - **Deferred Rendering Pipeline**  
-Efficient lighting using a deferred shading setup with support for tone-mapping.
+Uses a depth pre-pass and G-Buffer setup for efficient lighting. All lighting is computed in HDR space and tone-mapped for display.
 
 - **Automatic Exposure (Eye Adaptation)**  
 Real-time luminance adaptation using compute shaders and the histogram-based technique. Adjustable via exposed parameters for controlling adaptation speed and the luminance range.
@@ -29,7 +31,7 @@ Renders without traditional render passes for simplified, flexible pipelines.
 Accesses many resources in shaders without frequent descriptor set updates.
 
 - **Synchronization2**  
-Explicit, fine-grained synchronization with simplified barriers and dependencies
+Explicit, fine-grained synchronization with simplified barriers and dependencies.
 
 ## Future Plans
 
@@ -38,7 +40,6 @@ Add environment-based lighting for more realistic material shading.
 
 - **Shadows**  
 Implement shadow mapping for directional & point lights.
-
 
 ## Dependencies
 
