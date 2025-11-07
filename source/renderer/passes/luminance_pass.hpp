@@ -32,7 +32,7 @@ namespace eru
          {
             float minimal_log_luminance{ -4.0f };
             float maximal_log_luminance{ 16.0f };
-            float time_coefficient{ 0.001f };
+            float time_coefficient{ 0.01f };
          };
 
          LuminancePass(Device const& device, DescriptorSets const& descciptor_sets, std::uint32_t frames_in_flight);

@@ -22,9 +22,9 @@ const vec3 directional_lights[light_count] = vec3[](
    normalize(vec3(0.6, 1.0, -0.4))
 );
 const vec3 directional_light_colors[light_count] = vec3[](
-    vec3(255.0, 255.0, 255.0),
-    vec3(200.0, 220.0, 255.0),
-    vec3(255.0, 244.0, 214.0)
+    vec3(60.0, 60.0, 60.0),
+    vec3(50.0, 55.0, 60.0),
+    vec3(60.0, 61.0, 55.0)
 );
 
 layout(push_constant) uniform PushConstants {
