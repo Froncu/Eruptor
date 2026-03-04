@@ -1,0 +1,78 @@
+cmake_minimum_required(VERSION 3.15)
+project(eruptor)
+
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+include(project_defaults)
+include(umbrella_header)
+
+option(ERU_BUILD_SHARED "Build ${PROJECT_NAME} as shared library" ${BUILD_SHARED_LIBS})
+
+find_package(assimp CONFIG REQUIRED)
+find_package(glm CONFIG REQUIRED)
+find_package(ktx CONFIG REQUIRED)
+find_package(SDL3 CONFIG REQUIRED)
+find_package(slang CONFIG REQUIRED)
+find_package(VulkanHeaders CONFIG REQUIRED)
+find_package(VulkanLoader CONFIG REQUIRED)
+find_package(VulkanMemoryAllocator CONFIG REQUIRED)
+
+# Framework library - contains all functionality
+# Can be built as SHARED or STATIC depending on ERU_BUILD_SHARED
+# Direct linking is possible but not recommended; use the entry point library instead unless you know what you are doing
+
+file(GLOB_RECURSE ERU_SOURCE_FILES CONFIGURE_DEPENDS source/*.cpp)
+list(FILTER ERU_SOURCE_FILES EXCLUDE REGEX entry\\.cpp)
+if(ERU_BUILD_SHARED)
+   add_library(${PROJECT_NAME} SHARED ${ERU_SOURCE_FILES})
+else()
+   add_library(${PROJECT_NAME} STATIC ${ERU_SOURCE_FILES})
+endif()
+
+target_include_directories(${PROJECT_NAME}
+   PUBLIC include
+   PRIVATE source)
+
+target_precompile_headers(${PROJECT_NAME}
+   PRIVATE include/${PROJECT_NAME}/pch.hpp)
+
+target_compile_definitions(${PROJECT_NAME}
+   PUBLIC $<$<BOOL:${ERU_BUILD_SHARED}>:ERU_SHARED>
+   PRIVATE ERU_FRAMEWORK_LEVEL
+   PRIVATE ERU_COMPILE_SOURCE_PATH="${CMAKE_CURRENT_SOURCE_DIR}"
+   PRIVATE VULKAN_HPP_NO_STRUCT_CONSTRUCTORS)
+
+target_compile_options(${PROJECT_NAME}
+   PRIVATE $<$<CXX_COMPILER_ID:GNU,Clang>:-fvisibility=hidden -fvisibility-inlines-hidden>)
+
+target_link_libraries(${PROJECT_NAME}
+   PRIVATE assimp::assimp
+   PUBLIC glm::glm-header-only
+   PRIVATE GPUOpen::VulkanMemoryAllocator
+   PRIVATE KTX::ktx
+   PRIVATE SDL3::SDL3
+   PRIVATE slang::slang
+   PRIVATE Vulkan::Headers
+   PRIVATE Vulkan::Loader)
+
+target_link_options(${PROJECT_NAME}
+   PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/EXPORT:SDL_RunApp /EXPORT:SDL_EnterAppMainCallbacks>)
+
+set_project_defaults(${PROJECT_NAME})
+generate_umbrella_header(${PROJECT_NAME}
+   ${CMAKE_CURRENT_SOURCE_DIR}/include
+   ${CMAKE_CURRENT_SOURCE_DIR}/include/${PROJECT_NAME})
+
+# Entry point library - provides the application entry point
+# This is the recommended target for executables to link against
+# Automatically includes the framework library as a transitive dependency
+
+set(ERU_ENTRY_NAME ${PROJECT_NAME}_entry)
+
+add_library(${ERU_ENTRY_NAME} STATIC
+   source/core/entry.cpp)
+
+target_link_libraries(${ERU_ENTRY_NAME}
+   PUBLIC ${PROJECT_NAME}
+   PUBLIC SDL3::Headers)
+
+set_project_defaults(${ERU_ENTRY_NAME})

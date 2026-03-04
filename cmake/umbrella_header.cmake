@@ -1,0 +1,35 @@
+function(generate_umbrella_header UMBRELLA_HEADER_NAME INCLUDE_DIRECTORY OUTPUT_DIRECTORY)
+   get_filename_component(EXTENSION ${UMBRELLA_HEADER_NAME} EXT)
+   if(NOT ${EXTENSION} STREQUAL "")
+      message(FATAL_ERROR "UMBRELLA_HEADER_NAME must not contain an extension (${UMBRELLA_HEADER_NAME})")
+   endif()
+
+   if(NOT IS_ABSOLUTE ${INCLUDE_DIRECTORY})
+      message(FATAL_ERROR "INCLUDE_DIRECTORY must be an absolute path (${INCLUDE_DIRECTORY})")
+   endif()
+
+   set(HEADER_GUARD ${UMBRELLA_HEADER_NAME})
+   string(TOUPPER ${HEADER_GUARD} HEADER_GUARD)
+   string(APPEND HEADER_GUARD _HPP)
+   set(UMBRELLA_HEADER_FILE ${UMBRELLA_HEADER_NAME}.hpp)
+
+   set(CONTENT "// Auto-generated file - do not edit")
+   list(APPEND CONTENT "\n")
+   list(APPEND CONTENT "\n#ifndef ${HEADER_GUARD}")
+   list(APPEND CONTENT "\n#define ${HEADER_GUARD}")
+   list(APPEND CONTENT "\n")
+
+   file(GLOB_RECURSE INCLUDE_FILE_PATHS ${INCLUDE_DIRECTORY}/*.hpp)
+   foreach(INCLUDE_FILE_PATH ${INCLUDE_FILE_PATHS})
+      get_filename_component(INCLUDE_FILE ${INCLUDE_FILE_PATH} NAME)
+      if(NOT ${INCLUDE_FILE} STREQUAL ${UMBRELLA_HEADER_FILE})
+         file(RELATIVE_PATH PATH ${INCLUDE_DIRECTORY} ${INCLUDE_FILE_PATH})
+         list(APPEND CONTENT "\n#include \"${PATH}\"")
+      endif()
+   endforeach()
+
+   list(APPEND CONTENT "\n")
+   list(APPEND CONTENT "\n#endif")
+
+   file(WRITE ${OUTPUT_DIRECTORY}/${UMBRELLA_HEADER_FILE} ${CONTENT})
+endfunction()

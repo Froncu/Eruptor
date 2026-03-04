@@ -1,0 +1,18 @@
+// Auto-generated file - do not edit
+
+#ifndef ERUPTOR_HPP
+#define ERUPTOR_HPP
+
+#include "eruptor/api.hpp"
+#include "eruptor/application.hpp"
+#include "eruptor/constants.hpp"
+#include "eruptor/hash.hpp"
+#include "eruptor/locator.hpp"
+#include "eruptor/logger.hpp"
+#include "eruptor/pch.hpp"
+#include "eruptor/runtime_assert.hpp"
+#include "eruptor/type_index.hpp"
+#include "eruptor/unique_pointer.hpp"
+#include "eruptor/void_deleter.hpp"
+
+#endif

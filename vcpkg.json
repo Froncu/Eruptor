@@ -1,0 +1,33 @@
+{
+   "dependencies": [
+      {
+         "name" : "assimp"
+      },
+      {
+         "name" : "glm"
+      },
+      {
+         "name": "ktx",
+         "features": ["vulkan"]
+      },
+      {
+         "name" : "sdl3",
+         "features" : ["vulkan"]
+      },
+      {
+         "name" : "shader-slang"
+      },
+      {
+         "name" : "vulkan-headers"
+      },
+      {
+         "name" : "vulkan-loader"
+      },
+      {
+         "name" : "vulkan-memory-allocator"
+      },
+      {
+         "name" : "vulkan-validationlayers"
+      }
+   ]
+}
