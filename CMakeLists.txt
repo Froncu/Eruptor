@@ -39,7 +39,7 @@ target_compile_definitions(${PROJECT_NAME}
    PUBLIC $<$<BOOL:${ERU_BUILD_SHARED}>:ERU_SHARED>
    PRIVATE ERU_FRAMEWORK_LEVEL
    PRIVATE ERU_COMPILE_SOURCE_PATH="${CMAKE_CURRENT_SOURCE_DIR}"
-   PRIVATE VULKAN_HPP_NO_STRUCT_CONSTRUCTORS)
+   PUBLIC VULKAN_HPP_NO_STRUCT_CONSTRUCTORS)
 
 target_compile_options(${PROJECT_NAME}
    PRIVATE $<$<CXX_COMPILER_ID:GNU,Clang>:-fvisibility=hidden -fvisibility-inlines-hidden>)
@@ -51,7 +51,7 @@ target_link_libraries(${PROJECT_NAME}
    PRIVATE GPUOpen::VulkanMemoryAllocator
    PRIVATE KTX::ktx
    PRIVATE slang::slang
-   PRIVATE Vulkan::Headers
+   PUBLIC Vulkan::Headers
    PRIVATE Vulkan::Loader)
 
 set_project_defaults(${PROJECT_NAME})
