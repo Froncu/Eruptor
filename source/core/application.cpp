@@ -15,7 +15,7 @@ namespace eru
 
    Application::~Application()
    {
-      Locator::remove_providers();
+      Locator::remove_all();
 
       SDL_QuitSubSystem(INITIALIZATION_FLAGS);
       SDL_Quit();
@@ -26,6 +26,7 @@ namespace eru
       bool const succeeded{ SDL_InitSubSystem(INITIALIZATION_FLAGS) };
       runtime_assert(succeeded, std::format("failed to initialize SDL subsystems! ({})", SDL_GetError()));
 
+      Locator::provide<Application>(*this);
       Locator::provide<Logger>();
       Locator::provide<Window>();
    }

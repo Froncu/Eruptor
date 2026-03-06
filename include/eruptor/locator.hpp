@@ -21,11 +21,11 @@ namespace eru
          {
             UniquePointer<void> new_provider{ new Provider{ std::forward<Arguments>(arguments)... }, void_deleter<Provider> };
 
-            auto&& [service_index, did_insert]{ service_indices_.emplace(type_index<Service>(), services_.size()) };
+            auto&& [service_index, did_insert]{ owned_service_indices_.emplace(type_index<Service>(), owned_services_.size()) };
             if (did_insert)
-               return *static_cast<Service*>(services_.emplace_back(std::move(new_provider)).get());
+               return *static_cast<Service*>(owned_services_.emplace_back(std::move(new_provider)).get());
 
-            UniquePointer<void>& current_provider{ services_[service_index->second] };
+            UniquePointer<void>& current_provider{ owned_services_[service_index->second] };
 
             if constexpr (std::movable<Service>)
                *static_cast<Service*>(new_provider.get()) = std::move(*static_cast<Service*>(current_provider.get()));
@@ -34,23 +34,29 @@ namespace eru
             return *static_cast<Service*>(current_provider.get());
          }
 
-         static void remove_providers()
+         template <typename Service, std::derived_from<Service> Provider = Service>
+         static Service& provide(Provider& provider)
          {
-            while (not services_.empty())
-               services_.pop_back();
-
-            service_indices_.clear();
+            viewed_services_[type_index<Service>()] = &provider;
+            return provider;
          }
+
+         ERU_API static void remove_all();
 
          template <typename Service>
          [[nodiscard]] static Service& get()
          {
-            auto const service_index{ service_indices_.find(type_index<Service>()) };
-            if (service_index == service_indices_.end())
-               throw std::runtime_error{
-                  std::format("attempted to get \"{}\" which hasn't been provided", typeid(Service).name())
-               };
-            return *static_cast<Service* const>(services_[service_index->second].get());
+            if (auto const viewed_service{ viewed_services_.find(type_index<Service>()) };
+               viewed_service not_eq viewed_services_.end())
+               return *static_cast<Service*>(viewed_service->second);
+
+            if (auto const owned_service_index{ owned_service_indices_.find(type_index<Service>()) };
+               owned_service_index not_eq owned_service_indices_.end())
+               return *static_cast<Service* const>(owned_services_[owned_service_index->second].get());
+
+            throw std::runtime_error{
+               std::format("attempted to get \"{}\" which hasn't been provided", typeid(Service).name())
+            };
          }
 
          Locator() = delete;
@@ -63,8 +69,9 @@ namespace eru
          Locator& operator=(Locator&&) = delete;
 
       private:
-         ERU_API static std::unordered_map<std::type_index, std::size_t> service_indices_;
-         ERU_API static std::vector<UniquePointer<void>> services_;
+         ERU_API static std::unordered_map<std::type_index, std::size_t> owned_service_indices_;
+         ERU_API static std::vector<UniquePointer<void>> owned_services_;
+         ERU_API static std::unordered_map<std::type_index, void*> viewed_services_;
    };
 }
 
