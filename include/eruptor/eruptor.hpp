@@ -14,5 +14,6 @@
 #include "eruptor/type_index.hpp"
 #include "eruptor/unique_pointer.hpp"
 #include "eruptor/void_deleter.hpp"
+#include "eruptor/window.hpp"
 
 #endif

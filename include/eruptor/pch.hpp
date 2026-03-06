@@ -12,6 +12,7 @@
 #include <typeindex>
 #include <unordered_set>
 
+#include <glm/glm.hpp>
 #include <SDL3/SDL.h>
 
 #endif
