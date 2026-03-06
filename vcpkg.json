@@ -4,15 +4,14 @@
          "name" : "assimp"
       },
       {
+         "name" : "glfw3"
+      },
+      {
          "name" : "glm"
       },
       {
          "name": "ktx",
          "features": ["vulkan"]
-      },
-      {
-         "name" : "sdl3",
-         "features" : ["vulkan"]
       },
       {
          "name" : "shader-slang"

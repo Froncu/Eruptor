@@ -1,5 +1,3 @@
-#include <SDL3/SDL.h>
-
 #include "eruptor/application.hpp"
 #include "eruptor/locator.hpp"
 #include "eruptor/logger.hpp"
@@ -8,24 +6,34 @@
 
 namespace eru
 {
-   SDL_InitFlags constexpr INITIALIZATION_FLAGS{
-      SDL_INIT_EVENTS |
-      SDL_INIT_VIDEO
-   };
+   Application::GLFWcontext::GLFWcontext()
+   {
+      glfwSetErrorCallback(
+         [](int const code, char const* const description)
+         {
+            runtime_assert(false, std::format("GLFW encountered error code {}! ({})", code, description));
+         });
+
+      glfwInit();
+   }
+
+   Application::GLFWcontext::~GLFWcontext()
+   {
+      glfwTerminate();
+   }
 
    Application::~Application()
    {
       Locator::remove_all();
+   }
 
-      SDL_QuitSubSystem(INITIALIZATION_FLAGS);
-      SDL_Quit();
+   void Application::poll()
+   {
+      glfwPollEvents();
    }
 
    Application::Application()
    {
-      bool const succeeded{ SDL_InitSubSystem(INITIALIZATION_FLAGS) };
-      runtime_assert(succeeded, std::format("failed to initialize SDL subsystems! ({})", SDL_GetError()));
-
       Locator::provide<Application>(*this);
       Locator::provide<Logger>();
       Locator::provide<Window>();

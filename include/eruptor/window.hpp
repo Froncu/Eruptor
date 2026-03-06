@@ -31,7 +31,7 @@ namespace eru
          ERU_API [[nodiscard]] std::string_view title() const;
 
       private:
-         UniquePointer<SDL_Window> native_window_;
+         UniquePointer<GLFWwindow> native_window_;
    };
 }
 

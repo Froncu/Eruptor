@@ -12,7 +12,8 @@
 #include <typeindex>
 #include <unordered_set>
 
+#include <glfw/glfw3.h>
 #include <glm/glm.hpp>
-#include <SDL3/SDL.h>
+#include <vulkan/vulkan_raii.hpp>
 
 #endif

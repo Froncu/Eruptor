@@ -8,9 +8,9 @@ include(umbrella_header)
 option(ERU_BUILD_SHARED "Build ${PROJECT_NAME} as shared library" ${BUILD_SHARED_LIBS})
 
 find_package(assimp CONFIG REQUIRED)
+find_package(glfw3 CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(ktx CONFIG REQUIRED)
-find_package(SDL3 CONFIG REQUIRED)
 find_package(slang CONFIG REQUIRED)
 find_package(VulkanHeaders CONFIG REQUIRED)
 find_package(VulkanLoader CONFIG REQUIRED)
@@ -46,16 +46,13 @@ target_compile_options(${PROJECT_NAME}
 
 target_link_libraries(${PROJECT_NAME}
    PRIVATE assimp::assimp
+   PRIVATE glfw
    PUBLIC glm::glm-header-only
    PRIVATE GPUOpen::VulkanMemoryAllocator
    PRIVATE KTX::ktx
-   PRIVATE SDL3::SDL3
    PRIVATE slang::slang
    PRIVATE Vulkan::Headers
    PRIVATE Vulkan::Loader)
-
-target_link_options(${PROJECT_NAME}
-   PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/EXPORT:SDL_RunApp /EXPORT:SDL_EnterAppMainCallbacks>)
 
 set_project_defaults(${PROJECT_NAME})
 generate_umbrella_header(${PROJECT_NAME}
@@ -72,7 +69,6 @@ add_library(${ERU_ENTRY_NAME} STATIC
    source/core/entry.cpp)
 
 target_link_libraries(${ERU_ENTRY_NAME}
-   PUBLIC ${PROJECT_NAME}
-   PUBLIC SDL3::Headers)
+   PUBLIC ${PROJECT_NAME})
 
 set_project_defaults(${ERU_ENTRY_NAME})
