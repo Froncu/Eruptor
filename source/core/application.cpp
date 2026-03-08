@@ -4,6 +4,8 @@
 #include "eruptor/runtime_assert.hpp"
 #include "eruptor/window.hpp"
 
+#include "dependencies.hpp"
+
 namespace eru
 {
    Application::GLFWcontext::GLFWcontext()

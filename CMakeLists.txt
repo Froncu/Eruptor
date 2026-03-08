@@ -33,7 +33,8 @@ target_include_directories(${PROJECT_NAME}
    PRIVATE source)
 
 target_precompile_headers(${PROJECT_NAME}
-   PRIVATE include/${PROJECT_NAME}/pch.hpp)
+   PUBLIC include/${PROJECT_NAME}/pch.hpp
+   PRIVATE source/dependencies.hpp)
 
 target_compile_definitions(${PROJECT_NAME}
    PUBLIC $<$<BOOL:${ERU_BUILD_SHARED}>:ERU_SHARED>

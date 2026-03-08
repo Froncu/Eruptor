@@ -1,6 +1,6 @@
-﻿#include <glfw/glfw3.h>
+﻿#include "eruptor/window.hpp"
 
-#include "eruptor/window.hpp"
+#include "dependencies.hpp"
 
 namespace eru
 {
