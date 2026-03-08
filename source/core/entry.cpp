@@ -5,7 +5,7 @@ namespace eru
    [[nodiscard]] std::unique_ptr<Application> create_application(std::span<char const* const> arguments);
 }
 
-int main(int const arguments_count, char const* const* arguments)
+int main(int const arguments_count, char const* const* arguments) try
 {
    std::unique_ptr const application{ eru::create_application({ arguments, static_cast<std::size_t>(arguments_count) }) };
 
@@ -13,4 +13,9 @@ int main(int const arguments_count, char const* const* arguments)
       application->poll();
 
    return 0;
+}
+catch (std::exception const& exception)
+{
+   eru::Logger{}.error(exception.what());
+   return 1;
 }
