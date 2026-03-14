@@ -39,12 +39,14 @@ namespace eru
       private:
          [[nodiscard]] vk::raii::Instance instance(std::string_view name, std::uint32_t version) const;
          [[nodiscard]] vk::raii::DebugUtilsMessengerEXT debug_messenger() const;
+         [[nodiscard]] vk::raii::PhysicalDevice physical_device() const;
 
          GLFWcontext const glfw_context_{};
          vk::raii::Context const vulkan_context_{};
 
          vk::raii::Instance const instance_;
          vk::raii::DebugUtilsMessengerEXT const debug_messenger_{ debug_messenger() };
+         vk::raii::PhysicalDevice const physical_device_{ physical_device() };
    };
 }
 

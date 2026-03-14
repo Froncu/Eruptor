@@ -127,4 +127,17 @@ namespace eru
          .pfnUserCallback{ &debug_callback }
       });
    }
+
+   vk::raii::PhysicalDevice Application::physical_device() const
+   {
+      for (vk::raii::PhysicalDevice const& device : instance_.enumeratePhysicalDevices()) 
+      {
+         vk::PhysicalDeviceProperties const properties{ device.getProperties() };
+         vk::PhysicalDeviceFeatures const features{ device.getFeatures() };
+         if (properties.deviceType == vk::PhysicalDeviceType::eDiscreteGpu and features.wideLines)
+            return device;
+      }
+
+      throw std::runtime_error{ "no suitable device found!" };
+   }
 }
