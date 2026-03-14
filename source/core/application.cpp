@@ -8,6 +8,34 @@
 
 namespace eru
 {
+   VKAPI_ATTR vk::Bool32 VKAPI_CALL debug_callback(
+      vk::DebugUtilsMessageSeverityFlagBitsEXT const severity,
+      vk::DebugUtilsMessageTypeFlagsEXT const type,
+      vk::DebugUtilsMessengerCallbackDataEXT const* const callback_data,
+      void* const)
+   {
+      std::string message{ std::format("{}\n{}", vk::to_string(type), callback_data->pMessage) };
+      switch (severity)
+      {
+         case vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose:
+            [[fallthrough]];
+
+         case vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo:
+            Locator::get<Logger>().info(std::move(message));
+            break;
+
+         case vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning:
+            Locator::get<Logger>().warning(std::move(message));
+            break;
+
+         case vk::DebugUtilsMessageSeverityFlagBitsEXT::eError:
+            Locator::get<Logger>().error(std::move(message));
+            break;
+      }
+
+      return vk::False;
+   }
+
    Application::GLFWcontext::GLFWcontext()
    {
       glfwSetErrorCallback(
@@ -65,6 +93,8 @@ namespace eru
             required_instance_extensions + required_instance_extensions_count);
       }
 
+      extension_names.push_back(vk::EXTDebugUtilsExtensionName);
+
       std::array<char const*, 1> constexpr layer_names{ "VK_LAYER_KHRONOS_validation" };
 
       return {
@@ -77,5 +107,24 @@ namespace eru
             .ppEnabledExtensionNames{ extension_names.data() }
          }
       };
+   }
+
+   vk::raii::DebugUtilsMessengerEXT Application::debug_messenger() const
+   {
+      return instance_.createDebugUtilsMessengerEXT({
+         .messageSeverity{
+            vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose |
+            vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo |
+            vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning |
+            vk::DebugUtilsMessageSeverityFlagBitsEXT::eError
+         },
+         .messageType{
+            vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral |
+            vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance |
+            vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation |
+            vk::DebugUtilsMessageTypeFlagBitsEXT::eDeviceAddressBinding
+         },
+         .pfnUserCallback{ &debug_callback }
+      });
    }
 }
