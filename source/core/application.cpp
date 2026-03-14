@@ -1,4 +1,5 @@
 #include "eruptor/application.hpp"
+#include "eruptor/exception.hpp"
 #include "eruptor/locator.hpp"
 #include "eruptor/logger.hpp"
 #include "eruptor/runtime_assert.hpp"
@@ -130,7 +131,7 @@ namespace eru
 
    vk::raii::PhysicalDevice Application::physical_device() const
    {
-      for (vk::raii::PhysicalDevice const& device : instance_.enumeratePhysicalDevices()) 
+      for (vk::raii::PhysicalDevice const& device : instance_.enumeratePhysicalDevices())
       {
          vk::PhysicalDeviceProperties const properties{ device.getProperties() };
          vk::PhysicalDeviceFeatures const features{ device.getFeatures() };
@@ -138,6 +139,6 @@ namespace eru
             return device;
       }
 
-      throw std::runtime_error{ "no suitable device found!" };
+      throw Exception{ "no suitable device found!" };
    }
 }

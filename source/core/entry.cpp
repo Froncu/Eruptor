@@ -14,6 +14,13 @@ int main(int const arguments_count, char const* const* arguments) try
 
    return 0;
 }
+catch (eru::Exception const& exception)
+{
+   eru::Locator::provide<eru::Logger>().error(exception.what(), false, exception.source_location());
+   eru::Locator::remove_all();
+   return 1;
+}
+// TODO: this handles Vulkan thrown exceptions as well, but it would be nice to use Erutpor's exceptions instead
 catch (std::exception const& exception)
 {
    eru::Locator::provide<eru::Logger>().error(exception.what());

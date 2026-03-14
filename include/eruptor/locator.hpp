@@ -5,6 +5,7 @@
 #define LOCATOR_HPP
 
 #include "eruptor/api.hpp"
+#include "eruptor/exception.hpp"
 #include "eruptor/pch.hpp"
 #include "eruptor/type_index.hpp"
 #include "eruptor/unique_pointer.hpp"
@@ -74,7 +75,7 @@ namespace eru
                owned_service_index not_eq owned_service_indices_.end())
                return *static_cast<Service* const>(owned_services_[owned_service_index->second].get());
 
-            throw std::runtime_error{
+            throw Exception{
                std::format("attempted to get \"{}\" which hasn't been provided", typeid(Service).name())
             };
          }

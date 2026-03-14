@@ -63,10 +63,10 @@ namespace eru
    void Logger::register_source_root(std::filesystem::path user_root, std::filesystem::path compile_root)
    {
       if (not exists(user_root))
-         throw std::runtime_error{ "the specified user source root must exist" };
+         throw Exception{ "the specified user source root must exist" };
 
       if (compile_root.empty())
-         throw std::runtime_error{ "the specified compile root cannot be empty" };
+         throw Exception{ "the specified compile root cannot be empty" };
 
       source_roots_.emplace_back(std::move(user_root), std::move(compile_root));
    }
