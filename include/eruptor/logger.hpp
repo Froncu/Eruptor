@@ -46,7 +46,7 @@ namespace eru
       };
 
       public:
-         ERU_API Logger();
+         ERU_API Logger() = default;
          Logger(Logger const&) = delete;
          Logger(Logger&&) = delete;
 

@@ -45,11 +45,6 @@ namespace std
 
 namespace eru
 {
-   Logger::Logger()
-   {
-      std::this_thread::sleep_for(std::chrono::milliseconds{ 10 });
-   }
-
    Logger::~Logger()
    {
       thread_.request_stop();
