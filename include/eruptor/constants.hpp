@@ -9,12 +9,6 @@ namespace eru
    auto constexpr DEBUG_BUILD{ true };
    #endif
 
-   #ifdef __MINGW32__
-   auto constexpr MINGW{ true };
-   #else
-   auto constexpr MINGW{ false };
-   #endif
-
    #ifdef ERU_FRAMEWORK_LEVEL
    auto constexpr FRAMEWORK_LEVEL{ true };
    #else

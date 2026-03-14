@@ -117,23 +117,13 @@ namespace eru
       else
          source_file_location = "unknown source file location";
 
-      // TODO: remove this when MinGW works with std::println
-      if constexpr (MINGW)
-         *output_stream << std::format(
-            "\033[{}m>> {}\n[{:%T}] {:6}: {}\033[0m\n",
-            escape_sequence,
-            source_file_location,
-            std::chrono::floor<std::chrono::seconds>(std::chrono::system_clock::now()),
-            payload.framework_level ? "ERUPTOR" : "APP",
-            payload.message);
-      else
-         std::println(*output_stream,
-            "\033[{}m>> {}\n[{:%T}] {:6}: {}\033[0m",
-            escape_sequence,
-            source_file_location,
-            std::chrono::floor<std::chrono::seconds>(std::chrono::system_clock::now()),
-            payload.framework_level ? "ERUPTOR" : "APP",
-            payload.message);
+      std::println(*output_stream,
+         "\033[{}m>> {}\n[{:%T}] {:6}: {}\033[0m",
+         escape_sequence,
+         source_file_location,
+         std::chrono::floor<std::chrono::seconds>(std::chrono::system_clock::now()),
+         payload.framework_level ? "ERUPTOR" : "APP",
+         payload.message);
    }
 
    void Logger::log_once(Payload const& payload)
