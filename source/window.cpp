@@ -1,20 +1,12 @@
 ﻿#include "eruptor/window.hpp"
 
-#include "dependencies.hpp"
+#include "core/dependencies.hpp"
 
 namespace eru
 {
-   Window::Window()
+   Window::Window(glm::uvec2 const extent, std::string_view const title)
       : native_window_{
-         []
-         {
-            glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-            glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-            glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
-            GLFWwindow* const window{ glfwCreateWindow(640, 480, "", nullptr, nullptr) };
-
-            return window;
-         }(),
+         glfwCreateWindow(extent.x, extent.y, title.data(), nullptr, nullptr),
          glfwDestroyWindow
       }
    {

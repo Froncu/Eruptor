@@ -3,6 +3,7 @@
 
 #include "eruptor/api.hpp"
 #include "eruptor/constants.hpp"
+#include "eruptor/locator.hpp"
 #include "eruptor/pch.hpp"
 
 namespace std
@@ -46,7 +47,7 @@ namespace eru
       };
 
       public:
-         ERU_API Logger() = default;
+         ERU_API explicit Logger(Locator::ConstructionKey);
          Logger(Logger const&) = delete;
          Logger(Logger&&) = delete;
 
@@ -117,8 +118,8 @@ namespace eru
          }
 
       private:
-          void log(Payload const& payload);
-          void log_once(Payload const& payload);
+         void log(Payload const& payload);
+         void log_once(Payload const& payload);
 
          std::vector<std::pair<std::filesystem::path, std::filesystem::path>> source_roots_;
          std::unordered_set<std::source_location> location_entries_{};

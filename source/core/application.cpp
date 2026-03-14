@@ -4,7 +4,7 @@
 #include "eruptor/runtime_assert.hpp"
 #include "eruptor/window.hpp"
 
-#include "dependencies.hpp"
+#include "core/dependencies.hpp"
 
 namespace eru
 {
@@ -17,6 +17,8 @@ namespace eru
          });
 
       glfwInit();
+      glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+      glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
    }
 
    Application::GLFWcontext::~GLFWcontext()
@@ -39,7 +41,6 @@ namespace eru
    {
       Locator::provide<Application>(*this);
       Locator::provide<Logger>();
-      Locator::provide<Window>().change_title(name);
    }
 
    vk::raii::Instance Application::instance(std::string_view const name, std::uint32_t const version) const

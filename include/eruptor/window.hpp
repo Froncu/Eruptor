@@ -10,7 +10,7 @@ namespace eru
    class Window final
    {
       public:
-         ERU_API Window();
+         ERU_API Window(glm::uvec2 extent = { 640, 480 }, std::string_view title = "Window");
          Window(Window const&) = delete;
          Window(Window&&) = delete;
 

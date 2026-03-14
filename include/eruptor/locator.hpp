@@ -15,11 +15,31 @@ namespace eru
    class Locator final
    {
       public:
+         class ConstructionKey final
+         {
+            friend Locator;
+
+            public:
+               ConstructionKey(ConstructionKey&&) = default;
+               ConstructionKey(ConstructionKey const&) = default;
+
+               ~ConstructionKey() = default;
+
+               ConstructionKey& operator=(ConstructionKey const&) = delete;
+               ConstructionKey& operator=(ConstructionKey&&) = delete;
+
+            private:
+               explicit ConstructionKey() = default;
+         };
+
          template <typename Service, std::derived_from<Service> Provider = Service, typename... Arguments>
-            requires std::constructible_from<Provider, Arguments...>
+            requires std::constructible_from<Provider, ConstructionKey, Arguments...>
          static Service& provide(Arguments&&... arguments)
          {
-            UniquePointer<void> new_provider{ new Provider{ std::forward<Arguments>(arguments)... }, void_deleter<Provider> };
+            UniquePointer<void> new_provider{
+               new Provider{ ConstructionKey{}, std::forward<Arguments>(arguments)... },
+               void_deleter<Provider>
+            };
 
             auto&& [service_index, did_insert]{ owned_service_indices_.emplace(type_index<Service>(), owned_services_.size()) };
             if (did_insert)

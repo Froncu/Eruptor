@@ -16,6 +16,7 @@ int main(int const arguments_count, char const* const* arguments) try
 }
 catch (std::exception const& exception)
 {
-   eru::Logger{}.error(exception.what());
+   eru::Locator::provide<eru::Logger>().error(exception.what());
+   eru::Locator::remove_all();
    return 1;
 }

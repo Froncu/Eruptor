@@ -45,6 +45,10 @@ namespace std
 
 namespace eru
 {
+   Logger::Logger(Locator::ConstructionKey)
+   {
+   }
+
    Logger::~Logger()
    {
       thread_.request_stop();

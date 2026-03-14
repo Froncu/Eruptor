@@ -34,7 +34,7 @@ target_include_directories(${PROJECT_NAME}
 
 target_precompile_headers(${PROJECT_NAME}
    PUBLIC include/${PROJECT_NAME}/pch.hpp
-   PRIVATE source/dependencies.hpp)
+   PRIVATE source/core/dependencies.hpp)
 
 target_compile_definitions(${PROJECT_NAME}
    PUBLIC VULKAN_HPP_NO_STRUCT_CONSTRUCTORS
