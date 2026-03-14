@@ -37,7 +37,7 @@ namespace eru
          ERU_API explicit Application(std::string_view name = "Eruptor", std::uint32_t version = VK_MAKE_VERSION(0, 0, 0));
 
       private:
-         [[nodiscard]] vk::raii::Instance instance(std::string_view name, std::uint32_t version);
+         [[nodiscard]] vk::raii::Instance instance(std::string_view name, std::uint32_t version) const;
 
          GLFWcontext const glfw_context_{};
          vk::raii::Context const vulkan_context_{};

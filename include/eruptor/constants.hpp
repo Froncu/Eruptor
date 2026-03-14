@@ -9,17 +9,20 @@ namespace eru
    auto constexpr DEBUG_BUILD{ true };
    #endif
 
-   #ifdef ERU_FRAMEWORK_LEVEL
-   auto constexpr FRAMEWORK_LEVEL{ true };
-   std::string_view constexpr COMPILE_SOURCE_PATH{ ERU_COMPILE_SOURCE_PATH };
-   #else
-   auto constexpr FRAMEWORK_LEVEL{ false };
-   #endif
-
    #ifdef __MINGW32__
    auto constexpr MINGW{ true };
    #else
    auto constexpr MINGW{ false };
+   #endif
+
+   #ifdef ERU_FRAMEWORK_LEVEL
+   auto constexpr FRAMEWORK_LEVEL{ true };
+   #else
+   auto constexpr FRAMEWORK_LEVEL{ false };
+   #endif
+
+   #ifdef ERU_FRAMEWORK_LEVEL
+   std::string_view constexpr COMPILE_SOURCE_PATH{ ERU_COMPILE_SOURCE_PATH };
    #endif
 }
 

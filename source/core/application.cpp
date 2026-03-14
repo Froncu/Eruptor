@@ -42,7 +42,7 @@ namespace eru
       Locator::provide<Window>().change_title(name);
    }
 
-   vk::raii::Instance Application::instance(std::string_view const name, std::uint32_t const version)
+   vk::raii::Instance Application::instance(std::string_view const name, std::uint32_t const version) const
    {
       vk::ApplicationInfo const app_info{
          .pApplicationName{ name.data() },
@@ -64,12 +64,14 @@ namespace eru
             required_instance_extensions + required_instance_extensions_count);
       }
 
+      std::array<char const*, 1> constexpr layer_names{ "VK_LAYER_KHRONOS_validation" };
+
       return {
          vulkan_context_, {
             .flags{},
             .pApplicationInfo{ &app_info },
-            .enabledLayerCount{},
-            .ppEnabledLayerNames{},
+            .enabledLayerCount{ static_cast<std::uint32_t>(layer_names.size()) },
+            .ppEnabledLayerNames{ layer_names.data() },
             .enabledExtensionCount{ static_cast<std::uint32_t>(extension_names.size()) },
             .ppEnabledExtensionNames{ extension_names.data() }
          }

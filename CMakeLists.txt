@@ -37,22 +37,22 @@ target_precompile_headers(${PROJECT_NAME}
    PRIVATE source/dependencies.hpp)
 
 target_compile_definitions(${PROJECT_NAME}
+   PUBLIC VULKAN_HPP_NO_STRUCT_CONSTRUCTORS
    PUBLIC $<$<BOOL:${ERU_BUILD_SHARED}>:ERU_SHARED>
    PRIVATE ERU_FRAMEWORK_LEVEL
-   PRIVATE ERU_COMPILE_SOURCE_PATH="${CMAKE_CURRENT_SOURCE_DIR}"
-   PUBLIC VULKAN_HPP_NO_STRUCT_CONSTRUCTORS)
+   PRIVATE ERU_COMPILE_SOURCE_PATH="${CMAKE_CURRENT_SOURCE_DIR}")
 
 target_compile_options(${PROJECT_NAME}
    PRIVATE $<$<CXX_COMPILER_ID:GNU,Clang>:-fvisibility=hidden -fvisibility-inlines-hidden>)
 
 target_link_libraries(${PROJECT_NAME}
+   PUBLIC glm::glm-header-only
+   PUBLIC Vulkan::Headers
    PRIVATE assimp::assimp
    PRIVATE glfw
-   PUBLIC glm::glm-header-only
    PRIVATE GPUOpen::VulkanMemoryAllocator
    PRIVATE KTX::ktx
    PRIVATE slang::slang
-   PUBLIC Vulkan::Headers
    PRIVATE Vulkan::Loader)
 
 set_project_defaults(${PROJECT_NAME})
