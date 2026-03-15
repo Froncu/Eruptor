@@ -165,6 +165,7 @@ namespace eru
 
    std::uint32_t Application::queue_family_index() const
    {
+      // TODO: use vk::StructureChain
       auto&& queue_family_properties{ physical_device_.getQueueFamilyProperties2() | std::ranges::views::enumerate };
       auto const queue_family{
          std::ranges::find_if(
@@ -173,7 +174,7 @@ namespace eru
             {
                auto&& [index, properties]{ pair };
                return static_cast<bool>(properties.queueFamilyProperties.queueFlags & vk::QueueFlagBits::eGraphics)
-                  and physical_device_.getSurfaceSupportKHR(index, surface_);
+                  and physical_device_.getSurfaceSupportKHR(static_cast<std::uint32_t>(index), surface_);
             })
       };
 
