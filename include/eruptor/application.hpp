@@ -11,11 +11,11 @@ namespace eru
       class LocatorRegistrator final
       {
          public:
-            explicit LocatorRegistrator(Application& application);
+            ERU_API explicit LocatorRegistrator(Application& application);
             LocatorRegistrator(LocatorRegistrator const&) = delete;
             LocatorRegistrator(LocatorRegistrator&&) = delete;
 
-            ~LocatorRegistrator();
+            ERU_API ~LocatorRegistrator();
 
             LocatorRegistrator& operator=(LocatorRegistrator&&) = delete;
             LocatorRegistrator& operator=(LocatorRegistrator&) = delete;
@@ -24,11 +24,11 @@ namespace eru
       class GLFWcontext final
       {
          public:
-            GLFWcontext();
+            ERU_API GLFWcontext();
             GLFWcontext(GLFWcontext const&) = delete;
             GLFWcontext(GLFWcontext&&) = delete;
 
-            ~GLFWcontext();
+            ERU_API ~GLFWcontext();
 
             GLFWcontext& operator=(GLFWcontext&&) = delete;
             GLFWcontext& operator=(GLFWcontext&) = delete;
