@@ -172,14 +172,17 @@ namespace eru
       if (queue_family == std::ranges::end(queue_family_properties))
          throw Exception{ "no suitable queue family found!" };
 
-      return queue_family.index();
+      return static_cast<std::uint32_t>(queue_family.index());
    }
 
    vk::raii::Device Application::device() const
    {
       vk::StructureChain<
+         vk::PhysicalDeviceFeatures2,
          vk::PhysicalDeviceVulkan13Features,
          vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT> const device_feature_chain{
+         {
+         },
          {
             .dynamicRendering{ true }
          },
@@ -190,9 +193,9 @@ namespace eru
 
       auto constexpr queue_priority{ 0.5f };
 
-      std::array const device_queue_create_info{
+      std::array<vk::DeviceQueueCreateInfo, 1> const device_queue_create_info{
          {
-            vk::DeviceQueueCreateInfo{
+            {
                .flags{},
                .queueFamilyIndex{ queue_family_index_ },
                .queueCount{ 1 },
@@ -201,7 +204,7 @@ namespace eru
          }
       };
 
-      std::array constexpr device_extension_names{
+      std::array<char const*, 1> constexpr device_extension_names{
          {
             vk::KHRSwapchainExtensionName
          }
