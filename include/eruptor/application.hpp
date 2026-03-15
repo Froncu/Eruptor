@@ -53,6 +53,7 @@ namespace eru
       private:
          [[nodiscard]] vk::raii::Instance instance(std::string_view name, std::uint32_t version) const;
          [[nodiscard]] vk::raii::DebugUtilsMessengerEXT debug_messenger() const;
+         [[nodiscard]] vk::raii::SurfaceKHR surface() const;
          [[nodiscard]] vk::raii::PhysicalDevice physical_device() const;
          [[nodiscard]] std::uint32_t queue_family_index() const;
          [[nodiscard]] vk::raii::Device device() const;
@@ -66,6 +67,7 @@ namespace eru
          Window window_{ { 1280, 720 }, "Magma" };
          vk::raii::Instance const instance_;
          vk::raii::DebugUtilsMessengerEXT const debug_messenger_{ debug_messenger() };
+         vk::raii::SurfaceKHR const surface_{ surface() };
          vk::raii::PhysicalDevice const physical_device_{ physical_device() };
          std::uint32_t const queue_family_index_{ queue_family_index() };
          vk::raii::Device const device_{ device() };

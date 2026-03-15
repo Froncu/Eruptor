@@ -134,6 +134,13 @@ namespace eru
       };
    }
 
+   vk::raii::SurfaceKHR Application::surface() const
+   {
+      VkSurfaceKHR surface;
+      glfwCreateWindowSurface(*instance_, &window_.native(), nullptr, &surface);
+      return { instance_, surface };
+   }
+
    vk::raii::PhysicalDevice Application::physical_device() const
    {
       std::vector const physical_devices{ instance_.enumeratePhysicalDevices() };
