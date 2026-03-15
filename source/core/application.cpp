@@ -112,21 +112,24 @@ namespace eru
 
    vk::raii::DebugUtilsMessengerEXT Application::debug_messenger() const
    {
-      return instance_.createDebugUtilsMessengerEXT({
-         .messageSeverity{
-            vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose |
-            vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo |
-            vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning |
-            vk::DebugUtilsMessageSeverityFlagBitsEXT::eError
-         },
-         .messageType{
-            vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral |
-            vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance |
-            vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation |
-            vk::DebugUtilsMessageTypeFlagBitsEXT::eDeviceAddressBinding
-         },
-         .pfnUserCallback{ &debug_callback }
-      });
+      return {
+         instance_,
+         {
+            .messageSeverity{
+               vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose |
+               vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo |
+               vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning |
+               vk::DebugUtilsMessageSeverityFlagBitsEXT::eError
+            },
+            .messageType{
+               vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral |
+               vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance |
+               vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation |
+               vk::DebugUtilsMessageTypeFlagBitsEXT::eDeviceAddressBinding
+            },
+            .pfnUserCallback{ &debug_callback }
+         }
+      };
    }
 
    vk::raii::PhysicalDevice Application::physical_device() const
