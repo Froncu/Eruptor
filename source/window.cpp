@@ -12,6 +12,11 @@ namespace eru
    {
    }
 
+   GLFWwindow& Window::native() const
+   {
+      return *native_window_;
+   }
+
    void Window::change_visibility(bool const visible)
    {
       visible

@@ -5,12 +5,14 @@
 #include "eruptor/pch.hpp"
 #include "eruptor/unique_pointer.hpp"
 
+struct GLFWwindow;
+
 namespace eru
 {
    class Window final
    {
       public:
-         ERU_API Window(glm::uvec2 extent = { 640, 480 }, std::string_view title = "Window");
+         ERU_API explicit Window(glm::uvec2 extent = { 640, 480 }, std::string_view title = "Window");
          Window(Window const&) = delete;
          Window(Window&&) = delete;
 
@@ -18,6 +20,8 @@ namespace eru
 
          Window& operator=(Window const&) = delete;
          Window& operator=(Window&&) = delete;
+
+         ERU_API [[nodiscard]] GLFWwindow& native() const;
 
          ERU_API void change_visibility(bool visible);
 
@@ -31,7 +35,7 @@ namespace eru
          ERU_API [[nodiscard]] std::string_view title() const;
 
       private:
-         UniquePointer<struct GLFWwindow> native_window_;
+         UniquePointer<GLFWwindow> native_window_;
    };
 }
 
