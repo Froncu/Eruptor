@@ -18,9 +18,6 @@ namespace eru
       switch (severity)
       {
          case vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose:
-            [[fallthrough]];
-
-         case vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo:
             Locator::get<Logger>().info(std::move(message));
             break;
 
@@ -30,6 +27,9 @@ namespace eru
 
          case vk::DebugUtilsMessageSeverityFlagBitsEXT::eError:
             Locator::get<Logger>().error(std::move(message));
+            break;
+
+         default:
             break;
       }
 
@@ -120,7 +120,6 @@ namespace eru
          {
             .messageSeverity{
                vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose |
-               vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo |
                vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning |
                vk::DebugUtilsMessageSeverityFlagBitsEXT::eError
             },
