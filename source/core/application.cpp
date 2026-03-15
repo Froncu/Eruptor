@@ -133,14 +133,23 @@ namespace eru
 
    vk::raii::PhysicalDevice Application::physical_device() const
    {
-      for (vk::raii::PhysicalDevice const& device : instance_.enumeratePhysicalDevices())
-      {
-         vk::PhysicalDeviceProperties const properties{ device.getProperties() };
-         vk::PhysicalDeviceFeatures const features{ device.getFeatures() };
-         if (properties.deviceType == vk::PhysicalDeviceType::eDiscreteGpu and features.wideLines)
-            return device;
-      }
+      std::vector const physical_devices{ instance_.enumeratePhysicalDevices() };
+      auto const physical_device{
+         std::ranges::find_if(
+            physical_devices,
+            [](vk::raii::PhysicalDevice const& device)
+            {
+               vk::PhysicalDeviceProperties const properties{ device.getProperties() };
+               vk::PhysicalDeviceFeatures const features{ device.getFeatures() };
 
-      throw Exception{ "no suitable device found!" };
+               return properties.deviceType == vk::PhysicalDeviceType::eDiscreteGpu
+                  and features.wideLines;
+            })
+      };
+
+      if (physical_device == std::ranges::end(physical_devices))
+         throw Exception{ "no suitable physical device found!" };
+
+      return *physical_device;
    }
 }
