@@ -169,10 +169,11 @@ namespace eru
       auto const queue_family{
          std::ranges::find_if(
             queue_family_properties,
-            [](auto&& pair)
+            [this](auto&& pair)
             {
-               auto&& [_, properties]{ pair };
-               return static_cast<bool>(properties.queueFamilyProperties.queueFlags & vk::QueueFlagBits::eGraphics);
+               auto&& [index, properties]{ pair };
+               return static_cast<bool>(properties.queueFamilyProperties.queueFlags & vk::QueueFlagBits::eGraphics)
+                  and physical_device_.getSurfaceSupportKHR(index, surface_);
             })
       };
 
