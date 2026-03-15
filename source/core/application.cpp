@@ -149,11 +149,11 @@ namespace eru
             physical_devices,
             [](vk::raii::PhysicalDevice const& device)
             {
-               vk::PhysicalDeviceProperties const properties{ device.getProperties() };
-               vk::PhysicalDeviceFeatures const features{ device.getFeatures() };
+               vk::StructureChain const properties{ device.getProperties2() };
+               vk::StructureChain const features{ device.getFeatures2() };
 
-               return properties.deviceType == vk::PhysicalDeviceType::eDiscreteGpu
-                  and features.wideLines;
+               return properties.get().properties.deviceType == vk::PhysicalDeviceType::eDiscreteGpu
+                  and features.get().features.wideLines;
             })
       };
 
