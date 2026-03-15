@@ -8,6 +8,19 @@ namespace eru
 {
    class Application
    {
+      class LocatorRegistrator final
+      {
+         public:
+            explicit LocatorRegistrator(Application& application);
+            LocatorRegistrator(LocatorRegistrator const&) = delete;
+            LocatorRegistrator(LocatorRegistrator&&) = delete;
+
+            ~LocatorRegistrator();
+
+            LocatorRegistrator& operator=(LocatorRegistrator&&) = delete;
+            LocatorRegistrator& operator=(LocatorRegistrator&) = delete;
+      };
+
       class GLFWcontext final
       {
          public:
@@ -25,7 +38,7 @@ namespace eru
          Application(Application const&) = delete;
          Application(Application&&) noexcept = delete;
 
-         ERU_API virtual ~Application();
+         virtual ~Application() = default;
 
          Application& operator=(Application const&) = delete;
          Application& operator=(Application&&) = delete;
@@ -43,6 +56,8 @@ namespace eru
          [[nodiscard]] std::uint32_t queue_family_index() const;
          [[nodiscard]] vk::raii::Device device() const;
          [[nodiscard]] vk::raii::Queue queue() const;
+
+         LocatorRegistrator const locator_registrator_{ *this };
 
          GLFWcontext const glfw_context_{};
          vk::raii::Context const vulkan_context_{};

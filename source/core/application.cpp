@@ -36,6 +36,17 @@ namespace eru
       return vk::False;
    }
 
+   Application::LocatorRegistrator::LocatorRegistrator(Application& application)
+   {
+      Locator::provide<Application>(application);
+      Locator::provide<Logger>();
+   }
+
+   Application::LocatorRegistrator::~LocatorRegistrator()
+   {
+      Locator::remove_all();
+   }
+
    Application::GLFWcontext::GLFWcontext()
    {
       glfwSetErrorCallback(
@@ -54,11 +65,6 @@ namespace eru
       glfwTerminate();
    }
 
-   Application::~Application()
-   {
-      Locator::remove_all();
-   }
-
    void Application::poll()
    {
       glfwPollEvents();
@@ -67,8 +73,6 @@ namespace eru
    Application::Application(std::string_view const name, std::uint32_t const version)
       : instance_{ instance(name, version) }
    {
-      Locator::provide<Application>(*this);
-      Locator::provide<Logger>();
    }
 
    vk::raii::Instance Application::instance(std::string_view const name, std::uint32_t const version) const
