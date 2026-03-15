@@ -8,6 +8,7 @@
 #include <mutex>
 #include <print>
 #include <queue>
+#include <ranges>
 #include <source_location>
 #include <span>
 #include <thread>

@@ -152,4 +152,76 @@ namespace eru
 
       return *physical_device;
    }
+
+   std::uint32_t Application::queue_family_index() const
+   {
+      auto&& queue_family_properties{ physical_device_.getQueueFamilyProperties2() | std::ranges::views::enumerate };
+      auto const queue_family{
+         std::ranges::find_if(
+            queue_family_properties,
+            [](auto&& pair)
+            {
+               auto&& [_, properties]{ pair };
+               return static_cast<bool>(properties.queueFamilyProperties.queueFlags & vk::QueueFlagBits::eGraphics);
+            })
+      };
+
+      if (queue_family == std::ranges::end(queue_family_properties))
+         throw Exception{ "no suitable queue family found!" };
+
+      return queue_family.index();
+   }
+
+   vk::raii::Device Application::device() const
+   {
+      vk::StructureChain<
+         vk::PhysicalDeviceVulkan13Features,
+         vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT> const device_feature_chain{
+         {
+            .dynamicRendering{ true }
+         },
+         {
+            .extendedDynamicState{ true }
+         }
+      };
+
+      auto constexpr queue_priority{ 0.5f };
+
+      std::array const device_queue_create_info{
+         {
+            vk::DeviceQueueCreateInfo{
+               .flags{},
+               .queueFamilyIndex{ queue_family_index_ },
+               .queueCount{ 1 },
+               .pQueuePriorities{ &queue_priority }
+            },
+         }
+      };
+
+      std::array constexpr device_extension_names{
+         {
+            vk::KHRSwapchainExtensionName
+         }
+      };
+
+      // TODO: for backwards compatibility, the validation layers here should be the same as the ones enabled on the instance
+      return
+      {
+         physical_device_,
+         {
+            .pNext{ device_feature_chain.get() },
+            .queueCreateInfoCount{ static_cast<std::uint32_t>(device_queue_create_info.size()) },
+            .pQueueCreateInfos{ device_queue_create_info.data() },
+            .enabledLayerCount{},
+            .ppEnabledLayerNames{},
+            .enabledExtensionCount{ static_cast<std::uint32_t>(device_extension_names.size()) },
+            .ppEnabledExtensionNames{ device_extension_names.data() },
+         }
+      };
+   }
+
+   vk::raii::Queue Application::queue() const
+   {
+      return { device_, queue_family_index_, 0 };
+   }
 }

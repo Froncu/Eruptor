@@ -40,6 +40,9 @@ namespace eru
          [[nodiscard]] vk::raii::Instance instance(std::string_view name, std::uint32_t version) const;
          [[nodiscard]] vk::raii::DebugUtilsMessengerEXT debug_messenger() const;
          [[nodiscard]] vk::raii::PhysicalDevice physical_device() const;
+         [[nodiscard]] std::uint32_t queue_family_index() const;
+         [[nodiscard]] vk::raii::Device device() const;
+         [[nodiscard]] vk::raii::Queue queue() const;
 
          GLFWcontext const glfw_context_{};
          vk::raii::Context const vulkan_context_{};
@@ -47,6 +50,9 @@ namespace eru
          vk::raii::Instance const instance_;
          vk::raii::DebugUtilsMessengerEXT const debug_messenger_{ debug_messenger() };
          vk::raii::PhysicalDevice const physical_device_{ physical_device() };
+         std::uint32_t const queue_family_index_{ queue_family_index() };
+         vk::raii::Device const device_{ device() };
+         vk::raii::Queue const queue_{ queue() };
    };
 }
 
