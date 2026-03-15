@@ -3,7 +3,6 @@
 #include "eruptor/locator.hpp"
 #include "eruptor/logger.hpp"
 #include "eruptor/runtime_assert.hpp"
-#include "eruptor/window.hpp"
 
 #include "core/dependencies.hpp"
 
@@ -15,7 +14,7 @@ namespace eru
       vk::DebugUtilsMessengerCallbackDataEXT const* const callback_data,
       void* const)
    {
-      std::string message{ std::format("{}\n{}", vk::to_string(type), callback_data->pMessage) };
+      std::string message{ std::format("{}\n{}", to_string(type), callback_data->pMessage) };
       switch (severity)
       {
          case vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose:
