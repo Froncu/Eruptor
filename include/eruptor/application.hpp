@@ -3,6 +3,7 @@
 
 #include "eruptor/api.hpp"
 #include "eruptor/pch.hpp"
+#include "eruptor/window.hpp"
 
 namespace eru
 {
@@ -62,6 +63,7 @@ namespace eru
          GLFWcontext const glfw_context_{};
          vk::raii::Context const vulkan_context_{};
 
+         Window window_{ { 1280, 720 }, "Magma" };
          vk::raii::Instance const instance_;
          vk::raii::DebugUtilsMessengerEXT const debug_messenger_{ debug_messenger() };
          vk::raii::PhysicalDevice const physical_device_{ physical_device() };
