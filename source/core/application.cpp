@@ -239,10 +239,8 @@ namespace eru
       return { device_, queue_family_index_, 0 };
    }
 
-   vk::raii::SwapchainKHR Application::swap_chain() const
+   vk::SurfaceFormatKHR Application::surface_format() const
    {
-      // Format
-
       // TODO: use `vk::StructureChain` and `getSurfaceFormats2KHR` for more functionality
       std::vector const available_surface_formats{ physical_device_.getSurfaceFormatsKHR(surface_) };
 
@@ -263,6 +261,11 @@ namespace eru
       if (surface_format == std::ranges::end(available_surface_formats))
          surface_format = std::ranges::begin(available_surface_formats);
 
+      return *surface_format;
+   }
+
+   vk::raii::SwapchainKHR Application::swap_chain() const
+   {
       // Present mode
 
       // TODO: use `vk::StructureChain` for more functionality
@@ -315,8 +318,8 @@ namespace eru
          device_, {
             .surface{ *surface_ },
             .minImageCount{ minimal_image_count },
-            .imageFormat{ surface_format->format },
-            .imageColorSpace{ surface_format->colorSpace },
+            .imageFormat{ surface_format_.format },
+            .imageColorSpace{ surface_format_.colorSpace },
             .imageExtent{ surface_extent },
             .imageArrayLayers{ 1 },
             .imageUsage{ vk::ImageUsageFlagBits::eColorAttachment },
@@ -330,5 +333,36 @@ namespace eru
             .oldSwapchain{}
          }
       };
+   }
+
+   std::vector<vk::raii::ImageView> Application::swap_chain_image_views() const
+   {
+      vk::ImageViewCreateInfo create_info{
+         .viewType{ vk::ImageViewType::e2D },
+         .format{ surface_format_.format },
+         .components{
+            .r{ vk::ComponentSwizzle::eIdentity },
+            .g{ vk::ComponentSwizzle::eIdentity },
+            .b{ vk::ComponentSwizzle::eIdentity },
+            .a{ vk::ComponentSwizzle::eIdentity }
+         },
+         .subresourceRange{
+            .aspectMask{ vk::ImageAspectFlagBits::eColor },
+            .baseMipLevel{ 0 },
+            .levelCount{ 1 },
+            .baseArrayLayer{ 0 },
+            .layerCount{ 1 }
+         }
+      };
+
+      std::vector<vk::raii::ImageView> image_views{};
+      image_views.reserve(swap_chain_images_.size());
+      for (vk::Image const image : swap_chain_images_)
+      {
+         create_info.image = image;
+         image_views.emplace_back(device_, create_info);
+      }
+
+      return image_views;
    }
 }

@@ -58,7 +58,9 @@ namespace eru
          [[nodiscard]] std::uint32_t queue_family_index() const;
          [[nodiscard]] vk::raii::Device device() const;
          [[nodiscard]] vk::raii::Queue queue() const;
+         [[nodiscard]] vk::SurfaceFormatKHR surface_format() const;
          [[nodiscard]] vk::raii::SwapchainKHR swap_chain() const;
+         [[nodiscard]] std::vector<vk::raii::ImageView> swap_chain_image_views() const;
 
          LocatorRegistrator const locator_registrator_{ *this };
 
@@ -73,8 +75,10 @@ namespace eru
          std::uint32_t const queue_family_index_{ queue_family_index() };
          vk::raii::Device const device_{ device() };
          vk::raii::Queue const queue_{ queue() };
+         vk::SurfaceFormatKHR const surface_format_{ surface_format() };
          vk::raii::SwapchainKHR const swap_chain_{ swap_chain() };
          std::vector<vk::Image> const swap_chain_images_{ swap_chain_.getImages() };
+         std::vector<vk::raii::ImageView> const swap_chain_image_views_{ swap_chain_image_views() };
    };
 }
 
