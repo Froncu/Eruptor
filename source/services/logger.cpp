@@ -95,15 +95,15 @@ namespace eru
       switch (payload.type)
       {
          case Type::INFO:
-            escape_sequence = payload.framework_level ? "1;2;36;40" : "1;36;40";
+            escape_sequence = payload.framework_level ? "1;2;34" : "1;34";
             break;
 
          case Type::WARNING:
-            escape_sequence = payload.framework_level ? "1;2;33;40" : "1;33;40";
+            escape_sequence = payload.framework_level ? "1;2;33" : "1;33";
             break;
 
          case Type::ERROR:
-            escape_sequence = payload.framework_level ? "1;2;31;40" : "1;31;40";
+            escape_sequence = payload.framework_level ? "1;2;31" : "1;31";
             break;
       }
 
@@ -122,7 +122,7 @@ namespace eru
          source_file_location = "unknown source file location";
 
       std::println(*output_stream,
-         "\033[{}m>> {}\n[{:%T}] {:6}: {}\033[0m",
+         "\x1b[{}m>> {}\n[{:%T}] {:6}: {}\x1b[0m\n",
          escape_sequence,
          source_file_location,
          std::chrono::floor<std::chrono::seconds>(std::chrono::system_clock::now()),
