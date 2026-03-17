@@ -105,10 +105,10 @@ namespace eru
          vulkan_context_, {
             .flags{},
             .pApplicationInfo{ &app_info },
-            .enabledLayerCount{ static_cast<std::uint32_t>(layer_names.size()) },
-            .ppEnabledLayerNames{ layer_names.data() },
-            .enabledExtensionCount{ static_cast<std::uint32_t>(extension_names.size()) },
-            .ppEnabledExtensionNames{ extension_names.data() }
+            .enabledLayerCount{ static_cast<std::uint32_t>(std::ranges::size(layer_names)) },
+            .ppEnabledLayerNames{ std::ranges::data(layer_names) },
+            .enabledExtensionCount{ static_cast<std::uint32_t>(std::ranges::size(extension_names)) },
+            .ppEnabledExtensionNames{ std::ranges::data(extension_names) }
          }
       };
    }
@@ -225,12 +225,12 @@ namespace eru
          physical_device_,
          {
             .pNext{ device_feature_chain.get() },
-            .queueCreateInfoCount{ static_cast<std::uint32_t>(device_queue_create_info.size()) },
-            .pQueueCreateInfos{ device_queue_create_info.data() },
+            .queueCreateInfoCount{ static_cast<std::uint32_t>(std::ranges::size(device_queue_create_info)) },
+            .pQueueCreateInfos{ std::ranges::data(device_queue_create_info) },
             .enabledLayerCount{},
             .ppEnabledLayerNames{},
-            .enabledExtensionCount{ static_cast<std::uint32_t>(device_extension_names.size()) },
-            .ppEnabledExtensionNames{ device_extension_names.data() },
+            .enabledExtensionCount{ static_cast<std::uint32_t>(std::ranges::size(device_extension_names)) },
+            .ppEnabledExtensionNames{ std::ranges::data(device_extension_names) },
          }
       };
    }
