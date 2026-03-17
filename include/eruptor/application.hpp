@@ -58,6 +58,7 @@ namespace eru
          [[nodiscard]] std::uint32_t queue_family_index() const;
          [[nodiscard]] vk::raii::Device device() const;
          [[nodiscard]] vk::raii::Queue queue() const;
+         [[nodiscard]] vk::raii::SwapchainKHR swap_chain() const;
 
          LocatorRegistrator const locator_registrator_{ *this };
 
@@ -72,6 +73,8 @@ namespace eru
          std::uint32_t const queue_family_index_{ queue_family_index() };
          vk::raii::Device const device_{ device() };
          vk::raii::Queue const queue_{ queue() };
+         vk::raii::SwapchainKHR const swap_chain_{ swap_chain() };
+         std::vector<vk::Image> const swap_chain_images_{ swap_chain_.getImages() };
    };
 }
 

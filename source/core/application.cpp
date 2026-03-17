@@ -239,4 +239,97 @@ namespace eru
    {
       return { device_, queue_family_index_, 0 };
    }
+
+   vk::raii::SwapchainKHR Application::swap_chain() const
+   {
+      // Format
+
+      // TODO: use `vk::StructureChain` and `getSurfaceFormats2KHR` for more functionality
+      std::vector const available_surface_formats{ physical_device_.getSurfaceFormatsKHR(surface_) };
+
+      if (std::ranges::empty(available_surface_formats))
+         throw Exception{ "no surface formats are available!" };
+
+      auto surface_format{
+         std::ranges::find_if(
+            available_surface_formats,
+            [](vk::SurfaceFormatKHR const& available_surface_format)
+            {
+               auto const [format, color_space]{ available_surface_format };
+               return format == vk::Format::eB8G8R8A8Srgb
+                  and color_space == vk::ColorSpaceKHR::eSrgbNonlinear;
+            })
+      };
+
+      if (surface_format == std::ranges::end(available_surface_formats))
+         surface_format = std::ranges::begin(available_surface_formats);
+
+      // Present mode
+
+      // TODO: use `vk::StructureChain` for more functionality
+      std::vector const available_surface_present_modes{ physical_device_.getSurfacePresentModesKHR(surface_) };
+
+      if (std::ranges::empty(available_surface_present_modes))
+         throw Exception{ "no present modes are available!" };
+
+      auto surface_present_mode{
+         std::ranges::find_if(
+            available_surface_present_modes,
+            [](vk::PresentModeKHR const& available_surface_present_mode)
+            {
+               return available_surface_present_mode == vk::PresentModeKHR::eMailbox;
+            })
+      };
+
+      if (surface_present_mode == std::ranges::end(available_surface_present_modes))
+         surface_present_mode = std::ranges::begin(available_surface_present_modes);
+
+      // TODO: use `vk::StructureChain` and `getSurfaceCapabilities2KHR` for more functionality
+      vk::SurfaceCapabilitiesKHR const surface_capabilities{ physical_device_.getSurfaceCapabilitiesKHR(surface_) };
+
+      // Extent
+
+      vk::Extent2D surface_extent;
+      if (surface_capabilities.currentExtent.width == std::numeric_limits<uint32_t>::max()
+         and surface_capabilities.currentExtent.height == std::numeric_limits<uint32_t>::max())
+      {
+         int width, height;
+         glfwGetFramebufferSize(&window_.native(), &width, &height);
+
+         surface_extent = {
+            std::clamp<uint32_t>(width, surface_capabilities.minImageExtent.width, surface_capabilities.maxImageExtent.width),
+            std::clamp<uint32_t>(height, surface_capabilities.minImageExtent.height, surface_capabilities.maxImageExtent.height)
+         };
+      }
+      else
+         surface_extent = surface_capabilities.currentExtent;
+
+      // Image count
+
+      std::uint32_t minimal_image_count{ std::max(3u, surface_capabilities.minImageCount) };
+      if (surface_capabilities.maxImageCount)
+         minimal_image_count = std::min(minimal_image_count, surface_capabilities.maxImageCount);
+
+      // Swap chain
+
+      return {
+         device_, {
+            .surface{ *surface_ },
+            .minImageCount{ minimal_image_count },
+            .imageFormat{ surface_format->format },
+            .imageColorSpace{ surface_format->colorSpace },
+            .imageExtent{ surface_extent },
+            .imageArrayLayers{ 1 },
+            .imageUsage{ vk::ImageUsageFlagBits::eColorAttachment },
+            .imageSharingMode{ vk::SharingMode::eExclusive },
+            .queueFamilyIndexCount{},
+            .pQueueFamilyIndices{},
+            .preTransform{ surface_capabilities.currentTransform },
+            .compositeAlpha{ vk::CompositeAlphaFlagBitsKHR::eOpaque },
+            .presentMode{ *surface_present_mode },
+            .clipped{ true },
+            .oldSwapchain{}
+         }
+      };
+   }
 }
