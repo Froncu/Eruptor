@@ -10,23 +10,22 @@ namespace eru
 {
    VKAPI_ATTR vk::Bool32 VKAPI_CALL debug_callback(
       vk::DebugUtilsMessageSeverityFlagBitsEXT const severity,
-      vk::DebugUtilsMessageTypeFlagsEXT const type,
+      vk::DebugUtilsMessageTypeFlagsEXT const,
       vk::DebugUtilsMessengerCallbackDataEXT const* const callback_data,
       void* const)
    {
-      std::string message{ std::format("{}\n{}", to_string(type), callback_data->pMessage) };
       switch (severity)
       {
          case vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose:
-            Locator::get<Logger>().info(std::move(message));
+            Locator::get<Logger>().info(callback_data->pMessage);
             break;
 
          case vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning:
-            Locator::get<Logger>().warning(std::move(message));
+            Locator::get<Logger>().warning(callback_data->pMessage);
             break;
 
          case vk::DebugUtilsMessageSeverityFlagBitsEXT::eError:
-            Locator::get<Logger>().error(std::move(message));
+            Locator::get<Logger>().error(callback_data->pMessage);
             break;
 
          default:
