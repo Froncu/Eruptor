@@ -4,19 +4,19 @@
 namespace eru
 {
    #ifdef NDEBUG
-   auto constexpr DEBUG_BUILD{ false };
+   inline constexpr auto DEBUG_BUILD{ false };
    #else
-   auto constexpr DEBUG_BUILD{ true };
+   inline constexpr auto DEBUG_BUILD{ true };
    #endif
 
    #ifdef ERU_FRAMEWORK_LEVEL
-   auto constexpr FRAMEWORK_LEVEL{ true };
+   inline constexpr auto FRAMEWORK_LEVEL{ true };
    #else
-   auto constexpr FRAMEWORK_LEVEL{ false };
+   inline constexpr auto FRAMEWORK_LEVEL{ false };
    #endif
 
    #ifdef ERU_FRAMEWORK_LEVEL
-   std::string_view constexpr COMPILE_SOURCE_PATH{ ERU_COMPILE_SOURCE_PATH };
+   inline constexpr std::string_view COMPILE_SOURCE_PATH{ ERU_COMPILE_SOURCE_PATH };
    #endif
 }
 
