@@ -56,7 +56,7 @@ namespace eru
          Logger& operator=(Logger const&) = delete;
          Logger& operator=(Logger&&) = delete;
 
-         ERU_API void register_engine_source_root(std::filesystem::path user_root);
+         ERU_API void register_framework_source_root(std::filesystem::path user_root);
          ERU_API void register_source_root(std::filesystem::path user_root, std::filesystem::path compile_root);
 
          template <typename Message>

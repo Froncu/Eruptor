@@ -55,7 +55,7 @@ namespace eru
       condition_.notify_one();
    }
 
-   void Logger::register_engine_source_root(std::filesystem::path user_root)
+   void Logger::register_framework_source_root(std::filesystem::path user_root)
    {
       register_source_root(std::move(user_root), COMPILE_SOURCE_PATH.data());
    }
