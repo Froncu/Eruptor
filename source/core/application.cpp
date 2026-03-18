@@ -296,15 +296,15 @@ namespace eru
       // Extent
 
       vk::Extent2D surface_extent;
-      if (surface_capabilities.currentExtent.width == std::numeric_limits<uint32_t>::max()
-         and surface_capabilities.currentExtent.height == std::numeric_limits<uint32_t>::max())
+      if (surface_capabilities.currentExtent.width == std::numeric_limits<std::uint32_t>::max()
+         and surface_capabilities.currentExtent.height == std::numeric_limits<std::uint32_t>::max())
       {
          int width, height;
          glfwGetFramebufferSize(&window_.native(), &width, &height);
 
          surface_extent = {
-            std::clamp<uint32_t>(width, surface_capabilities.minImageExtent.width, surface_capabilities.maxImageExtent.width),
-            std::clamp<uint32_t>(height, surface_capabilities.minImageExtent.height, surface_capabilities.maxImageExtent.height)
+            std::clamp<std::uint32_t>(width, surface_capabilities.minImageExtent.width, surface_capabilities.maxImageExtent.width),
+            std::clamp<std::uint32_t>(height, surface_capabilities.minImageExtent.height, surface_capabilities.maxImageExtent.height)
          };
       }
       else
