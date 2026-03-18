@@ -191,15 +191,19 @@ namespace eru
    {
       vk::StructureChain<
          vk::PhysicalDeviceFeatures2,
+         vk::PhysicalDeviceVulkan11Features,
          vk::PhysicalDeviceVulkan13Features,
-         vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT> const device_feature_chain{
+         vk::PhysicalDeviceVulkan14Features> const device_feature_chain{
          {
+         },
+         {
+            .shaderDrawParameters{ true }
          },
          {
             .dynamicRendering{ true }
          },
          {
-            .extendedDynamicState{ true }
+            .maintenance5{ true }
          }
       };
 
@@ -303,8 +307,10 @@ namespace eru
          glfwGetFramebufferSize(&window_.native(), &width, &height);
 
          surface_extent = {
-            std::clamp<std::uint32_t>(width, surface_capabilities.minImageExtent.width, surface_capabilities.maxImageExtent.width),
-            std::clamp<std::uint32_t>(height, surface_capabilities.minImageExtent.height, surface_capabilities.maxImageExtent.height)
+            std::clamp<std::uint32_t>(width, surface_capabilities.minImageExtent.width,
+               surface_capabilities.maxImageExtent.width),
+            std::clamp<std::uint32_t>(height, surface_capabilities.minImageExtent.height,
+               surface_capabilities.maxImageExtent.height)
          };
       }
       else
@@ -368,5 +374,148 @@ namespace eru
       }
 
       return image_views;
+   }
+
+   vk::raii::PipelineLayout Application::pipeline_layout() const
+   {
+      return {
+         device_,
+         vk::PipelineLayoutCreateInfo{}
+      };
+   }
+
+   vk::raii::Pipeline Application::pipeline() const
+   {
+      Slang::ComPtr<slang::IGlobalSession> global_session;
+      createGlobalSession(global_session.writeRef());
+
+      std::array slang_targets{
+         std::to_array<slang::TargetDesc>({
+            {
+               .format{ SLANG_SPIRV }
+            }
+         })
+      };
+
+      slang::SessionDesc const slang_session_description{
+         .targets{ std::ranges::data(slang_targets) },
+         .targetCount{ static_cast<SlangInt>(std::ranges::size(slang_targets)) },
+         .defaultMatrixLayoutMode{ SLANG_MATRIX_LAYOUT_COLUMN_MAJOR }
+      };
+
+      Slang::ComPtr<slang::ISession> slang_session;
+      global_session->createSession(slang_session_description, slang_session.writeRef());
+
+      Slang::ComPtr const slang_module{
+         slang_session->loadModuleFromSource("shader", "assets/shaders/shader.slang", nullptr, nullptr)
+      };
+
+      Slang::ComPtr<ISlangBlob> spirv;
+      slang_module->getTargetCode(0, spirv.writeRef());
+
+      vk::ShaderModuleCreateInfo const shader_module_create_info{
+         .codeSize{ spirv->getBufferSize() },
+         .pCode{ static_cast<std::uint32_t const* const>(spirv->getBufferPointer()) }
+      };
+
+      std::array const shader_stage_create_infos{
+         std::to_array<vk::PipelineShaderStageCreateInfo>({
+            {
+               .pNext{ &shader_module_create_info },
+               .stage{ vk::ShaderStageFlagBits::eVertex },
+               .pName{ "vertMain" }
+            },
+            {
+               .pNext{ &shader_module_create_info },
+               .stage{ vk::ShaderStageFlagBits::eFragment },
+               .pName{ "fragMain" }
+            }
+         })
+      };
+
+      std::array constexpr dynamic_states{
+         vk::DynamicState::eViewport,
+         vk::DynamicState::eScissor
+      };
+
+      vk::PipelineDynamicStateCreateInfo const dynamic_state_create_info{
+         .dynamicStateCount{ static_cast<uint32_t>(std::ranges::size(dynamic_states)) },
+         .pDynamicStates{ std::ranges::data(dynamic_states) }
+      };
+
+      vk::PipelineVertexInputStateCreateInfo constexpr vertex_input_state_create_info{};
+
+      vk::PipelineInputAssemblyStateCreateInfo constexpr input_assembly_state_create_info{
+         .topology{ vk::PrimitiveTopology::eTriangleList }
+      };
+
+      vk::PipelineViewportStateCreateInfo constexpr viewport_state_create_info{
+         .viewportCount{ 1 },
+         .scissorCount{ 1 }
+      };
+
+      vk::PipelineRasterizationStateCreateInfo constexpr rasterization_state_create_info{
+         .depthClampEnable{ vk::False },
+         .rasterizerDiscardEnable{ vk::False },
+         .polygonMode{ vk::PolygonMode::eFill },
+         .cullMode{ vk::CullModeFlagBits::eBack },
+         .frontFace{ vk::FrontFace::eClockwise },
+         .depthBiasEnable{ vk::False },
+         .depthBiasSlopeFactor{ 1.0f },
+         .lineWidth{ 1.0f }
+      };
+
+      vk::PipelineMultisampleStateCreateInfo constexpr multisample_state_create_info{
+         .rasterizationSamples{ vk::SampleCountFlagBits::e1 },
+         .sampleShadingEnable{ vk::False }
+      };
+
+      std::array constexpr color_blend_attachment_state{
+         std::to_array<vk::PipelineColorBlendAttachmentState>({
+            {
+               .blendEnable{ vk::False },
+               .colorWriteMask{
+                  vk::ColorComponentFlagBits::eR |
+                  vk::ColorComponentFlagBits::eG |
+                  vk::ColorComponentFlagBits::eB |
+                  vk::ColorComponentFlagBits::eA
+               }
+            }
+         })
+      };
+
+      vk::PipelineColorBlendStateCreateInfo const color_blend_state_create_info{
+         .logicOpEnable{ vk::False },
+         .logicOp{ vk::LogicOp::eCopy },
+         .attachmentCount{ static_cast<std::uint32_t>(std::ranges::size(color_blend_attachment_state)) },
+         .pAttachments{ std::ranges::data(color_blend_attachment_state) }
+      };
+
+      std::array const color_attachments{
+         surface_format_.format,
+      };
+
+      vk::PipelineRenderingCreateInfo const pipeline_rendering_create_info{
+         .colorAttachmentCount{ static_cast<std::uint32_t>(std::ranges::size(color_attachments)) },
+         .pColorAttachmentFormats{ std::ranges::data(color_attachments) }
+      };
+
+      return {
+         device_,
+         nullptr,
+         {
+            .pNext{ &pipeline_rendering_create_info },
+            .stageCount{ static_cast<std::uint32_t>(std::ranges::size(shader_stage_create_infos)) },
+            .pStages{ std::ranges::data(shader_stage_create_infos) },
+            .pVertexInputState{ &vertex_input_state_create_info },
+            .pInputAssemblyState{ &input_assembly_state_create_info },
+            .pViewportState{ &viewport_state_create_info },
+            .pRasterizationState{ &rasterization_state_create_info },
+            .pMultisampleState{ &multisample_state_create_info },
+            .pColorBlendState{ &color_blend_state_create_info },
+            .pDynamicState{ &dynamic_state_create_info },
+            .layout{ pipeline_layout_ },
+         }
+      };
    }
 }
