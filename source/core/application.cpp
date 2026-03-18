@@ -98,7 +98,11 @@ namespace eru
 
       extension_names.push_back(vk::EXTDebugUtilsExtensionName);
 
-      std::array<char const*, 1> constexpr layer_names{ "VK_LAYER_KHRONOS_validation" };
+      std::array constexpr layer_names{
+         std::to_array<char const* const>({
+            "VK_LAYER_KHRONOS_validation"
+         })
+      };
 
       return {
          vulkan_context_, {
@@ -201,21 +205,21 @@ namespace eru
 
       auto constexpr queue_priority{ 0.5f };
 
-      std::array<vk::DeviceQueueCreateInfo, 1> const device_queue_create_info{
-         {
+      std::array const device_queue_create_info{
+         std::to_array<vk::DeviceQueueCreateInfo>({
             {
                .flags{},
                .queueFamilyIndex{ queue_family_index_ },
                .queueCount{ 1 },
                .pQueuePriorities{ &queue_priority }
-            },
-         }
+            }
+         })
       };
 
-      std::array<char const*, 1> constexpr device_extension_names{
-         {
+      std::array constexpr device_extension_names{
+         std::to_array<char const* const>({
             vk::KHRSwapchainExtensionName
-         }
+         })
       };
 
       // TODO: for backwards compatibility, the validation layers here should be the same as the ones enabled on the instance
