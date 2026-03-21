@@ -64,6 +64,181 @@ namespace eru
       glfwTerminate();
    }
 
+   Application::~Application()
+   {
+      device_.waitIdle();
+   }
+
+   bool Application::tick()
+   {
+      vk::raii::CommandBuffer const& command_buffer{ command_buffers_[frame_index_] };
+      vk::raii::Semaphore const& image_available_semaphore{ image_available_semaphores_[frame_index_] };
+      vk::raii::Semaphore const& command_buffer_finished_semaphore{ command_buffer_finished_semaphores_[frame_index_] };
+      vk::raii::Fence const& presentation_finished_fence{ presentation_finished_fences_[frame_index_] };
+
+      if (device_.waitForFences(*presentation_finished_fence, {}, std::numeric_limits<uint64_t>::max()) not_eq
+         vk::Result::eSuccess)
+         throw Exception{ "failed to wait for fence!" };
+      device_.resetFences(*presentation_finished_fence);
+
+      auto [swap_chain_result, swap_chain_image_index]{
+         swap_chain_.acquireNextImage(std::numeric_limits<std::uint64_t>::max(), *image_available_semaphore)
+      };
+
+      command_buffer.begin({
+         .flags{ vk::CommandBufferUsageFlagBits::eOneTimeSubmit }
+      });
+
+      vk::ImageMemoryBarrier2 const begin_barrier{
+         .srcStageMask{ vk::PipelineStageFlagBits2::eNone },
+         .srcAccessMask{ vk::AccessFlagBits2::eNone },
+         .dstStageMask{ vk::PipelineStageFlagBits2::eColorAttachmentOutput },
+         .dstAccessMask{ vk::AccessFlagBits2::eColorAttachmentWrite },
+         .oldLayout{ vk::ImageLayout::eUndefined },
+         .newLayout{ vk::ImageLayout::eColorAttachmentOptimal },
+         .image{ swap_chain_images_[swap_chain_image_index] },
+         .subresourceRange{
+            .aspectMask{ vk::ImageAspectFlagBits::eColor },
+            .levelCount{ 1 },
+            .layerCount{ 1 }
+         }
+      };
+
+      command_buffer.pipelineBarrier2({
+         .imageMemoryBarrierCount{ 1 },
+         .pImageMemoryBarriers{ &begin_barrier }
+      });
+
+      vk::RenderingAttachmentInfo const attachment_info{
+         .imageView{ swap_chain_image_views_[swap_chain_image_index] },
+         .imageLayout{ vk::ImageLayout::eColorAttachmentOptimal },
+         .loadOp{ vk::AttachmentLoadOp::eClear },
+         .storeOp{ vk::AttachmentStoreOp::eStore },
+         .clearValue{ vk::ClearColorValue{ 0.1f, 0.1f, 0.1f, 1.0f } }
+      };
+
+      command_buffer.beginRendering({
+         .renderArea{
+            .extent{ surface_extent_ }
+         },
+         .layerCount{ 1 },
+         .colorAttachmentCount{ 1 },
+         .pColorAttachments{ &attachment_info }
+      });
+
+      command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline_);
+      command_buffer.setViewport(0, {
+         {
+            .width{ static_cast<float>(surface_extent_.width) },
+            .height{ static_cast<float>(surface_extent_.height) },
+            .maxDepth{ 1.0f },
+         }
+      });
+
+      command_buffer.setScissor(0, {
+         {
+            .extent{ surface_extent_ }
+         }
+      });
+
+      command_buffer.draw(3, 1, 0, 0);
+      command_buffer.endRendering();
+
+      vk::ImageMemoryBarrier2 const end_barrier{
+         .srcStageMask{ vk::PipelineStageFlagBits2::eColorAttachmentOutput },
+         .srcAccessMask{ vk::AccessFlagBits2::eColorAttachmentWrite },
+         .dstStageMask{ vk::PipelineStageFlagBits2::eBottomOfPipe },
+         .dstAccessMask{ vk::AccessFlagBits2::eNone },
+         .oldLayout{ vk::ImageLayout::eColorAttachmentOptimal },
+         .newLayout{ vk::ImageLayout::ePresentSrcKHR },
+         .image{ swap_chain_images_[swap_chain_image_index] },
+         .subresourceRange{
+            .aspectMask{ vk::ImageAspectFlagBits::eColor },
+            .levelCount{ 1 },
+            .layerCount{ 1 }
+         }
+      };
+
+      command_buffer.pipelineBarrier2(
+         {
+            .imageMemoryBarrierCount{ 1 },
+            .pImageMemoryBarriers{ &end_barrier }
+         });
+
+      command_buffer.end();
+
+      std::array const wait_semaphore_infos{
+         std::to_array<vk::SemaphoreSubmitInfo>({
+            {
+               .semaphore{ image_available_semaphore },
+               .stageMask{ vk::PipelineStageFlagBits2::eColorAttachmentOutput },
+            }
+         })
+      };
+
+      std::array const command_buffer_infos{
+         std::to_array<vk::CommandBufferSubmitInfo>({
+            {
+               .commandBuffer{ command_buffer }
+            }
+         })
+      };
+
+      std::array const signal_semaphore_infos{
+         std::to_array<vk::SemaphoreSubmitInfo>({
+            {
+               .semaphore{ command_buffer_finished_semaphore },
+               .stageMask{ vk::PipelineStageFlagBits2::eColorAttachmentOutput },
+            }
+         })
+      };
+
+      queue_.submit2({
+         vk::SubmitInfo2{
+            .waitSemaphoreInfoCount{ static_cast<std::uint32_t>(std::ranges::size(wait_semaphore_infos)) },
+            .pWaitSemaphoreInfos{ std::ranges::data(wait_semaphore_infos) },
+            .commandBufferInfoCount{ static_cast<std::uint32_t>(std::ranges::size(command_buffer_infos)) },
+            .pCommandBufferInfos{ std::ranges::data(command_buffer_infos) },
+            .signalSemaphoreInfoCount{ static_cast<std::uint32_t>(std::ranges::size(signal_semaphore_infos)) },
+            .pSignalSemaphoreInfos{ std::ranges::data(signal_semaphore_infos) }
+         }
+      });
+
+      vk::SwapchainPresentFenceInfoEXT const swap_chain_present_fence_info{
+         .swapchainCount{ 1 },
+         .pFences{ &*presentation_finished_fence }
+      };
+
+      vk::Result const present_result{
+         queue_.presentKHR({
+            .pNext{ &swap_chain_present_fence_info },
+            .waitSemaphoreCount{ 1 },
+            .pWaitSemaphores{ &*command_buffer_finished_semaphore },
+            .swapchainCount{ 1 },
+            .pSwapchains{ &*swap_chain_ },
+            .pImageIndices{ &swap_chain_image_index },
+            .pResults{}
+         })
+      };
+
+      switch (present_result)
+      {
+         case vk::Result::eSuccess:
+            break;
+
+         case vk::Result::eSuboptimalKHR:
+            Locator::get<Logger>().warning("vk::Queue::presentKHR returned vk::Result::eSuboptimalKHR!");
+            break;
+
+         default:
+            break;
+      }
+
+      ++frame_index_ %= FRAMES_IN_FLIGHT;
+
+      return true;
+   }
+
    void Application::poll()
    {
       glfwPollEvents();
@@ -193,17 +368,22 @@ namespace eru
          vk::PhysicalDeviceFeatures2,
          vk::PhysicalDeviceVulkan11Features,
          vk::PhysicalDeviceVulkan13Features,
-         vk::PhysicalDeviceVulkan14Features> const device_feature_chain{
+         vk::PhysicalDeviceVulkan14Features,
+         vk::PhysicalDeviceSwapchainMaintenance1FeaturesEXT> const device_feature_chain{
          {
          },
          {
-            .shaderDrawParameters{ true }
+            .shaderDrawParameters{ true },
          },
          {
+            .synchronization2{ true },
             .dynamicRendering{ true }
          },
          {
             .maintenance5{ true }
+         },
+         {
+            .swapchainMaintenance1{ true }
          }
       };
 
@@ -272,6 +452,26 @@ namespace eru
       return *surface_format;
    }
 
+   vk::Extent2D Application::surface_extent() const
+   {
+      vk::SurfaceCapabilitiesKHR const surface_capabilities{ physical_device_.getSurfaceCapabilitiesKHR(surface_) };
+      if (surface_capabilities.currentExtent.width == std::numeric_limits<std::uint32_t>::max()
+         and surface_capabilities.currentExtent.height == std::numeric_limits<std::uint32_t>::max())
+      {
+         int width, height;
+         glfwGetFramebufferSize(&window_.native(), &width, &height);
+
+         return {
+            std::clamp<std::uint32_t>(width, surface_capabilities.minImageExtent.width,
+               surface_capabilities.maxImageExtent.width),
+            std::clamp<std::uint32_t>(height, surface_capabilities.minImageExtent.height,
+               surface_capabilities.maxImageExtent.height)
+         };
+      }
+
+      return surface_capabilities.currentExtent;
+   }
+
    vk::raii::SwapchainKHR Application::swap_chain() const
    {
       // Present mode
@@ -294,30 +494,10 @@ namespace eru
       if (surface_present_mode == std::ranges::end(available_surface_present_modes))
          surface_present_mode = std::ranges::begin(available_surface_present_modes);
 
-      // TODO: use `vk::StructureChain` and `getSurfaceCapabilities2KHR` for more functionality
-      vk::SurfaceCapabilitiesKHR const surface_capabilities{ physical_device_.getSurfaceCapabilitiesKHR(surface_) };
-
-      // Extent
-
-      vk::Extent2D surface_extent;
-      if (surface_capabilities.currentExtent.width == std::numeric_limits<std::uint32_t>::max()
-         and surface_capabilities.currentExtent.height == std::numeric_limits<std::uint32_t>::max())
-      {
-         int width, height;
-         glfwGetFramebufferSize(&window_.native(), &width, &height);
-
-         surface_extent = {
-            std::clamp<std::uint32_t>(width, surface_capabilities.minImageExtent.width,
-               surface_capabilities.maxImageExtent.width),
-            std::clamp<std::uint32_t>(height, surface_capabilities.minImageExtent.height,
-               surface_capabilities.maxImageExtent.height)
-         };
-      }
-      else
-         surface_extent = surface_capabilities.currentExtent;
-
       // Image count
 
+      // TODO: use `vk::StructureChain` and `getSurfaceCapabilities2KHR` for more functionality
+      vk::SurfaceCapabilitiesKHR const surface_capabilities{ physical_device_.getSurfaceCapabilitiesKHR(surface_) };
       std::uint32_t minimal_image_count{ std::max(3u, surface_capabilities.minImageCount) };
       if (surface_capabilities.maxImageCount)
          minimal_image_count = std::min(minimal_image_count, surface_capabilities.maxImageCount);
@@ -330,7 +510,7 @@ namespace eru
             .minImageCount{ minimal_image_count },
             .imageFormat{ surface_format_.format },
             .imageColorSpace{ surface_format_.colorSpace },
-            .imageExtent{ surface_extent },
+            .imageExtent{ surface_extent_ },
             .imageArrayLayers{ 1 },
             .imageUsage{ vk::ImageUsageFlagBits::eColorAttachment },
             .imageSharingMode{ vk::SharingMode::eExclusive },
@@ -517,5 +697,50 @@ namespace eru
             .layout{ pipeline_layout_ },
          }
       };
+   }
+
+   vk::raii::CommandPool Application::command_pool() const
+   {
+      return {
+         device_,
+         vk::CommandPoolCreateInfo{
+            .flags{ vk::CommandPoolCreateFlagBits::eResetCommandBuffer },
+            .queueFamilyIndex{ queue_family_index_ }
+         }
+      };
+   }
+
+   vk::raii::CommandBuffers Application::command_buffers() const
+   {
+      return {
+         device_,
+         {
+            .commandPool{ command_pool_ },
+            .level{ vk::CommandBufferLevel::ePrimary },
+            .commandBufferCount{ FRAMES_IN_FLIGHT }
+         }
+      };
+   }
+
+   std::vector<vk::raii::Semaphore> Application::semaphores() const
+   {
+      std::vector<vk::raii::Semaphore> semaphores{};
+      semaphores.reserve(FRAMES_IN_FLIGHT);
+      for (std::size_t index{}; index < FRAMES_IN_FLIGHT; ++index)
+         semaphores.emplace_back(device_, vk::SemaphoreCreateInfo{});
+
+      return semaphores;
+   }
+
+   std::vector<vk::raii::Fence> Application::fences() const
+   {
+      std::vector<vk::raii::Fence> fences{};
+      fences.reserve(FRAMES_IN_FLIGHT);
+      for (std::size_t index{}; index < FRAMES_IN_FLIGHT; ++index)
+         fences.emplace_back(device_, vk::FenceCreateInfo{
+            .flags{ vk::FenceCreateFlagBits::eSignaled }
+         });
+
+      return fences;
    }
 }

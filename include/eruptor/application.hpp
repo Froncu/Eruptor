@@ -35,16 +35,18 @@ namespace eru
             GLFWcontext& operator=(GLFWcontext&) = delete;
       };
 
+      static auto constexpr FRAMES_IN_FLIGHT{ 2 };
+
       public:
          Application(Application const&) = delete;
          Application(Application&&) noexcept = delete;
 
-         virtual ~Application() = default;
+         ERU_API virtual ~Application();
 
          Application& operator=(Application const&) = delete;
          Application& operator=(Application&&) = delete;
 
-         [[nodiscard]] virtual bool tick() = 0;
+         ERU_API [[nodiscard]] bool tick();
          ERU_API void poll();
 
       protected:
@@ -59,10 +61,15 @@ namespace eru
          [[nodiscard]] vk::raii::Device device() const;
          [[nodiscard]] vk::raii::Queue queue() const;
          [[nodiscard]] vk::SurfaceFormatKHR surface_format() const;
+         [[nodiscard]] vk::Extent2D surface_extent() const;
          [[nodiscard]] vk::raii::SwapchainKHR swap_chain() const;
          [[nodiscard]] std::vector<vk::raii::ImageView> swap_chain_image_views() const;
          [[nodiscard]] vk::raii::PipelineLayout pipeline_layout() const;
          [[nodiscard]] vk::raii::Pipeline pipeline() const;
+         [[nodiscard]] vk::raii::CommandPool command_pool() const;
+         [[nodiscard]] vk::raii::CommandBuffers command_buffers() const;
+         [[nodiscard]] std::vector<vk::raii::Semaphore> semaphores() const;
+         [[nodiscard]] std::vector<vk::raii::Fence> fences() const;
 
          LocatorRegistrator const locator_registrator_{ *this };
 
@@ -78,11 +85,18 @@ namespace eru
          vk::raii::Device const device_{ device() };
          vk::raii::Queue const queue_{ queue() };
          vk::SurfaceFormatKHR const surface_format_{ surface_format() };
+         vk::Extent2D const surface_extent_{ surface_extent() };
          vk::raii::SwapchainKHR const swap_chain_{ swap_chain() };
          std::vector<vk::Image> const swap_chain_images_{ swap_chain_.getImages() };
          std::vector<vk::raii::ImageView> const swap_chain_image_views_{ swap_chain_image_views() };
          vk::raii::PipelineLayout const pipeline_layout_{ pipeline_layout() };
          vk::raii::Pipeline const pipeline_{ pipeline() };
+         vk::raii::CommandPool const command_pool_{ command_pool() };
+         vk::raii::CommandBuffers const command_buffers_{ command_buffers() };
+         std::vector<vk::raii::Semaphore> const image_available_semaphores_{ semaphores() };
+         std::vector<vk::raii::Semaphore> const command_buffer_finished_semaphores_{ semaphores() };
+         std::vector<vk::raii::Fence> const presentation_finished_fences_{ fences() };
+         std::uint8_t frame_index_{};
    };
 }
 
