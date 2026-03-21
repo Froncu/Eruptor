@@ -86,9 +86,22 @@ namespace eru
       runtime_assert(result == vk::Result::eSuccess,
          std::format("failed to reset fence(s)! ({})", to_string(result)));
 
-      vk::ResultValue const swap_chain_image_index{
+      vk::ResultValue swap_chain_image_index{
          swap_chain_.acquireNextImage(std::numeric_limits<std::uint64_t>::max(), *image_available_semaphore)
       };
+
+      if (swap_chain_image_index.result == vk::Result::eErrorOutOfDateKHR)
+      {
+         surface_extent_ = surface_extent();
+
+         swap_chain_.clear();
+         swap_chain_ = swap_chain();
+         swap_chain_images_ = swap_chain_images();
+         swap_chain_image_views_ = swap_chain_image_views();
+         swap_chain_image_index = swap_chain_.acquireNextImage(std::numeric_limits<std::uint64_t>::max(),
+            *image_available_semaphore);
+      }
+
       runtime_assert(swap_chain_image_index.has_value(),
          std::format("failed to acquire next image index! ({})", to_string(swap_chain_image_index.result)));
 
@@ -234,8 +247,12 @@ namespace eru
 
       switch (result)
       {
-         case vk::Result::eSuboptimalKHR:
-            Locator::get<Logger>().warning("vk::Queue::presentKHR returned vk::Result::eSuboptimalKHR!");
+         case vk::Result::eErrorOutOfDateKHR:
+            surface_extent_ = surface_extent();
+            swap_chain_.clear();
+            swap_chain_ = swap_chain();
+            swap_chain_images_ = swap_chain_images();
+            swap_chain_image_views_ = swap_chain_image_views();
             break;
 
          default:
@@ -511,12 +528,11 @@ namespace eru
 
    vk::raii::SwapchainKHR Application::swap_chain() const
    {
-      // Present mode
-
       // TODO: use `vk::StructureChain` for more functionality
       vk::ResultValue const available_surface_present_modes{ physical_device_.getSurfacePresentModesKHR(surface_) };
       runtime_assert(available_surface_present_modes.has_value(),
-         std::format("failed to query available surface present modes! ({})", to_string(available_surface_present_modes.result)));
+         std::format("failed to query available surface present modes! ({})",
+            to_string(available_surface_present_modes.result)));
 
       runtime_assert(not std::ranges::empty(*available_surface_present_modes),
          "no present modes are available!");
@@ -533,8 +549,6 @@ namespace eru
       if (surface_present_mode == std::ranges::end(*available_surface_present_modes))
          surface_present_mode = std::ranges::begin(*available_surface_present_modes);
 
-      // Image count
-
       // TODO: use `vk::StructureChain` and `getSurfaceCapabilities2KHR` for more functionality
       vk::ResultValue const surface_capabilities{ physical_device_.getSurfaceCapabilitiesKHR(surface_) };
       runtime_assert(surface_capabilities.has_value(),
@@ -544,8 +558,7 @@ namespace eru
       if (surface_capabilities->maxImageCount)
          minimal_image_count = std::min(minimal_image_count, surface_capabilities->maxImageCount);
 
-      // Swap chain
-
+      // TODO: make use of `oldSwapchain`
       vk::ResultValue swap_chain{
          device_.createSwapchainKHR({
             .surface{ *surface_ },

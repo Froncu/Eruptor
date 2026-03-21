@@ -86,10 +86,10 @@ namespace eru
          vk::raii::Device const device_{ device() };
          vk::raii::Queue const queue_{ queue() };
          vk::SurfaceFormatKHR const surface_format_{ surface_format() };
-         vk::Extent2D const surface_extent_{ surface_extent() };
-         vk::raii::SwapchainKHR const swap_chain_{ swap_chain() };
-         std::vector<vk::Image> const swap_chain_images_{ swap_chain_images() };
-         std::vector<vk::raii::ImageView> const swap_chain_image_views_{ swap_chain_image_views() };
+         vk::Extent2D surface_extent_{ surface_extent() };
+         vk::raii::SwapchainKHR swap_chain_{ swap_chain() };
+         std::vector<vk::Image> swap_chain_images_{ swap_chain_images() };
+         std::vector<vk::raii::ImageView> swap_chain_image_views_{ swap_chain_image_views() };
          vk::raii::PipelineLayout const pipeline_layout_{ pipeline_layout() };
          vk::raii::Pipeline const pipeline_{ pipeline() };
          vk::raii::CommandPool const command_pool_{ command_pool() };
