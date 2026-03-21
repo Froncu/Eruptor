@@ -66,7 +66,9 @@ namespace eru
 
    Application::~Application()
    {
-      device_.waitIdle();
+      vk::Result const result{ device_.waitIdle() };
+      runtime_assert(result == vk::Result::eSuccess,
+         std::format("failed to wait idle on the device! ({})", to_string(result)));
    }
 
    bool Application::tick()
@@ -76,18 +78,25 @@ namespace eru
       vk::raii::Semaphore const& command_buffer_finished_semaphore{ command_buffer_finished_semaphores_[frame_index_] };
       vk::raii::Fence const& presentation_finished_fence{ presentation_finished_fences_[frame_index_] };
 
-      if (device_.waitForFences(*presentation_finished_fence, {}, std::numeric_limits<uint64_t>::max()) not_eq
-         vk::Result::eSuccess)
-         throw Exception{ "failed to wait for fence!" };
-      device_.resetFences(*presentation_finished_fence);
+      vk::Result result{ device_.waitForFences(*presentation_finished_fence, {}, std::numeric_limits<uint64_t>::max()) };
+      runtime_assert(result == vk::Result::eSuccess,
+         std::format("failed to wait for fence(s)! ({})", to_string(result)));
 
-      auto [swap_chain_result, swap_chain_image_index]{
+      result = device_.resetFences(*presentation_finished_fence);
+      runtime_assert(result == vk::Result::eSuccess,
+         std::format("failed to reset fence(s)! ({})", to_string(result)));
+
+      vk::ResultValue const swap_chain_image_index{
          swap_chain_.acquireNextImage(std::numeric_limits<std::uint64_t>::max(), *image_available_semaphore)
       };
+      runtime_assert(swap_chain_image_index.has_value(),
+         std::format("failed to acquire next image index! ({})", to_string(swap_chain_image_index.result)));
 
-      command_buffer.begin({
+      result = command_buffer.begin({
          .flags{ vk::CommandBufferUsageFlagBits::eOneTimeSubmit }
       });
+      runtime_assert(result == vk::Result::eSuccess,
+         std::format("failed to begin command buffer! ({})", to_string(result)));
 
       vk::ImageMemoryBarrier2 const begin_barrier{
          .srcStageMask{ vk::PipelineStageFlagBits2::eNone },
@@ -96,7 +105,7 @@ namespace eru
          .dstAccessMask{ vk::AccessFlagBits2::eColorAttachmentWrite },
          .oldLayout{ vk::ImageLayout::eUndefined },
          .newLayout{ vk::ImageLayout::eColorAttachmentOptimal },
-         .image{ swap_chain_images_[swap_chain_image_index] },
+         .image{ swap_chain_images_[*swap_chain_image_index] },
          .subresourceRange{
             .aspectMask{ vk::ImageAspectFlagBits::eColor },
             .levelCount{ 1 },
@@ -110,7 +119,7 @@ namespace eru
       });
 
       vk::RenderingAttachmentInfo const attachment_info{
-         .imageView{ swap_chain_image_views_[swap_chain_image_index] },
+         .imageView{ swap_chain_image_views_[*swap_chain_image_index] },
          .imageLayout{ vk::ImageLayout::eColorAttachmentOptimal },
          .loadOp{ vk::AttachmentLoadOp::eClear },
          .storeOp{ vk::AttachmentStoreOp::eStore },
@@ -151,7 +160,7 @@ namespace eru
          .dstAccessMask{ vk::AccessFlagBits2::eNone },
          .oldLayout{ vk::ImageLayout::eColorAttachmentOptimal },
          .newLayout{ vk::ImageLayout::ePresentSrcKHR },
-         .image{ swap_chain_images_[swap_chain_image_index] },
+         .image{ swap_chain_images_[*swap_chain_image_index] },
          .subresourceRange{
             .aspectMask{ vk::ImageAspectFlagBits::eColor },
             .levelCount{ 1 },
@@ -165,7 +174,9 @@ namespace eru
             .pImageMemoryBarriers{ &end_barrier }
          });
 
-      command_buffer.end();
+      result = command_buffer.end();
+      runtime_assert(result == vk::Result::eSuccess,
+         std::format("failed to end command buffer! ({})", to_string(result)));
 
       std::array const wait_semaphore_infos{
          std::to_array<vk::SemaphoreSubmitInfo>({
@@ -193,7 +204,7 @@ namespace eru
          })
       };
 
-      queue_.submit2({
+      result = queue_.submit2({
          vk::SubmitInfo2{
             .waitSemaphoreInfoCount{ static_cast<std::uint32_t>(std::ranges::size(wait_semaphore_infos)) },
             .pWaitSemaphoreInfos{ std::ranges::data(wait_semaphore_infos) },
@@ -203,34 +214,33 @@ namespace eru
             .pSignalSemaphoreInfos{ std::ranges::data(signal_semaphore_infos) }
          }
       });
+      runtime_assert(result == vk::Result::eSuccess,
+         std::format("failed to submit command buffer! ({})", to_string(result)));
 
       vk::SwapchainPresentFenceInfoEXT const swap_chain_present_fence_info{
          .swapchainCount{ 1 },
          .pFences{ &*presentation_finished_fence }
       };
 
-      vk::Result const present_result{
-         queue_.presentKHR({
-            .pNext{ &swap_chain_present_fence_info },
-            .waitSemaphoreCount{ 1 },
-            .pWaitSemaphores{ &*command_buffer_finished_semaphore },
-            .swapchainCount{ 1 },
-            .pSwapchains{ &*swap_chain_ },
-            .pImageIndices{ &swap_chain_image_index },
-            .pResults{}
-         })
-      };
+      result = queue_.presentKHR({
+         .pNext{ &swap_chain_present_fence_info },
+         .waitSemaphoreCount{ 1 },
+         .pWaitSemaphores{ &*command_buffer_finished_semaphore },
+         .swapchainCount{ 1 },
+         .pSwapchains{ &*swap_chain_ },
+         .pImageIndices{ &*swap_chain_image_index },
+         .pResults{}
+      });
 
-      switch (present_result)
+      switch (result)
       {
-         case vk::Result::eSuccess:
-            break;
-
          case vk::Result::eSuboptimalKHR:
             Locator::get<Logger>().warning("vk::Queue::presentKHR returned vk::Result::eSuboptimalKHR!");
             break;
 
          default:
+            runtime_assert(result == vk::Result::eSuccess,
+               std::format("failed to submit command buffer! ({})", to_string(result)));
             break;
       }
 
@@ -279,23 +289,26 @@ namespace eru
          })
       };
 
-      return {
-         vulkan_context_, {
+      vk::ResultValue instance{
+         vulkan_context_.createInstance({
             .flags{},
             .pApplicationInfo{ &app_info },
             .enabledLayerCount{ static_cast<std::uint32_t>(std::ranges::size(layer_names)) },
             .ppEnabledLayerNames{ std::ranges::data(layer_names) },
             .enabledExtensionCount{ static_cast<std::uint32_t>(std::ranges::size(extension_names)) },
             .ppEnabledExtensionNames{ std::ranges::data(extension_names) }
-         }
+         })
       };
+      runtime_assert(instance.has_value(),
+         std::format("failed to create a Vulkan instance! ({})", to_string(instance.result)));
+
+      return std::move(*instance);
    }
 
    vk::raii::DebugUtilsMessengerEXT Application::debug_messenger() const
    {
-      return {
-         instance_,
-         {
+      vk::ResultValue debug_messenger{
+         instance_.createDebugUtilsMessengerEXT({
             .messageSeverity{
                vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose |
                vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning |
@@ -308,8 +321,12 @@ namespace eru
                vk::DebugUtilsMessageTypeFlagBitsEXT::eDeviceAddressBinding
             },
             .pfnUserCallback{ &debug_callback }
-         }
+         })
       };
+      runtime_assert(debug_messenger.has_value(),
+         std::format("failed to create a debug messenger! ({})", to_string(debug_messenger.result)));
+
+      return std::move(*debug_messenger);
    }
 
    vk::raii::SurfaceKHR Application::surface() const
@@ -321,10 +338,13 @@ namespace eru
 
    vk::raii::PhysicalDevice Application::physical_device() const
    {
-      std::vector const physical_devices{ instance_.enumeratePhysicalDevices() };
+      vk::ResultValue const physical_devices{ instance_.enumeratePhysicalDevices() };
+      runtime_assert(physical_devices.has_value(),
+         std::format("failed to query available physical devices! ({})", to_string(physical_devices.result)));
+
       auto const physical_device{
          std::ranges::find_if(
-            physical_devices,
+            *physical_devices,
             [](vk::raii::PhysicalDevice const& device)
             {
                vk::StructureChain const properties{ device.getProperties2() };
@@ -335,8 +355,8 @@ namespace eru
             })
       };
 
-      if (physical_device == std::ranges::end(physical_devices))
-         throw Exception{ "no suitable physical device found!" };
+      runtime_assert(physical_device not_eq std::ranges::end(*physical_devices),
+         "no suitable physical device found!");
 
       return *physical_device;
    }
@@ -351,13 +371,20 @@ namespace eru
             [this](auto&& pair)
             {
                auto&& [index, properties]{ pair };
-               return static_cast<bool>(properties.queueFamilyProperties.queueFlags & vk::QueueFlagBits::eGraphics)
-                  and physical_device_.getSurfaceSupportKHR(static_cast<std::uint32_t>(index), surface_);
+
+               vk::ResultValue const surface_support{
+                  physical_device_.getSurfaceSupportKHR(static_cast<std::uint32_t>(index), surface_)
+               };
+               runtime_assert(surface_support.has_value(),
+                  std::format("failed to query for surface support! ({})", to_string(surface_support.result)));
+
+               return *surface_support
+                  and static_cast<bool>(properties.queueFamilyProperties.queueFlags & vk::QueueFlagBits::eGraphics);
             })
       };
 
-      if (queue_family == std::ranges::end(queue_family_properties))
-         throw Exception{ "no suitable queue family found!" };
+      runtime_assert(queue_family not_eq std::ranges::end(queue_family_properties),
+         "no suitable queue family found!");
 
       return static_cast<std::uint32_t>(queue_family.index());
    }
@@ -407,10 +434,8 @@ namespace eru
       };
 
       // TODO: for backwards compatibility, the validation layers here should be the same as the ones enabled on the instance
-      return
-      {
-         physical_device_,
-         {
+      vk::ResultValue device{
+         physical_device_.createDevice({
             .pNext{ device_feature_chain.get() },
             .queueCreateInfoCount{ static_cast<std::uint32_t>(std::ranges::size(device_queue_create_info)) },
             .pQueueCreateInfos{ std::ranges::data(device_queue_create_info) },
@@ -418,26 +443,35 @@ namespace eru
             .ppEnabledLayerNames{},
             .enabledExtensionCount{ static_cast<std::uint32_t>(std::ranges::size(device_extension_names)) },
             .ppEnabledExtensionNames{ std::ranges::data(device_extension_names) },
-         }
+         })
       };
+      runtime_assert(device.has_value(),
+         std::format("failed to create a device! ({})", to_string(device.result)));
+
+      return std::move(*device);
    }
 
    vk::raii::Queue Application::queue() const
    {
-      return { device_, queue_family_index_, 0 };
+      return device_.getQueue2({
+         .queueFamilyIndex{ queue_family_index_ },
+         .queueIndex{ 0 }
+      });
    }
 
    vk::SurfaceFormatKHR Application::surface_format() const
    {
       // TODO: use `vk::StructureChain` and `getSurfaceFormats2KHR` for more functionality
-      std::vector const available_surface_formats{ physical_device_.getSurfaceFormatsKHR(surface_) };
+      vk::ResultValue const available_surface_formats{ physical_device_.getSurfaceFormatsKHR(surface_) };
+      runtime_assert(available_surface_formats.has_value(),
+         std::format("failed to query available surface formats! ({})", to_string(available_surface_formats.result)));
 
-      if (std::ranges::empty(available_surface_formats))
+      if (std::ranges::empty(*available_surface_formats))
          throw Exception{ "no surface formats are available!" };
 
       auto surface_format{
          std::ranges::find_if(
-            available_surface_formats,
+            *available_surface_formats,
             [](vk::SurfaceFormatKHR const& available_surface_format)
             {
                auto const [format, color_space]{ available_surface_format };
@@ -446,30 +480,33 @@ namespace eru
             })
       };
 
-      if (surface_format == std::ranges::end(available_surface_formats))
-         surface_format = std::ranges::begin(available_surface_formats);
+      if (surface_format == std::ranges::end(*available_surface_formats))
+         surface_format = std::ranges::begin(*available_surface_formats);
 
       return *surface_format;
    }
 
    vk::Extent2D Application::surface_extent() const
    {
-      vk::SurfaceCapabilitiesKHR const surface_capabilities{ physical_device_.getSurfaceCapabilitiesKHR(surface_) };
-      if (surface_capabilities.currentExtent.width == std::numeric_limits<std::uint32_t>::max()
-         and surface_capabilities.currentExtent.height == std::numeric_limits<std::uint32_t>::max())
+      vk::ResultValue const surface_capabilities{ physical_device_.getSurfaceCapabilitiesKHR(surface_) };
+      runtime_assert(surface_capabilities.has_value(),
+         std::format("failed to query surface capabilities! ({})", to_string(surface_capabilities.result)));
+
+      if (surface_capabilities->currentExtent.width == std::numeric_limits<std::uint32_t>::max()
+         and surface_capabilities->currentExtent.height == std::numeric_limits<std::uint32_t>::max())
       {
          int width, height;
          glfwGetFramebufferSize(&window_.native(), &width, &height);
 
          return {
-            std::clamp<std::uint32_t>(width, surface_capabilities.minImageExtent.width,
-               surface_capabilities.maxImageExtent.width),
-            std::clamp<std::uint32_t>(height, surface_capabilities.minImageExtent.height,
-               surface_capabilities.maxImageExtent.height)
+            std::clamp<std::uint32_t>(width, surface_capabilities->minImageExtent.width,
+               surface_capabilities->maxImageExtent.width),
+            std::clamp<std::uint32_t>(height, surface_capabilities->minImageExtent.height,
+               surface_capabilities->maxImageExtent.height)
          };
       }
 
-      return surface_capabilities.currentExtent;
+      return surface_capabilities->currentExtent;
    }
 
    vk::raii::SwapchainKHR Application::swap_chain() const
@@ -477,35 +514,40 @@ namespace eru
       // Present mode
 
       // TODO: use `vk::StructureChain` for more functionality
-      std::vector const available_surface_present_modes{ physical_device_.getSurfacePresentModesKHR(surface_) };
+      vk::ResultValue const available_surface_present_modes{ physical_device_.getSurfacePresentModesKHR(surface_) };
+      runtime_assert(available_surface_present_modes.has_value(),
+         std::format("failed to query available surface present modes! ({})", to_string(available_surface_present_modes.result)));
 
-      if (std::ranges::empty(available_surface_present_modes))
-         throw Exception{ "no present modes are available!" };
+      runtime_assert(not std::ranges::empty(*available_surface_present_modes),
+         "no present modes are available!");
 
       auto surface_present_mode{
          std::ranges::find_if(
-            available_surface_present_modes,
+            *available_surface_present_modes,
             [](vk::PresentModeKHR const& available_surface_present_mode)
             {
                return available_surface_present_mode == vk::PresentModeKHR::eMailbox;
             })
       };
 
-      if (surface_present_mode == std::ranges::end(available_surface_present_modes))
-         surface_present_mode = std::ranges::begin(available_surface_present_modes);
+      if (surface_present_mode == std::ranges::end(*available_surface_present_modes))
+         surface_present_mode = std::ranges::begin(*available_surface_present_modes);
 
       // Image count
 
       // TODO: use `vk::StructureChain` and `getSurfaceCapabilities2KHR` for more functionality
-      vk::SurfaceCapabilitiesKHR const surface_capabilities{ physical_device_.getSurfaceCapabilitiesKHR(surface_) };
-      std::uint32_t minimal_image_count{ std::max(3u, surface_capabilities.minImageCount) };
-      if (surface_capabilities.maxImageCount)
-         minimal_image_count = std::min(minimal_image_count, surface_capabilities.maxImageCount);
+      vk::ResultValue const surface_capabilities{ physical_device_.getSurfaceCapabilitiesKHR(surface_) };
+      runtime_assert(surface_capabilities.has_value(),
+         std::format("failed to query surface capabilities! ({})", to_string(surface_capabilities.result)));
+
+      std::uint32_t minimal_image_count{ std::max(3u, surface_capabilities->minImageCount) };
+      if (surface_capabilities->maxImageCount)
+         minimal_image_count = std::min(minimal_image_count, surface_capabilities->maxImageCount);
 
       // Swap chain
 
-      return {
-         device_, {
+      vk::ResultValue swap_chain{
+         device_.createSwapchainKHR({
             .surface{ *surface_ },
             .minImageCount{ minimal_image_count },
             .imageFormat{ surface_format_.format },
@@ -516,13 +558,26 @@ namespace eru
             .imageSharingMode{ vk::SharingMode::eExclusive },
             .queueFamilyIndexCount{},
             .pQueueFamilyIndices{},
-            .preTransform{ surface_capabilities.currentTransform },
+            .preTransform{ surface_capabilities->currentTransform },
             .compositeAlpha{ vk::CompositeAlphaFlagBitsKHR::eOpaque },
             .presentMode{ *surface_present_mode },
             .clipped{ true },
             .oldSwapchain{}
-         }
+         })
       };
+      runtime_assert(swap_chain.has_value(),
+         std::format("failed to create a swap chain! ({})", to_string(swap_chain.result)));
+
+      return std::move(*swap_chain);
+   }
+
+   std::vector<vk::Image> Application::swap_chain_images() const
+   {
+      vk::ResultValue swap_chain_images{ swap_chain_.getImages() };
+      runtime_assert(swap_chain_images.has_value(),
+         std::format("failed to retrieve swap chain images! ({})", to_string(swap_chain_images.result)));
+
+      return std::move(*swap_chain_images);
    }
 
    std::vector<vk::raii::ImageView> Application::swap_chain_image_views() const
@@ -550,7 +605,11 @@ namespace eru
       for (vk::Image const image : swap_chain_images_)
       {
          create_info.image = image;
-         image_views.emplace_back(device_, create_info);
+         vk::ResultValue image_view{ device_.createImageView(create_info) };
+         runtime_assert(image_view.has_value(),
+            std::format("failed to create a swap chain image view! ({})", to_string(image_view.result)));
+
+         image_views.push_back(std::move(*image_view));
       }
 
       return image_views;
@@ -558,16 +617,19 @@ namespace eru
 
    vk::raii::PipelineLayout Application::pipeline_layout() const
    {
-      return {
-         device_,
-         vk::PipelineLayoutCreateInfo{}
-      };
+      vk::ResultValue pipeline_layout{ device_.createPipelineLayout({}) };
+      runtime_assert(pipeline_layout.has_value(),
+         std::format("failed to create a pipeline layout! ({})", to_string(pipeline_layout.result)));
+
+      return std::move(pipeline_layout.value);
    }
 
    vk::raii::Pipeline Application::pipeline() const
    {
       Slang::ComPtr<slang::IGlobalSession> global_session;
       createGlobalSession(global_session.writeRef());
+      runtime_assert(global_session,
+         std::format("failed to create a global session! ({})", slang::getLastInternalErrorMessage()));
 
       std::array slang_targets{
          std::to_array<slang::TargetDesc>({
@@ -585,13 +647,19 @@ namespace eru
 
       Slang::ComPtr<slang::ISession> slang_session;
       global_session->createSession(slang_session_description, slang_session.writeRef());
+      runtime_assert(slang_session,
+         std::format("failed to create a slang session! ({})", slang::getLastInternalErrorMessage()));
 
       Slang::ComPtr const slang_module{
          slang_session->loadModuleFromSource("shader", "assets/shaders/shader.slang", nullptr, nullptr)
       };
+      runtime_assert(slang_module,
+         std::format("failed to load a slang module! ({})", slang::getLastInternalErrorMessage()));
 
       Slang::ComPtr<ISlangBlob> spirv;
       slang_module->getTargetCode(0, spirv.writeRef());
+      runtime_assert(spirv,
+         std::format("failed to load get target code! ({})", slang::getLastInternalErrorMessage()));
 
       vk::ShaderModuleCreateInfo const shader_module_create_info{
          .codeSize{ spirv->getBufferSize() },
@@ -680,10 +748,8 @@ namespace eru
          .pColorAttachmentFormats{ std::ranges::data(color_attachments) }
       };
 
-      return {
-         device_,
-         nullptr,
-         {
+      vk::ResultValue pipeline{
+         device_.createGraphicsPipeline(nullptr, {
             .pNext{ &pipeline_rendering_create_info },
             .stageCount{ static_cast<std::uint32_t>(std::ranges::size(shader_stage_create_infos)) },
             .pStages{ std::ranges::data(shader_stage_create_infos) },
@@ -695,31 +761,41 @@ namespace eru
             .pColorBlendState{ &color_blend_state_create_info },
             .pDynamicState{ &dynamic_state_create_info },
             .layout{ pipeline_layout_ },
-         }
+         })
       };
+      runtime_assert(pipeline.has_value(),
+         std::format("failed create a pipeline! ({})", to_string(pipeline.result)));
+
+      return std::move(*pipeline);
    }
 
    vk::raii::CommandPool Application::command_pool() const
    {
-      return {
-         device_,
-         vk::CommandPoolCreateInfo{
+      vk::ResultValue command_pool{
+         device_.createCommandPool({
             .flags{ vk::CommandPoolCreateFlagBits::eResetCommandBuffer },
             .queueFamilyIndex{ queue_family_index_ }
-         }
+         })
       };
+      runtime_assert(command_pool.has_value(),
+         std::format("failed create a command pool! ({})", to_string(command_pool.result)));
+
+      return std::move(*command_pool);
    }
 
    vk::raii::CommandBuffers Application::command_buffers() const
    {
-      return {
-         device_,
-         {
+      vk::ResultValue command_buffers{
+         device_.allocateCommandBuffers({
             .commandPool{ command_pool_ },
             .level{ vk::CommandBufferLevel::ePrimary },
             .commandBufferCount{ FRAMES_IN_FLIGHT }
-         }
+         })
       };
+      runtime_assert(command_buffers.has_value(),
+         std::format("failed allocate command buffers! ({})", to_string(command_buffers.result)));
+
+      return std::move(*command_buffers);
    }
 
    std::vector<vk::raii::Semaphore> Application::semaphores() const
@@ -727,7 +803,13 @@ namespace eru
       std::vector<vk::raii::Semaphore> semaphores{};
       semaphores.reserve(FRAMES_IN_FLIGHT);
       for (std::size_t index{}; index < FRAMES_IN_FLIGHT; ++index)
-         semaphores.emplace_back(device_, vk::SemaphoreCreateInfo{});
+      {
+         vk::ResultValue semaphore{ device_.createSemaphore({}) };
+         runtime_assert(semaphore.has_value(),
+            std::format("failed create a semaphore! ({})", to_string(semaphore.result)));
+
+         semaphores.push_back(std::move(*semaphore));
+      }
 
       return semaphores;
    }
@@ -737,9 +819,17 @@ namespace eru
       std::vector<vk::raii::Fence> fences{};
       fences.reserve(FRAMES_IN_FLIGHT);
       for (std::size_t index{}; index < FRAMES_IN_FLIGHT; ++index)
-         fences.emplace_back(device_, vk::FenceCreateInfo{
-            .flags{ vk::FenceCreateFlagBits::eSignaled }
-         });
+      {
+         vk::ResultValue fence{
+            device_.createFence({
+               .flags{ vk::FenceCreateFlagBits::eSignaled }
+            })
+         };
+         runtime_assert(fence.has_value(),
+            std::format("failed create a fence! ({})", to_string(fence.result)));
+
+         fences.push_back(std::move(*fence));
+      }
 
       return fences;
    }

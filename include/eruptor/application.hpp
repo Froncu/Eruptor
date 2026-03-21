@@ -63,6 +63,7 @@ namespace eru
          [[nodiscard]] vk::SurfaceFormatKHR surface_format() const;
          [[nodiscard]] vk::Extent2D surface_extent() const;
          [[nodiscard]] vk::raii::SwapchainKHR swap_chain() const;
+         [[nodiscard]] std::vector<vk::Image> swap_chain_images() const;
          [[nodiscard]] std::vector<vk::raii::ImageView> swap_chain_image_views() const;
          [[nodiscard]] vk::raii::PipelineLayout pipeline_layout() const;
          [[nodiscard]] vk::raii::Pipeline pipeline() const;
@@ -87,7 +88,7 @@ namespace eru
          vk::SurfaceFormatKHR const surface_format_{ surface_format() };
          vk::Extent2D const surface_extent_{ surface_extent() };
          vk::raii::SwapchainKHR const swap_chain_{ swap_chain() };
-         std::vector<vk::Image> const swap_chain_images_{ swap_chain_.getImages() };
+         std::vector<vk::Image> const swap_chain_images_{ swap_chain_images() };
          std::vector<vk::raii::ImageView> const swap_chain_image_views_{ swap_chain_image_views() };
          vk::raii::PipelineLayout const pipeline_layout_{ pipeline_layout() };
          vk::raii::Pipeline const pipeline_{ pipeline() };

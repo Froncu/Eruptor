@@ -1,6 +1,8 @@
 #ifndef PCH_HPP
 #define PCH_HPP
 
+#define VULKAN_HPP_ASSERT_ON_RESULT(condition) std::ignore = condition
+
 #include <condition_variable>
 #include <filesystem>
 #include <functional>

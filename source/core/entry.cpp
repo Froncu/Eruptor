@@ -20,10 +20,3 @@ catch (eru::Exception const& exception)
    eru::Locator::remove_all();
    return 1;
 }
-// TODO: this handles Vulkan thrown exceptions as well; it's possible to disable them and use Eruptor's exceptions
-catch (std::exception const& exception)
-{
-   eru::Locator::provide<eru::Logger>().error(exception.what());
-   eru::Locator::remove_all();
-   return 1;
-}
