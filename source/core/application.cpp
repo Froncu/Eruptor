@@ -144,6 +144,7 @@ namespace eru
       });
 
       command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline_);
+      command_buffer.bindVertexBuffers(0, { vertex_buffer_ }, { 0 });
       command_buffer.setViewport(0, {
          {
             .width{ static_cast<float>(surface_extent_.width) },
@@ -458,6 +459,20 @@ namespace eru
       return std::move(*device);
    }
 
+   UniquePointer<VmaAllocator_T> Application::allocator() const
+   {
+      VmaAllocatorCreateInfo const create_info{
+         .physicalDevice{ *physical_device_ },
+         .device{ *device_ },
+         .instance{ *instance_ },
+         .vulkanApiVersion{ vk::HeaderVersionComplete }
+      };
+
+      VmaAllocator allocator;
+      vmaCreateAllocator(&create_info, &allocator);
+      return { allocator, vmaDestroyAllocator };
+   }
+
    vk::raii::Queue Application::queue() const
    {
       return device_.getQueue2({
@@ -694,7 +709,14 @@ namespace eru
          .pDynamicStates{ std::ranges::data(dynamic_states) }
       };
 
-      vk::PipelineVertexInputStateCreateInfo constexpr vertex_input_state_create_info{};
+      vk::PipelineVertexInputStateCreateInfo constexpr vertex_input_state_create_info{
+         .vertexBindingDescriptionCount{ static_cast<std::uint32_t>(std::ranges::size(Vertex::INPUT_BINDING_DESCRIPTIONS)) },
+         .pVertexBindingDescriptions{ std::ranges::data(Vertex::INPUT_BINDING_DESCRIPTIONS) },
+         .vertexAttributeDescriptionCount{
+            static_cast<std::uint32_t>(std::ranges::size(Vertex::INPUT_ATTRIBUTE_DESCRIPTIONS))
+         },
+         .pVertexAttributeDescriptions{ std::ranges::data(Vertex::INPUT_ATTRIBUTE_DESCRIPTIONS) }
+      };
 
       vk::PipelineInputAssemblyStateCreateInfo constexpr input_assembly_state_create_info{
          .topology{ vk::PrimitiveTopology::eTriangleList }
@@ -835,6 +857,38 @@ namespace eru
       }
 
       return fences;
+   }
+
+   Buffer Application::vertex_buffer() const
+   {
+      vk::BufferCreateInfo const buffer_create_info{
+         .size{ sizeof(decltype(vertices_)::value_type) * vertices_.size() },
+         .usage{ vk::BufferUsageFlagBits::eVertexBuffer },
+         .sharingMode{ vk::SharingMode::eExclusive }
+      };
+
+      VmaAllocationCreateInfo constexpr allocation_create_info{
+         .flags{ VMA_ALLOCATION_CREATE_MAPPED_BIT },
+         // .usage{ VMA_MEMORY_USAGE_AUTO },
+         .requiredFlags{ VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT },
+         .preferredFlags{ VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT }
+      };
+
+      VkBuffer buffer;
+      VmaAllocation allocation;
+      vk::Result const result{
+         vmaCreateBuffer(allocator_.get(), &*buffer_create_info, &allocation_create_info, &buffer, &allocation, nullptr)
+      };
+
+      runtime_assert(result == vk::Result::eSuccess,
+         std::format("failed to create vertex buffer! ({})", to_string(result)));
+
+      void* data;
+      vmaMapMemory(allocator_.get(), allocation, &data);
+      std::memcpy(data, vertices_.data(), buffer_create_info.size);
+      vmaUnmapMemory(allocator_.get(), allocation);
+
+      return { allocator_.get(), buffer, allocation };
    }
 
    void Application::recreate_swap_chain()

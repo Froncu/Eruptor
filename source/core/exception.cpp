@@ -2,7 +2,7 @@
 
 namespace eru
 {
-   Exception::Exception(std::string_view message, std::source_location source_location)
+   Exception::Exception(std::string_view const message, std::source_location source_location)
       : exception{ message.data() }
       , source_location_{ std::move(source_location) }
    {

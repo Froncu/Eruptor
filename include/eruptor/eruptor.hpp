@@ -5,6 +5,7 @@
 
 #include "eruptor/api.hpp"
 #include "eruptor/application.hpp"
+#include "eruptor/buffer.hpp"
 #include "eruptor/constants.hpp"
 #include "eruptor/exception.hpp"
 #include "eruptor/hash.hpp"
@@ -14,6 +15,7 @@
 #include "eruptor/runtime_assert.hpp"
 #include "eruptor/type_index.hpp"
 #include "eruptor/unique_pointer.hpp"
+#include "eruptor/vertex.hpp"
 #include "eruptor/void_deleter.hpp"
 #include "eruptor/window.hpp"
 

@@ -2,7 +2,9 @@
 #define APPLICATION_HPP
 
 #include "eruptor/api.hpp"
+#include "eruptor/buffer.hpp"
 #include "eruptor/pch.hpp"
+#include "eruptor/vertex.hpp"
 #include "eruptor/window.hpp"
 
 namespace eru
@@ -59,6 +61,7 @@ namespace eru
          [[nodiscard]] vk::raii::PhysicalDevice physical_device() const;
          [[nodiscard]] std::uint32_t queue_family_index() const;
          [[nodiscard]] vk::raii::Device device() const;
+         [[nodiscard]] UniquePointer<VmaAllocator_T> allocator() const;
          [[nodiscard]] vk::raii::Queue queue() const;
          [[nodiscard]] vk::SurfaceFormatKHR surface_format() const;
          [[nodiscard]] vk::Extent2D surface_extent() const;
@@ -71,21 +74,29 @@ namespace eru
          [[nodiscard]] vk::raii::CommandBuffers command_buffers() const;
          [[nodiscard]] std::vector<vk::raii::Semaphore> semaphores() const;
          [[nodiscard]] std::vector<vk::raii::Fence> fences() const;
+         [[nodiscard]] Buffer vertex_buffer() const;
 
          void recreate_swap_chain();
 
-         LocatorRegistrator const locator_registrator_{ *this };
+         std::uint8_t frame_index_{};
+         std::vector<Vertex> vertices_{
+            { { 0.0f, -0.5f }, { 1.0f, 0.0f, 0.0f } },
+            { { 0.5f, 0.5f }, { 0.0f, 1.0f, 0.0f } },
+            { { -0.5f, 0.5f }, { 0.0f, 0.0f, 1.0f } }
+         };
 
+         LocatorRegistrator const locator_registrator_{ *this };
          GLFWcontext const glfw_context_{};
          vk::raii::Context const vulkan_context_{};
-
          Window window_{ { 1280, 720 }, "Magma" };
+
          vk::raii::Instance const instance_;
          vk::raii::DebugUtilsMessengerEXT const debug_messenger_{ debug_messenger() };
          vk::raii::SurfaceKHR const surface_{ surface() };
          vk::raii::PhysicalDevice const physical_device_{ physical_device() };
          std::uint32_t const queue_family_index_{ queue_family_index() };
          vk::raii::Device const device_{ device() };
+         UniquePointer<VmaAllocator_T> allocator_{ allocator() };
          vk::raii::Queue const queue_{ queue() };
          vk::SurfaceFormatKHR const surface_format_{ surface_format() };
          vk::Extent2D surface_extent_{ surface_extent() };
@@ -99,7 +110,7 @@ namespace eru
          std::vector<vk::raii::Semaphore> const image_available_semaphores_{ semaphores() };
          std::vector<vk::raii::Semaphore> const command_buffer_finished_semaphores_{ semaphores() };
          std::vector<vk::raii::Fence> const presentation_finished_fences_{ fences() };
-         std::uint8_t frame_index_{};
+         Buffer const vertex_buffer_{ vertex_buffer() };
    };
 }
 
