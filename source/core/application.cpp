@@ -265,6 +265,75 @@ namespace eru
    Application::Application(std::string_view const name, std::uint32_t const version)
       : instance_{ instance(name, version) }
    {
+      vk::Result result{ vertex_buffer_.bindMemory(vertex_buffer_memory_, 0) };
+      runtime_assert(result == vk::Result::eSuccess,
+         std::format("failed to bind vertex buffer's memory! ({})", to_string(result)));
+
+      vk::DeviceSize const buffer_size{ sizeof(decltype(vertices_)::value_type) * vertices_.size() };
+      vk::raii::Buffer const staging_buffer{
+         buffer({
+            .size{ buffer_size },
+            .usage{ vk::BufferUsageFlagBits::eTransferSrc },
+            .sharingMode{ vk::SharingMode::eExclusive }
+         })
+      };
+
+      vk::raii::DeviceMemory const staging_buffer_memory{
+         memory(staging_buffer.getMemoryRequirements(),
+            vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent)
+      };
+
+      result = staging_buffer.bindMemory(staging_buffer_memory, 0);
+      runtime_assert(result == vk::Result::eSuccess,
+         std::format("failed to bind staging buffer's memory! ({})", to_string(result)));
+
+      vk::ResultValue const mapped_memory{ staging_buffer_memory.mapMemory(0, buffer_size) };
+      runtime_assert(mapped_memory.has_value(),
+         std::format("failed to map staging buffer's memory! ({})", to_string(mapped_memory.result)));
+
+      std::memcpy(*mapped_memory, vertices_.data(), buffer_size);
+      staging_buffer_memory.unmapMemory();
+
+      vk::ResultValue const command_buffers{
+         device_.allocateCommandBuffers({
+            .commandPool{ command_pool_ },
+            .level{ vk::CommandBufferLevel::ePrimary },
+            .commandBufferCount{ 1 }
+         })
+      };
+      runtime_assert(command_buffers.has_value(),
+         std::format("failed to allocate a command buffer! ({})", to_string(command_buffers.result)));
+
+      result = command_buffers->front().begin({
+         .flags{ vk::CommandBufferUsageFlagBits::eOneTimeSubmit }
+      });
+      runtime_assert(result == vk::Result::eSuccess,
+         std::format("failed to begin command buffer! ({})", to_string(result)));
+
+      command_buffers->front().copyBuffer(
+         staging_buffer,
+         vertex_buffer_,
+         {
+            {
+               .size{ buffer_size }
+            }
+         });
+
+      result = command_buffers->front().end();
+      runtime_assert(result == vk::Result::eSuccess,
+         std::format("failed to end command buffer! ({})", to_string(result)));
+
+      queue_.submit({
+         {
+            {
+               .commandBufferCount{ 1 },
+               .pCommandBuffers{ &*command_buffers->front() },
+            }
+         }
+      });
+      result = queue_.waitIdle();
+      runtime_assert(result == vk::Result::eSuccess,
+         std::format("failed to wait for queue! ({})", to_string(result)));
    }
 
    vk::raii::Instance Application::instance(std::string_view const name, std::uint32_t const version) const
@@ -457,20 +526,6 @@ namespace eru
          std::format("failed to create a device! ({})", to_string(device.result)));
 
       return std::move(*device);
-   }
-
-   UniquePointer<VmaAllocator_T> Application::allocator() const
-   {
-      VmaAllocatorCreateInfo const create_info{
-         .physicalDevice{ *physical_device_ },
-         .device{ *device_ },
-         .instance{ *instance_ },
-         .vulkanApiVersion{ vk::HeaderVersionComplete }
-      };
-
-      VmaAllocator allocator;
-      vmaCreateAllocator(&create_info, &allocator);
-      return { allocator, vmaDestroyAllocator };
    }
 
    vk::raii::Queue Application::queue() const
@@ -859,36 +914,51 @@ namespace eru
       return fences;
    }
 
-   Buffer Application::vertex_buffer() const
+   vk::raii::Buffer Application::buffer(vk::BufferCreateInfo const& create_info) const
    {
-      vk::BufferCreateInfo const buffer_create_info{
+      vk::ResultValue buffer{ device_.createBuffer(create_info) };
+      runtime_assert(buffer.has_value(),
+         std::format("failed to create vertex buffer! ({})", to_string(buffer.result)));
+
+      return std::move(*buffer);
+   }
+
+   vk::raii::DeviceMemory Application::memory(vk::MemoryRequirements const& requirements,
+      vk::MemoryPropertyFlags const properties) const
+   {
+      vk::PhysicalDeviceMemoryProperties const available_properties{ physical_device_.getMemoryProperties() };
+      std::bitset<sizeof(requirements.memoryTypeBits) * 8> const type_bits{ requirements.memoryTypeBits };
+
+      std::uint32_t index{};
+      for (; index < available_properties.memoryTypeCount; ++index)
+         if (type_bits[index]
+            and (available_properties.memoryTypes[index].propertyFlags & properties) == properties)
+            break;
+
+      vk::ResultValue device_memory{
+         device_.allocateMemory({
+            .allocationSize{ requirements.size },
+            .memoryTypeIndex{ index }
+         })
+      };
+      runtime_assert(device_memory.has_value(),
+         std::format("failed to allocate memory! ({})", to_string(device_memory.result)));
+
+      return std::move(*device_memory);
+   }
+
+   vk::raii::Buffer Application::vertex_buffer() const
+   {
+      return buffer({
          .size{ sizeof(decltype(vertices_)::value_type) * vertices_.size() },
-         .usage{ vk::BufferUsageFlagBits::eVertexBuffer },
+         .usage{ vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst },
          .sharingMode{ vk::SharingMode::eExclusive }
-      };
+      });
+   }
 
-      VmaAllocationCreateInfo constexpr allocation_create_info{
-         .flags{ VMA_ALLOCATION_CREATE_MAPPED_BIT },
-         // .usage{ VMA_MEMORY_USAGE_AUTO },
-         .requiredFlags{ VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT },
-         .preferredFlags{ VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT }
-      };
-
-      VkBuffer buffer;
-      VmaAllocation allocation;
-      vk::Result const result{
-         vmaCreateBuffer(allocator_.get(), &*buffer_create_info, &allocation_create_info, &buffer, &allocation, nullptr)
-      };
-
-      runtime_assert(result == vk::Result::eSuccess,
-         std::format("failed to create vertex buffer! ({})", to_string(result)));
-
-      void* data;
-      vmaMapMemory(allocator_.get(), allocation, &data);
-      std::memcpy(data, vertices_.data(), buffer_create_info.size);
-      vmaUnmapMemory(allocator_.get(), allocation);
-
-      return { allocator_.get(), buffer, allocation };
+   vk::raii::DeviceMemory Application::vertex_buffer_memory() const
+   {
+      return memory(vertex_buffer_.getMemoryRequirements(), vk::MemoryPropertyFlagBits::eDeviceLocal);
    }
 
    void Application::recreate_swap_chain()

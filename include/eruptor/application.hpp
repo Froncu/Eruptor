@@ -2,7 +2,6 @@
 #define APPLICATION_HPP
 
 #include "eruptor/api.hpp"
-#include "eruptor/buffer.hpp"
 #include "eruptor/pch.hpp"
 #include "eruptor/vertex.hpp"
 #include "eruptor/window.hpp"
@@ -61,7 +60,6 @@ namespace eru
          [[nodiscard]] vk::raii::PhysicalDevice physical_device() const;
          [[nodiscard]] std::uint32_t queue_family_index() const;
          [[nodiscard]] vk::raii::Device device() const;
-         [[nodiscard]] UniquePointer<VmaAllocator_T> allocator() const;
          [[nodiscard]] vk::raii::Queue queue() const;
          [[nodiscard]] vk::SurfaceFormatKHR surface_format() const;
          [[nodiscard]] vk::Extent2D surface_extent() const;
@@ -74,7 +72,11 @@ namespace eru
          [[nodiscard]] vk::raii::CommandBuffers command_buffers() const;
          [[nodiscard]] std::vector<vk::raii::Semaphore> semaphores() const;
          [[nodiscard]] std::vector<vk::raii::Fence> fences() const;
-         [[nodiscard]] Buffer vertex_buffer() const;
+         [[nodiscard]] vk::raii::Buffer buffer(vk::BufferCreateInfo const& create_info) const;
+         [[nodiscard]] vk::raii::DeviceMemory memory(vk::MemoryRequirements const& requirements,
+            vk::MemoryPropertyFlags properties) const;
+         [[nodiscard]] vk::raii::Buffer vertex_buffer() const;
+         [[nodiscard]] vk::raii::DeviceMemory vertex_buffer_memory() const;
 
          void recreate_swap_chain();
 
@@ -96,7 +98,6 @@ namespace eru
          vk::raii::PhysicalDevice const physical_device_{ physical_device() };
          std::uint32_t const queue_family_index_{ queue_family_index() };
          vk::raii::Device const device_{ device() };
-         UniquePointer<VmaAllocator_T> allocator_{ allocator() };
          vk::raii::Queue const queue_{ queue() };
          vk::SurfaceFormatKHR const surface_format_{ surface_format() };
          vk::Extent2D surface_extent_{ surface_extent() };
@@ -110,7 +111,8 @@ namespace eru
          std::vector<vk::raii::Semaphore> const image_available_semaphores_{ semaphores() };
          std::vector<vk::raii::Semaphore> const command_buffer_finished_semaphores_{ semaphores() };
          std::vector<vk::raii::Fence> const presentation_finished_fences_{ fences() };
-         Buffer const vertex_buffer_{ vertex_buffer() };
+         vk::raii::Buffer const vertex_buffer_{ vertex_buffer() };
+         vk::raii::DeviceMemory const vertex_buffer_memory_{ vertex_buffer_memory() };
    };
 }
 

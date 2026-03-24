@@ -5,7 +5,6 @@
 
 #include "eruptor/api.hpp"
 #include "eruptor/application.hpp"
-#include "eruptor/buffer.hpp"
 #include "eruptor/constants.hpp"
 #include "eruptor/exception.hpp"
 #include "eruptor/hash.hpp"

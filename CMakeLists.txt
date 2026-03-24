@@ -14,7 +14,6 @@ find_package(ktx CONFIG REQUIRED)
 find_package(slang CONFIG REQUIRED)
 find_package(VulkanHeaders CONFIG REQUIRED)
 find_package(VulkanLoader CONFIG REQUIRED)
-find_package(VulkanMemoryAllocator CONFIG REQUIRED)
 
 # Framework library - contains all functionality
 # Can be built as SHARED or STATIC depending on ERU_BUILD_SHARED
@@ -51,7 +50,6 @@ target_link_libraries(${PROJECT_NAME}
    PUBLIC Vulkan::Headers
    PRIVATE assimp::assimp
    PRIVATE glfw
-   PRIVATE GPUOpen::VulkanMemoryAllocator
    PRIVATE KTX::ktx
    PRIVATE slang::slang
    PRIVATE Vulkan::Loader)

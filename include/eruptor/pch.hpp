@@ -3,6 +3,7 @@
 
 #define VULKAN_HPP_ASSERT_ON_RESULT(condition) std::ignore = condition
 
+#include <bitset>
 #include <condition_variable>
 #include <filesystem>
 #include <functional>
@@ -18,7 +19,6 @@
 #include <unordered_set>
 
 #include <glm/glm.hpp>
-#include <vma/vk_mem_alloc.h>
 #include <vulkan/vulkan_raii.hpp>
 
 #endif
