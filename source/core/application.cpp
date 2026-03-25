@@ -360,11 +360,9 @@ namespace eru
 
       extension_names.push_back(vk::EXTDebugUtilsExtensionName);
 
-      std::array constexpr layer_names{
-         std::to_array<char const* const>({
-            "VK_LAYER_KHRONOS_validation"
-         })
-      };
+      std::vector<char const*> layer_names{};
+      if constexpr (DEBUG_BUILD)
+         layer_names.push_back("VK_LAYER_KHRONOS_validation");
 
       vk::ResultValue instance{
          vulkan_context_.createInstance({
