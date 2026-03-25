@@ -50,6 +50,8 @@ namespace eru
          ERU_API [[nodiscard]] bool tick();
          ERU_API void poll();
 
+         bool keep_ticking{ true };
+
       protected:
          ERU_API explicit Application(std::string_view name = "Eruptor", std::uint32_t version = VK_MAKE_VERSION(0, 0, 0));
 

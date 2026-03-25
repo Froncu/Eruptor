@@ -246,7 +246,7 @@ namespace eru
       {
          case vk::Result::eErrorOutOfDateKHR:
             recreate_swap_chain();
-            return true;
+            return keep_ticking;
 
          default:
             runtime_assert(result == vk::Result::eSuccess,
@@ -255,7 +255,7 @@ namespace eru
       }
 
       ++frame_index_ %= FRAMES_IN_FLIGHT;
-      return true;
+      return keep_ticking;
    }
 
    void Application::poll()
