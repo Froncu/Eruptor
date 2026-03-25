@@ -77,15 +77,19 @@ namespace eru
             vk::MemoryPropertyFlags properties) const;
          [[nodiscard]] vk::raii::Buffer vertex_buffer() const;
          [[nodiscard]] vk::raii::DeviceMemory vertex_buffer_memory() const;
+         [[nodiscard]] vk::raii::Buffer index_buffer() const;
+         [[nodiscard]] vk::raii::DeviceMemory index_buffer_memory() const;
 
          void recreate_swap_chain();
 
          std::uint8_t frame_index_{};
-         std::vector<Vertex> vertices_{
-            { { 0.0f, -0.5f }, { 1.0f, 0.0f, 0.0f } },
-            { { 0.5f, 0.5f }, { 0.0f, 1.0f, 0.0f } },
-            { { -0.5f, 0.5f }, { 0.0f, 0.0f, 1.0f } }
+         std::vector<Vertex> const vertices_{
+            { { -0.5f, -0.5f }, { 1.0f, 0.0f, 0.0f } },
+            { { 0.5f, -0.5f }, { 0.0f, 1.0f, 0.0f } },
+            { { 0.5f, 0.5f }, { 0.0f, 0.0f, 1.0f } },
+            { { -0.5f, 0.5f }, { 1.0f, 1.0f, 1.0f } }
          };
+         std::vector<uint16_t> const indices_{ 0, 1, 3, 2 };
 
          LocatorRegistrator const locator_registrator_{ *this };
          GLFWcontext const glfw_context_{};
@@ -113,6 +117,8 @@ namespace eru
          std::vector<vk::raii::Fence> const presentation_finished_fences_{ fences() };
          vk::raii::Buffer const vertex_buffer_{ vertex_buffer() };
          vk::raii::DeviceMemory const vertex_buffer_memory_{ vertex_buffer_memory() };
+         vk::raii::Buffer const index_buffer_{ index_buffer() };
+         vk::raii::DeviceMemory const index_buffer_memory_{ index_buffer_memory() };
    };
 }
 

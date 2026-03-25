@@ -145,6 +145,7 @@ namespace eru
 
       command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline_);
       command_buffer.bindVertexBuffers(0, { vertex_buffer_ }, { 0 });
+      command_buffer.bindIndexBuffer( *index_buffer_, 0, vk::IndexType::eUint16 );
       command_buffer.setViewport(0, {
          {
             .width{ static_cast<float>(surface_extent_.width) },
@@ -159,7 +160,7 @@ namespace eru
          }
       });
 
-      command_buffer.draw(3, 1, 0, 0);
+      command_buffer.drawIndexed(static_cast<std::uint32_t>(indices_.size()), 1, 0, 0, 0);
       command_buffer.endRendering();
 
       vk::ImageMemoryBarrier2 const end_barrier{
@@ -269,30 +270,63 @@ namespace eru
       runtime_assert(result == vk::Result::eSuccess,
          std::format("failed to bind vertex buffer's memory! ({})", to_string(result)));
 
-      vk::DeviceSize const buffer_size{ sizeof(decltype(vertices_)::value_type) * vertices_.size() };
-      vk::raii::Buffer const staging_buffer{
+      vk::DeviceSize const vertex_buffer_size{ sizeof(decltype(vertices_)::value_type) * vertices_.size() };
+      vk::raii::Buffer const vertex_staging_buffer{
          buffer({
-            .size{ buffer_size },
+            .size{ vertex_buffer_size },
             .usage{ vk::BufferUsageFlagBits::eTransferSrc },
             .sharingMode{ vk::SharingMode::eExclusive }
          })
       };
 
-      vk::raii::DeviceMemory const staging_buffer_memory{
-         memory(staging_buffer.getMemoryRequirements(),
+      vk::raii::DeviceMemory const vertex_staging_buffer_memory{
+         memory(vertex_staging_buffer.getMemoryRequirements(),
             vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent)
       };
 
-      result = staging_buffer.bindMemory(staging_buffer_memory, 0);
+      result = vertex_staging_buffer.bindMemory(vertex_staging_buffer_memory, 0);
       runtime_assert(result == vk::Result::eSuccess,
-         std::format("failed to bind staging buffer's memory! ({})", to_string(result)));
+         std::format("failed to bind vertex staging buffer's memory! ({})", to_string(result)));
 
-      vk::ResultValue const mapped_memory{ staging_buffer_memory.mapMemory(0, buffer_size) };
+      vk::ResultValue mapped_memory{ vertex_staging_buffer_memory.mapMemory(0, vertex_buffer_size) };
       runtime_assert(mapped_memory.has_value(),
-         std::format("failed to map staging buffer's memory! ({})", to_string(mapped_memory.result)));
+         std::format("failed to map vertex staging buffer's memory! ({})", to_string(mapped_memory.result)));
 
-      std::memcpy(*mapped_memory, vertices_.data(), buffer_size);
-      staging_buffer_memory.unmapMemory();
+      std::memcpy(*mapped_memory, vertices_.data(), vertex_buffer_size);
+      vertex_staging_buffer_memory.unmapMemory();
+
+      //
+
+      result = index_buffer_.bindMemory(index_buffer_memory_, 0);
+      runtime_assert(result == vk::Result::eSuccess,
+         std::format("failed to bind index buffer's memory! ({})", to_string(result)));
+
+      vk::DeviceSize const index_buffer_size{ sizeof(decltype(indices_)::value_type) * indices_.size() };
+      vk::raii::Buffer const index_staging_buffer{
+         buffer({
+            .size{ index_buffer_size },
+            .usage{ vk::BufferUsageFlagBits::eTransferSrc },
+            .sharingMode{ vk::SharingMode::eExclusive }
+         })
+      };
+
+      vk::raii::DeviceMemory const index_staging_buffer_memory{
+         memory(index_staging_buffer.getMemoryRequirements(),
+            vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent)
+      };
+
+      result = index_staging_buffer.bindMemory(index_staging_buffer_memory, 0);
+      runtime_assert(result == vk::Result::eSuccess,
+         std::format("failed to bind index staging buffer's memory! ({})", to_string(result)));
+
+      mapped_memory = index_staging_buffer_memory.mapMemory(0, index_buffer_size);
+      runtime_assert(mapped_memory.has_value(),
+         std::format("failed to map index staging buffer's memory! ({})", to_string(mapped_memory.result)));
+
+      std::memcpy(*mapped_memory, indices_.data(), index_buffer_size);
+      index_staging_buffer_memory.unmapMemory();
+
+      //
 
       vk::ResultValue const command_buffers{
          device_.allocateCommandBuffers({
@@ -310,14 +344,33 @@ namespace eru
       runtime_assert(result == vk::Result::eSuccess,
          std::format("failed to begin command buffer! ({})", to_string(result)));
 
-      command_buffers->front().copyBuffer(
-         staging_buffer,
-         vertex_buffer_,
-         {
+      std::array const vertex_buffer_copy_regions{
+         std::to_array<vk::BufferCopy2>({
             {
-               .size{ buffer_size }
+               .size{ vertex_buffer_size }
             }
-         });
+         })
+      };
+      command_buffers->front().copyBuffer2({
+         .srcBuffer{ vertex_staging_buffer },
+         .dstBuffer{ vertex_buffer_ },
+         .regionCount{ static_cast<std::uint32_t>(std::ranges::size(vertex_buffer_copy_regions)) },
+         .pRegions{ std::ranges::data(vertex_buffer_copy_regions) }
+      });
+
+      std::array const index_buffer_copy_regions{
+         std::to_array<vk::BufferCopy2>({
+            {
+               .size{ index_buffer_size }
+            }
+         })
+      };
+      command_buffers->front().copyBuffer2({
+         .srcBuffer{ index_staging_buffer },
+         .dstBuffer{ index_buffer_ },
+         .regionCount{ static_cast<std::uint32_t>(std::ranges::size(index_buffer_copy_regions)) },
+         .pRegions{ std::ranges::data(index_buffer_copy_regions) }
+      });
 
       result = command_buffers->front().end();
       runtime_assert(result == vk::Result::eSuccess,
@@ -772,7 +825,7 @@ namespace eru
       };
 
       vk::PipelineInputAssemblyStateCreateInfo constexpr input_assembly_state_create_info{
-         .topology{ vk::PrimitiveTopology::eTriangleList }
+         .topology{ vk::PrimitiveTopology::eTriangleStrip }
       };
 
       vk::PipelineViewportStateCreateInfo constexpr viewport_state_create_info{
@@ -957,6 +1010,20 @@ namespace eru
    vk::raii::DeviceMemory Application::vertex_buffer_memory() const
    {
       return memory(vertex_buffer_.getMemoryRequirements(), vk::MemoryPropertyFlagBits::eDeviceLocal);
+   }
+
+   vk::raii::Buffer Application::index_buffer() const
+   {
+      return buffer({
+         .size{ sizeof(decltype(vertices_)::value_type) * vertices_.size() },
+         .usage{ vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst },
+         .sharingMode{ vk::SharingMode::eExclusive }
+      });
+   }
+
+   vk::raii::DeviceMemory Application::index_buffer_memory() const
+   {
+      return memory(index_buffer_.getMemoryRequirements(), vk::MemoryPropertyFlagBits::eDeviceLocal);
    }
 
    void Application::recreate_swap_chain()
