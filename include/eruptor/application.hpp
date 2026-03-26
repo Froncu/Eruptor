@@ -8,6 +8,13 @@
 
 namespace eru
 {
+   struct UniformBufferObject
+   {
+      glm::mat4 model;
+      glm::mat4 view;
+      glm::mat4 projection;
+   };
+
    class Application
    {
       class LocatorRegistrator final
@@ -68,6 +75,7 @@ namespace eru
          [[nodiscard]] vk::raii::SwapchainKHR swap_chain() const;
          [[nodiscard]] std::vector<vk::Image> swap_chain_images() const;
          [[nodiscard]] std::vector<vk::raii::ImageView> swap_chain_image_views() const;
+         [[nodiscard]] vk::raii::DescriptorSetLayout descriptor_set_layout() const;
          [[nodiscard]] vk::raii::PipelineLayout pipeline_layout() const;
          [[nodiscard]] vk::raii::Pipeline pipeline() const;
          [[nodiscard]] vk::raii::CommandPool command_pool() const;
@@ -81,6 +89,10 @@ namespace eru
          [[nodiscard]] vk::raii::DeviceMemory vertex_buffer_memory() const;
          [[nodiscard]] vk::raii::Buffer index_buffer() const;
          [[nodiscard]] vk::raii::DeviceMemory index_buffer_memory() const;
+         [[nodiscard]] std::vector<vk::raii::Buffer> uniform_buffers() const;
+         [[nodiscard]] std::vector<vk::raii::DeviceMemory> uniform_buffer_memories() const;
+         [[nodiscard]] vk::raii::DescriptorPool descriptor_pool() const;
+         [[nodiscard]] vk::raii::DescriptorSets descriptor_sets() const;
 
          void recreate_swap_chain();
 
@@ -110,6 +122,7 @@ namespace eru
          vk::raii::SwapchainKHR swap_chain_{ swap_chain() };
          std::vector<vk::Image> swap_chain_images_{ swap_chain_images() };
          std::vector<vk::raii::ImageView> swap_chain_image_views_{ swap_chain_image_views() };
+         vk::raii::DescriptorSetLayout const descriptor_set_layout_{ descriptor_set_layout() };
          vk::raii::PipelineLayout const pipeline_layout_{ pipeline_layout() };
          vk::raii::Pipeline const pipeline_{ pipeline() };
          vk::raii::CommandPool const command_pool_{ command_pool() };
@@ -121,6 +134,11 @@ namespace eru
          vk::raii::DeviceMemory const vertex_buffer_memory_{ vertex_buffer_memory() };
          vk::raii::Buffer const index_buffer_{ index_buffer() };
          vk::raii::DeviceMemory const index_buffer_memory_{ index_buffer_memory() };
+         std::vector<vk::raii::Buffer> uniform_buffers_{ uniform_buffers() };
+         std::vector<vk::raii::DeviceMemory> uniform_buffer_memories_{ uniform_buffer_memories() };
+         std::vector<UniformBufferObject*> uniform_buffer_mapped_{};
+         vk::raii::DescriptorPool const descriptor_pool_{ descriptor_pool() };
+         vk::raii::DescriptorSets const descriptor_sets_{ descriptor_sets() };
    };
 }
 

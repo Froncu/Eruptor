@@ -77,6 +77,18 @@ namespace eru
       vk::raii::Semaphore const& image_available_semaphore{ image_available_semaphores_[frame_index_] };
       vk::raii::Semaphore const& command_buffer_finished_semaphore{ command_buffer_finished_semaphores_[frame_index_] };
       vk::raii::Fence const& presentation_finished_fence{ presentation_finished_fences_[frame_index_] };
+      auto& [model, view, projection]{ *uniform_buffer_mapped_[frame_index_] };
+
+      static auto start_time{ std::chrono::high_resolution_clock::now() };
+
+      auto const current_time{ std::chrono::high_resolution_clock::now() };
+      float const time{ std::chrono::duration<float>(current_time - start_time).count() };
+
+      model = rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+      view = lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+      projection = glm::perspective(glm::radians(45.0f),
+         static_cast<float>(surface_extent_.width) / static_cast<float>(surface_extent_.height), 0.1f, 10.0f);
+      projection[1][1] *= -1;
 
       vk::Result result{ device_.waitForFences(*presentation_finished_fence, {}, std::numeric_limits<uint64_t>::max()) };
       runtime_assert(result == vk::Result::eSuccess,
@@ -145,7 +157,7 @@ namespace eru
 
       command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline_);
       command_buffer.bindVertexBuffers(0, { vertex_buffer_ }, { 0 });
-      command_buffer.bindIndexBuffer( *index_buffer_, 0, vk::IndexType::eUint16 );
+      command_buffer.bindIndexBuffer(*index_buffer_, 0, vk::IndexType::eUint16);
       command_buffer.setViewport(0, {
          {
             .width{ static_cast<float>(surface_extent_.width) },
@@ -160,6 +172,8 @@ namespace eru
          }
       });
 
+      command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline_layout_, 0, *descriptor_sets_[frame_index_],
+         nullptr);
       command_buffer.drawIndexed(static_cast<std::uint32_t>(indices_.size()), 1, 0, 0, 0);
       command_buffer.endRendering();
 
@@ -387,6 +401,43 @@ namespace eru
       result = queue_.waitIdle();
       runtime_assert(result == vk::Result::eSuccess,
          std::format("failed to wait for queue! ({})", to_string(result)));
+
+      //
+
+      uniform_buffer_mapped_.reserve(FRAMES_IN_FLIGHT);
+      std::vector<vk::DescriptorBufferInfo> buffer_infos{};
+      buffer_infos.reserve(FRAMES_IN_FLIGHT);
+      std::vector<vk::WriteDescriptorSet> writes{};
+      writes.reserve(FRAMES_IN_FLIGHT);
+      for (std::size_t index{}; index < FRAMES_IN_FLIGHT; ++index)
+      {
+         uniform_buffers_[index].bindMemory(uniform_buffer_memories_[index], 0);
+
+         mapped_memory = uniform_buffer_memories_[index].mapMemory(0, sizeof(UniformBufferObject));
+         runtime_assert(mapped_memory.has_value(),
+            std::format("failed to map a uniform buffer's memory! ({})", to_string(mapped_memory.result)));
+
+         uniform_buffer_mapped_.push_back(static_cast<UniformBufferObject*>(*mapped_memory));
+
+         buffer_infos.push_back({
+            .buffer{ uniform_buffers_[index] },
+            .offset{},
+            .range{ vk::WholeSize }
+         });
+
+         writes.push_back({
+            .dstSet{ descriptor_sets_[index] },
+            .dstBinding{},
+            .dstArrayElement{},
+            .descriptorCount{ 1 },
+            .descriptorType{ vk::DescriptorType::eUniformBuffer },
+            .pImageInfo{},
+            .pBufferInfo{ &buffer_infos[index] },
+            .pTexelBufferView{}
+         });
+      }
+
+      device_.updateDescriptorSets(writes, {});
    }
 
    vk::raii::Instance Application::instance(std::string_view const name, std::uint32_t const version) const
@@ -739,9 +790,40 @@ namespace eru
       return image_views;
    }
 
+   vk::raii::DescriptorSetLayout Application::descriptor_set_layout() const
+   {
+      std::array constexpr bindings{
+         std::to_array<vk::DescriptorSetLayoutBinding>({
+            {
+               .binding{ 0 },
+               .descriptorType{ vk::DescriptorType::eUniformBuffer },
+               .descriptorCount{ 1 },
+               .stageFlags{ vk::ShaderStageFlagBits::eVertex }
+            }
+         })
+      };
+
+      vk::ResultValue descriptor_set_layout{
+         device_.createDescriptorSetLayout({
+            .bindingCount{ static_cast<std::uint32_t>(std::ranges::size(bindings)) },
+            .pBindings{ std::ranges::data(bindings) }
+         })
+      };
+      runtime_assert(descriptor_set_layout.has_value(),
+         std::format("failed to create descriptor set layout! ({})", to_string(descriptor_set_layout.result)));
+
+      return std::move(*descriptor_set_layout);
+   }
+
    vk::raii::PipelineLayout Application::pipeline_layout() const
    {
-      vk::ResultValue pipeline_layout{ device_.createPipelineLayout({}) };
+      // TODO: how to pass a container of vk::raii namespaced descriptor set layouts without creating a proxy container?
+      vk::ResultValue pipeline_layout{
+         device_.createPipelineLayout({
+            .setLayoutCount{ 1 },
+            .pSetLayouts{ &*descriptor_set_layout_ }
+         })
+      };
       runtime_assert(pipeline_layout.has_value(),
          std::format("failed to create a pipeline layout! ({})", to_string(pipeline_layout.result)));
 
@@ -838,7 +920,7 @@ namespace eru
          .rasterizerDiscardEnable{ vk::False },
          .polygonMode{ vk::PolygonMode::eFill },
          .cullMode{ vk::CullModeFlagBits::eBack },
-         .frontFace{ vk::FrontFace::eClockwise },
+         .frontFace{ vk::FrontFace::eCounterClockwise },
          .depthBiasEnable{ vk::False },
          .depthBiasSlopeFactor{ 1.0f },
          .lineWidth{ 1.0f }
@@ -1024,6 +1106,77 @@ namespace eru
    vk::raii::DeviceMemory Application::index_buffer_memory() const
    {
       return memory(index_buffer_.getMemoryRequirements(), vk::MemoryPropertyFlagBits::eDeviceLocal);
+   }
+
+   std::vector<vk::raii::Buffer> Application::uniform_buffers() const
+   {
+      std::vector<vk::raii::Buffer> uniform_buffers{};
+      uniform_buffers.reserve(FRAMES_IN_FLIGHT);
+      for (std::size_t index{}; index < FRAMES_IN_FLIGHT; ++index)
+         uniform_buffers.push_back(
+            buffer({
+               .size{ sizeof(UniformBufferObject) },
+               .usage{ vk::BufferUsageFlagBits::eUniformBuffer }
+            }));
+
+      return uniform_buffers;
+   }
+
+   std::vector<vk::raii::DeviceMemory> Application::uniform_buffer_memories() const
+   {
+      std::vector<vk::raii::DeviceMemory> uniform_buffer_memories{};
+      uniform_buffer_memories.reserve(FRAMES_IN_FLIGHT);
+      for (std::size_t index{}; index < FRAMES_IN_FLIGHT; ++index)
+         uniform_buffer_memories.push_back(
+            memory(uniform_buffers_[index].getMemoryRequirements(),
+               vk::MemoryPropertyFlagBits::eDeviceLocal |
+               vk::MemoryPropertyFlagBits::eHostVisible |
+               vk::MemoryPropertyFlagBits::eHostCoherent));
+
+      return uniform_buffer_memories;
+   }
+
+   vk::raii::DescriptorPool Application::descriptor_pool() const
+   {
+      std::array constexpr desciptor_pool_sizes{
+         std::to_array<vk::DescriptorPoolSize>({
+            {
+               .type{ vk::DescriptorType::eUniformBuffer },
+               .descriptorCount{ FRAMES_IN_FLIGHT }
+            }
+         })
+      };
+
+      vk::ResultValue descriptor_pool{
+         device_.createDescriptorPool({
+            .flags{ vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet },
+            .maxSets{ FRAMES_IN_FLIGHT },
+            .poolSizeCount{ static_cast<std::uint32_t>(std::ranges::size(desciptor_pool_sizes)) },
+            .pPoolSizes{ std::ranges::data(desciptor_pool_sizes) }
+         })
+      };
+      runtime_assert(descriptor_pool.has_value(),
+         std::format("failed to create a descriptor pool! ({})", to_string(descriptor_pool.result)));
+
+      return std::move(*descriptor_pool);
+   }
+
+   vk::raii::DescriptorSets Application::descriptor_sets() const
+   {
+      std::array<vk::DescriptorSetLayout, FRAMES_IN_FLIGHT> layouts{};
+      std::ranges::fill(layouts, *descriptor_set_layout_);
+
+      vk::ResultValue descriptor_sets{
+         device_.allocateDescriptorSets({
+            .descriptorPool{ descriptor_pool_ },
+            .descriptorSetCount{ static_cast<std::uint32_t>(std::ranges::size(layouts)) },
+            .pSetLayouts{ std::ranges::data(layouts) }
+         })
+      };
+      runtime_assert(descriptor_sets.has_value(),
+         std::format("failed to allocate descriptor sets! ({})", to_string(descriptor_sets.result)));
+
+      return std::move(*descriptor_sets);
    }
 
    void Application::recreate_swap_chain()
