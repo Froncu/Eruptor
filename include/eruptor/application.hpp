@@ -83,14 +83,15 @@ namespace eru
          [[nodiscard]] std::vector<vk::raii::Semaphore> semaphores() const;
          [[nodiscard]] std::vector<vk::raii::Fence> fences() const;
          [[nodiscard]] vk::raii::Buffer buffer(vk::BufferCreateInfo const& create_info) const;
-         [[nodiscard]] vk::raii::DeviceMemory memory(vk::MemoryRequirements const& requirements,
-            vk::MemoryPropertyFlags properties) const;
+         [[nodiscard]] vk::raii::DeviceMemory memory(vk::MemoryRequirements const& requirements, vk::MemoryPropertyFlags properties) const;
          [[nodiscard]] vk::raii::Buffer vertex_buffer() const;
          [[nodiscard]] vk::raii::DeviceMemory vertex_buffer_memory() const;
          [[nodiscard]] vk::raii::Buffer index_buffer() const;
          [[nodiscard]] vk::raii::DeviceMemory index_buffer_memory() const;
          [[nodiscard]] std::vector<vk::raii::Buffer> uniform_buffers() const;
          [[nodiscard]] std::vector<vk::raii::DeviceMemory> uniform_buffer_memories() const;
+         [[nodiscard]] vk::raii::Image texture() const;
+         [[nodiscard]] vk::raii::DeviceMemory texture_memory() const;
          [[nodiscard]] vk::raii::DescriptorPool descriptor_pool() const;
          [[nodiscard]] vk::raii::DescriptorSets descriptor_sets() const;
 
@@ -137,6 +138,8 @@ namespace eru
          std::vector<vk::raii::Buffer> uniform_buffers_{ uniform_buffers() };
          std::vector<vk::raii::DeviceMemory> uniform_buffer_memories_{ uniform_buffer_memories() };
          std::vector<UniformBufferObject*> uniform_buffer_mapped_{};
+         vk::raii::Image const texture_{ texture() };
+         vk::raii::DeviceMemory const texture_memory_{ texture_memory() };
          vk::raii::DescriptorPool const descriptor_pool_{ descriptor_pool() };
          vk::raii::DescriptorSets const descriptor_sets_{ descriptor_sets() };
    };

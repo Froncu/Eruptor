@@ -4,8 +4,10 @@
 #define VULKAN_HPP_ASSERT_ON_RESULT(condition) std::ignore = condition
 
 #include <bitset>
+#include <chrono>
 #include <condition_variable>
 #include <filesystem>
+#include <fstream>
 #include <functional>
 #include <iostream>
 #include <mutex>

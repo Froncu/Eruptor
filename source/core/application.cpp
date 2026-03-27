@@ -869,7 +869,7 @@ namespace eru
 
       vk::ShaderModuleCreateInfo const shader_module_create_info{
          .codeSize{ spirv->getBufferSize() },
-         .pCode{ static_cast<std::uint32_t const* const>(spirv->getBufferPointer()) }
+         .pCode{ static_cast<std::uint32_t const*>(spirv->getBufferPointer()) }
       };
 
       std::array const shader_stage_create_infos{
@@ -1134,6 +1134,54 @@ namespace eru
                vk::MemoryPropertyFlagBits::eHostCoherent));
 
       return uniform_buffer_memories;
+   }
+
+   vk::raii::Image Application::texture() const
+   {
+      // stbi_load
+      //
+      // ktxTexture2* texture;
+      // ktxTextureCreateInfo const create_info{
+      //    .vkFormat{ VK_FORMAT_R8G8B8A8_SRGB },
+      //    .baseWidth{ 512 },
+      //    .baseHeight{ 512 },
+      //    .baseDepth{ 1 },
+      //    .numDimensions{ 2 },
+      //    .numLevels{ 1 },
+      //    .numLayers{ 1 },
+      //    .numFaces{ 1 },
+      //    .isArray{ KTX_FALSE },
+      //    .generateMipmaps{ KTX_FALSE }
+      // };
+      //
+      // ktxTexture2_CreateFromNamedFile("assets/textures/text.ktx2", &create_info, KTX_TEXTURE_CREATE_ALLOC_STORAGE, &texture);
+      //
+      // ktx_error_code_e result{ ktxTexture2_Create(&create_info, KTX_TEXTURE_CREATE_ALLOC_STORAGE, &texture) };
+      // runtime_assert(result == KTX_SUCCESS,
+      //    std::format("failed to load create ktx texture! ({})", ktxErrorString(result)));
+      //
+      // std::vector<std::uint8_t> image_bytes{};
+      // if (std::ifstream image{ "assets/textures/text.png", std::ios::binary }; image.is_open())
+      //    image_bytes = { std::istreambuf_iterator{ image }, {} };
+      //
+      // ktxTexture_SetImageFromMemory(reinterpret_cast<ktxTexture*>(texture), 0, 0, 0, image_bytes.data(), image_bytes.size());
+      //
+      // // Get texture dimensions and data
+      // uint32_t texWidth = texture->baseWidth;
+      // uint32_t texHeight = texture->baseHeight;
+      // ktx_size_t imageSize = texture->dataSize;
+      // ktx_uint8_t* ktxTextureData = texture->pData;
+      // std::ignore = texWidth;
+      // std::ignore = texHeight;
+      // std::ignore = imageSize;
+      // std::ignore = ktxTextureData;
+
+      return { device_, {} };
+   }
+
+   vk::raii::DeviceMemory Application::texture_memory() const
+   {
+      return { device_, {} };
    }
 
    vk::raii::DescriptorPool Application::descriptor_pool() const

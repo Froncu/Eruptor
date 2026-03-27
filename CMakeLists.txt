@@ -10,7 +10,7 @@ option(ERU_BUILD_SHARED "Build ${PROJECT_NAME} as shared library" ${BUILD_SHARED
 find_package(assimp CONFIG REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
-find_package(ktx CONFIG REQUIRED)
+find_package(Ktx CONFIG REQUIRED)
 find_package(slang CONFIG REQUIRED)
 find_package(VulkanHeaders CONFIG REQUIRED)
 find_package(VulkanLoader CONFIG REQUIRED)

@@ -6,7 +6,7 @@
 
 namespace eru
 {
-   class Exception final : public std::exception
+   class Exception final : public std::runtime_error
    {
       public:
          ERU_API Exception(std::string_view message, std::source_location source_location = std::source_location::current());
