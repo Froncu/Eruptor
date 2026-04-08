@@ -3,6 +3,10 @@
 !cmake
 !include
 !source
+!vcpkg
 
 !.gitignore
+!.gitmodules
 !CMakeLists.txt
+!CMakePresets.json
+!vcpkg.json
