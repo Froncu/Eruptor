@@ -1,32 +1,43 @@
 {
    "dependencies": [
       {
-         "name" : "assimp"
+         "name": "assimp"
       },
       {
-         "name" : "glfw3"
+         "name": "glfw3",
+         "features": [
+            {
+               "name": "wayland",
+               "platform": "linux"
+            }
+         ]
       },
       {
-         "name" : "glm"
+         "name": "glm"
       },
       {
          "name": "ktx",
-         "features": ["vulkan"]
+         "features": [
+            "vulkan"
+         ]
       },
       {
-         "name" : "shader-slang"
+         "name": "shader-slang"
       },
       {
-         "name" : "vulkan-headers"
+         "name": "vulkan-headers"
       },
       {
-         "name" : "vulkan-loader"
+         "name": "vulkan-loader",
+         "features": [
+            {
+               "name": "wayland",
+               "platform": "linux"
+            }
+         ]
       },
       {
-         "name" : "vulkan-memory-allocator"
-      },
-      {
-         "name" : "vulkan-validationlayers"
+         "name": "vulkan-validationlayers"
       }
    ]
 }
