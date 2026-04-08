@@ -79,7 +79,7 @@ namespace eru
          [[nodiscard]] vk::raii::PipelineLayout pipeline_layout() const;
          [[nodiscard]] vk::raii::Pipeline pipeline() const;
          [[nodiscard]] vk::raii::CommandPool command_pool() const;
-         [[nodiscard]] vk::raii::CommandBuffers command_buffers() const;
+         [[nodiscard]] std::vector<vk::raii::CommandBuffer> command_buffers() const;
          [[nodiscard]] std::vector<vk::raii::Semaphore> semaphores() const;
          [[nodiscard]] std::vector<vk::raii::Fence> fences() const;
          [[nodiscard]] vk::raii::Buffer buffer(vk::BufferCreateInfo const& create_info) const;
@@ -93,7 +93,7 @@ namespace eru
          [[nodiscard]] vk::raii::Image texture() const;
          [[nodiscard]] vk::raii::DeviceMemory texture_memory() const;
          [[nodiscard]] vk::raii::DescriptorPool descriptor_pool() const;
-         [[nodiscard]] vk::raii::DescriptorSets descriptor_sets() const;
+         [[nodiscard]] std::vector<vk::raii::DescriptorSet> descriptor_sets() const;
 
          void recreate_swap_chain();
 
@@ -127,7 +127,7 @@ namespace eru
          vk::raii::PipelineLayout const pipeline_layout_{ pipeline_layout() };
          vk::raii::Pipeline const pipeline_{ pipeline() };
          vk::raii::CommandPool const command_pool_{ command_pool() };
-         vk::raii::CommandBuffers const command_buffers_{ command_buffers() };
+         std::vector<vk::raii::CommandBuffer> const command_buffers_{ command_buffers() };
          std::vector<vk::raii::Semaphore> const image_available_semaphores_{ semaphores() };
          std::vector<vk::raii::Semaphore> const command_buffer_finished_semaphores_{ semaphores() };
          std::vector<vk::raii::Fence> const presentation_finished_fences_{ fences() };
@@ -141,7 +141,7 @@ namespace eru
          vk::raii::Image const texture_{ texture() };
          vk::raii::DeviceMemory const texture_memory_{ texture_memory() };
          vk::raii::DescriptorPool const descriptor_pool_{ descriptor_pool() };
-         vk::raii::DescriptorSets const descriptor_sets_{ descriptor_sets() };
+         std::vector<vk::raii::DescriptorSet> const descriptor_sets_{ descriptor_sets() };
    };
 }
 

@@ -996,7 +996,7 @@ namespace eru
       return std::move(*command_pool);
    }
 
-   vk::raii::CommandBuffers Application::command_buffers() const
+   std::vector<vk::raii::CommandBuffer> Application::command_buffers() const
    {
       vk::ResultValue command_buffers{
          device_.allocateCommandBuffers({
@@ -1209,7 +1209,7 @@ namespace eru
       return std::move(*descriptor_pool);
    }
 
-   vk::raii::DescriptorSets Application::descriptor_sets() const
+   std::vector<vk::raii::DescriptorSet> Application::descriptor_sets() const
    {
       std::array<vk::DescriptorSetLayout, FRAMES_IN_FLIGHT> layouts{};
       std::ranges::fill(layouts, *descriptor_set_layout_);
