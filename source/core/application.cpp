@@ -1,4 +1,5 @@
 #include "eruptor/application.hpp"
+#include "eruptor/environment.hpp"
 #include "eruptor/exception.hpp"
 #include "eruptor/locator.hpp"
 #include "eruptor/logger.hpp"
@@ -39,6 +40,7 @@ namespace eru
    {
       Locator::provide<Application>(application);
       Locator::provide<Logger>();
+      Locator::provide<Environment>();
    }
 
    Application::LocatorRegistrator::~LocatorRegistrator()
@@ -463,6 +465,8 @@ namespace eru
       }
 
       extension_names.push_back(vk::EXTDebugUtilsExtensionName);
+
+      Locator::get<Environment>().append_environment_variable("VK_ADD_LAYER_PATH", "C:/Users/jakub/Desktop/Magma/build/default/Debug");
 
       std::vector<char const*> layer_names{};
       if constexpr (DEBUG_BUILD)
