@@ -2,25 +2,12 @@
    "version" : 3,
    "configurePresets" : [
       {
-         "name" : "default",
-         "generator" : "Ninja Multi-Config",
+         "name" : "vcpkg",
          "binaryDir" : "${sourceDir}/build/${presetName}",
          "toolchainFile" : "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake",
          "cacheVariables" : {
             "VCPKG_MANIFEST_DIR" : "${sourceDir}"
          }
-      }
-   ],
-   "buildPresets" : [
-      {
-         "name" : "debug",
-         "configurePreset" : "default",
-         "configuration" : "Debug"
-      },
-      {
-         "name" : "release",
-         "configurePreset" : "default",
-         "configuration" : "Release"
       }
    ]
 }
