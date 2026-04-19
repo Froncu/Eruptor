@@ -13,7 +13,6 @@ find_package(glm CONFIG REQUIRED)
 find_package(Ktx CONFIG REQUIRED)
 find_package(slang CONFIG REQUIRED)
 find_package(VulkanHeaders CONFIG REQUIRED)
-find_package(VulkanLoader CONFIG REQUIRED)
 
 # Framework library - contains all functionality
 # Can be built as SHARED or STATIC depending on ERU_BUILD_SHARED
@@ -51,8 +50,7 @@ target_link_libraries(${PROJECT_NAME}
    PRIVATE assimp::assimp
    PRIVATE glfw
    PRIVATE KTX::ktx
-   PRIVATE slang::slang
-   PRIVATE Vulkan::Loader)
+   PRIVATE slang::slang)
 
 set_project_defaults(${PROJECT_NAME})
 generate_umbrella_header(${PROJECT_NAME}

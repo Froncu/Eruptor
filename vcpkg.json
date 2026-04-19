@@ -26,18 +26,6 @@
       },
       {
          "name": "vulkan-headers"
-      },
-      {
-         "name": "vulkan-loader",
-         "features": [
-            {
-               "name": "wayland",
-               "platform": "linux"
-            }
-         ]
-      },
-      {
-         "name": "vulkan-validationlayers"
       }
    ]
 }
