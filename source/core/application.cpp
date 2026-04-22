@@ -17,6 +17,9 @@ namespace eru
       switch (severity)
       {
          case vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose:
+            [[fallthrough]];
+
+         case vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo:
             Locator::get<Logger>().info(callback_data->pMessage);
             break;
 
@@ -464,16 +467,12 @@ namespace eru
 
       extension_names.push_back(vk::EXTDebugUtilsExtensionName);
 
-      std::vector<char const*> layer_names{};
-      if constexpr (DEBUG_BUILD)
-         layer_names.push_back("VK_LAYER_KHRONOS_validation");
-
       vk::ResultValue instance{
          vulkan_context_.createInstance({
             .flags{},
             .pApplicationInfo{ &app_info },
-            .enabledLayerCount{ static_cast<std::uint32_t>(std::ranges::size(layer_names)) },
-            .ppEnabledLayerNames{ std::ranges::data(layer_names) },
+            .enabledLayerCount{},
+            .ppEnabledLayerNames{},
             .enabledExtensionCount{ static_cast<std::uint32_t>(std::ranges::size(extension_names)) },
             .ppEnabledExtensionNames{ std::ranges::data(extension_names) }
          })
@@ -490,11 +489,11 @@ namespace eru
          instance_.createDebugUtilsMessengerEXT({
             .messageSeverity{
                vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose |
+               vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo |
                vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning |
                vk::DebugUtilsMessageSeverityFlagBitsEXT::eError
             },
             .messageType{
-               vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral |
                vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance |
                vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation |
                vk::DebugUtilsMessageTypeFlagBitsEXT::eDeviceAddressBinding
