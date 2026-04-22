@@ -92,18 +92,22 @@ namespace eru
       }
 
       std::string_view escape_sequence;
+      std::string_view type;
       switch (payload.type)
       {
          case Type::INFO:
-            escape_sequence = payload.framework_level ? "1;2;34" : "1;34";
+            escape_sequence = "1;36";
+            type = "INFO";
             break;
 
          case Type::WARNING:
-            escape_sequence = payload.framework_level ? "1;2;33" : "1;33";
+            escape_sequence = "1;33";
+            type = "WARNING";
             break;
 
          case Type::ERROR:
-            escape_sequence = payload.framework_level ? "1;2;31" : "1;31";
+            escape_sequence = "1;31";
+            type = "ERROR";
             break;
       }
 
@@ -122,11 +126,11 @@ namespace eru
          source_file_location = "unknown source file location";
 
       std::println(*output_stream,
-         "\x1b[{}m>> {}\n[{:%T}] {:6}: {}\x1b[0m\n",
+         "[\x1b[{}m{}\x1b[0m] [\x1b[1;97m{}\x1b[0m] [\x1b[1;97m{}\x1b[0m]\n{}",
          escape_sequence,
-         source_file_location,
-         std::chrono::floor<std::chrono::seconds>(std::chrono::system_clock::now()),
+         type,
          payload.framework_level ? "ERUPTOR" : "APP",
+         source_file_location,
          payload.message);
    }
 
