@@ -5,6 +5,6 @@
 #include <ktx.h>
 #include <slang-com-ptr.h>
 #include <slang.h>
-// #include <stb_image.h>
+#include <stb_image.h>
 
 #endif

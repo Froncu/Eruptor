@@ -12,6 +12,7 @@ find_package(glfw3 CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(Ktx CONFIG REQUIRED)
 find_package(slang CONFIG REQUIRED)
+find_package(Stb REQUIRED)
 find_package(VulkanHeaders CONFIG REQUIRED)
 
 # Framework library - contains all functionality
@@ -28,7 +29,8 @@ endif()
 
 target_include_directories(${PROJECT_NAME}
    PUBLIC include
-   PRIVATE source)
+   PRIVATE source
+   PRIVATE ${Stb_INCLUDE_DIR})
 
 target_precompile_headers(${PROJECT_NAME}
    PUBLIC include/${PROJECT_NAME}/pch.hpp
