@@ -5,6 +5,8 @@
 !source
 !vcpkg
 
+!.clang-format
+!.clang-tidy
 !.gitignore
 !.gitmodules
 !CMakeLists.txt

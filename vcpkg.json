@@ -18,7 +18,9 @@
       {
          "name": "ktx",
          "features": [
-            "vulkan"
+            {
+               "name": "vulkan"
+            }
          ]
       },
       {
