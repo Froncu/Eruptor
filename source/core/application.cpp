@@ -1056,13 +1056,13 @@ namespace eru
    auto Application::memory(vk::MemoryRequirements const& requirements,
       vk::MemoryPropertyFlags const properties) const -> vk::raii::DeviceMemory
    {
-      vk::PhysicalDeviceMemoryProperties const available_properties{ physical_device_.getMemoryProperties() };
+      vk::PhysicalDeviceMemoryProperties2 const available_properties{ physical_device_.getMemoryProperties2() };
       std::bitset<sizeof(requirements.memoryTypeBits) * 8> const type_bits{ requirements.memoryTypeBits };
 
       std::uint32_t index{};
-      for (; index < available_properties.memoryTypeCount; ++index)
+      for (; index < available_properties.memoryProperties.memoryTypeCount; ++index)
          if (type_bits[index]
-            and (available_properties.memoryTypes[index].propertyFlags & properties) == properties)
+            and (available_properties.memoryProperties.memoryTypes[index].propertyFlags & properties) == properties)
             break;
 
       vk::ResultValue device_memory{
