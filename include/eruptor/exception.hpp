@@ -18,7 +18,7 @@ namespace eru
          Exception& operator=(Exception const&) = default;
          Exception& operator=(Exception&&) = default;
 
-         ERU_API [[nodiscard]] std::source_location const& source_location() const;
+         [[nodiscard]] ERU_API std::source_location const& source_location() const;
 
       private:
          std::source_location source_location_;

@@ -617,8 +617,6 @@ namespace eru
             .pNext{ device_feature_chain.get() },
             .queueCreateInfoCount{ static_cast<std::uint32_t>(std::ranges::size(device_queue_create_info)) },
             .pQueueCreateInfos{ std::ranges::data(device_queue_create_info) },
-            .enabledLayerCount{},
-            .ppEnabledLayerNames{},
             .enabledExtensionCount{ static_cast<std::uint32_t>(std::ranges::size(device_extension_names)) },
             .ppEnabledExtensionNames{ std::ranges::data(device_extension_names) },
          })

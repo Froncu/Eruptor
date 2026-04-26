@@ -4,6 +4,6 @@ function(set_project_defaults TARGET_NAME)
       CXX_STANDARD_REQUIRED TRUE)
 
    target_compile_options(${TARGET_NAME}
-      PRIVATE $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall -Wextra -Wpedantic -Werror>
+      PRIVATE $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall -Wextra -Wpedantic -Werror -Wno-braced-scalar-init>
       PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>)
 endfunction()

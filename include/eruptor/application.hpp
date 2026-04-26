@@ -54,7 +54,7 @@ namespace eru
          Application& operator=(Application const&) = delete;
          Application& operator=(Application&&) = delete;
 
-         ERU_API [[nodiscard]] bool tick();
+         [[nodiscard]] ERU_API bool tick();
          ERU_API void poll();
 
          bool keep_ticking{ true };
