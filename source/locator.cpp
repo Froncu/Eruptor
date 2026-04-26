@@ -4,15 +4,19 @@ namespace eru
 {
    void Locator::remove_all()
    {
-      viewed_services_.clear();
+      Locator& locator{ instance() };
 
-      while (not owned_services_.empty())
-         owned_services_.pop_back();
+      locator.viewed_services_.clear();
 
-      owned_service_indices_.clear();
+      while (not locator.owned_services_.empty())
+         locator.owned_services_.pop_back();
+
+      locator.owned_service_indices_.clear();
    }
 
-   decltype(Locator::owned_service_indices_) Locator::owned_service_indices_{};
-   decltype(Locator::owned_services_) Locator::owned_services_{};
-   decltype(Locator::viewed_services_) Locator::viewed_services_{};
+   Locator& Locator::instance()
+   {
+      static Locator locator{};
+      return locator;
+   }
 }

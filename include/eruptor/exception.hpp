@@ -9,11 +9,11 @@ namespace eru
    class Exception final : public std::runtime_error
    {
       public:
-         ERU_API Exception(std::string_view message, std::source_location source_location = std::source_location::current());
+         ERU_API explicit Exception(std::string_view message, std::source_location source_location = std::source_location::current());
          Exception(Exception const&) = default;
          Exception(Exception&&) = default;
 
-         ~Exception() = default;
+         ~Exception() override = default;
 
          Exception& operator=(Exception const&) = default;
          Exception& operator=(Exception&&) = default;
