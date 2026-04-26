@@ -4,7 +4,7 @@
 namespace eru
 {
    template <typename Type>
-   static void void_deleter(void* const value)
+   static auto void_deleter(void* const value) -> void
    {
       delete static_cast<Type* const>(value);
    }

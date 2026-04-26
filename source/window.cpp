@@ -19,48 +19,48 @@ namespace eru
          });
    }
 
-   GLFWwindow& Window::native() const
+   auto Window::native() const -> GLFWwindow&
    {
       return *native_window_;
    }
 
-   void Window::change_visibility(bool const visible)
+   auto Window::change_visibility(bool const visible) -> void
    {
       visible
          ? glfwShowWindow(native_window_.get())
          : glfwHideWindow(native_window_.get());
    }
 
-   void Window::change_extent(glm::uvec2 const extent)
+   auto Window::change_extent(glm::uvec2 const extent) -> void
    {
       glfwSetWindowSize(native_window_.get(), extent.x, extent.y);
    }
 
-   glm::uvec2 Window::extent() const
+   auto Window::extent() const -> glm::uvec2
    {
       glm::ivec2 extent;
       glfwGetWindowSize(native_window_.get(), &extent.x, &extent.y);
       return extent;
    }
 
-   void Window::change_position(glm::uvec2 const position)
+   auto Window::change_position(glm::uvec2 const position) -> void
    {
       glfwSetWindowPos(native_window_.get(), position.x, position.y);
    }
 
-   glm::uvec2 Window::position() const
+   auto Window::position() const -> glm::uvec2
    {
       glm::ivec2 position;
       glfwGetWindowPos(native_window_.get(), &position.x, &position.y);
       return position;
    }
 
-   void Window::change_title(std::string_view const title)
+   auto Window::change_title(std::string_view const title) -> void
    {
       glfwSetWindowTitle(native_window_.get(), title.data());
    }
 
-   std::string_view Window::title() const
+   auto Window::title() const -> std::string_view
    {
       return glfwGetWindowTitle(native_window_.get());
    }

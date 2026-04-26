@@ -3,7 +3,7 @@
 
 namespace std
 {
-   size_t hash<source_location>::operator()(source_location const& location) const noexcept
+   auto hash<source_location>::operator()(source_location const& location) const noexcept -> size_t
    {
       size_t const hash_1{ eru::hash(location.file_name()) };
       size_t const hash_2{ eru::hash(location.line()) };
@@ -12,7 +12,7 @@ namespace std
 
       size_t seed{};
       auto const generate{
-         [&seed](size_t const hash)
+         [&seed](size_t const hash) -> void
          {
             seed ^= hash + 0x9e3779b9 + (seed << 6) + (seed >> 2);
          }
@@ -26,8 +26,8 @@ namespace std
       return seed;
    }
 
-   bool equal_to<source_location>::operator()(source_location const& location_a,
-      source_location const& location_b) const noexcept
+   auto equal_to<source_location>::operator()(source_location const& location_a,
+      source_location const& location_b) const noexcept -> bool
    {
       if (location_a.line() not_eq location_b.line() or
          location_a.column() not_eq location_b.column())
@@ -55,12 +55,12 @@ namespace eru
       condition_.notify_one();
    }
 
-   void Logger::register_framework_source_root(std::filesystem::path user_root)
+   auto Logger::register_framework_source_root(std::filesystem::path user_root) -> void
    {
       register_source_root(std::move(user_root), COMPILE_SOURCE_PATH.data());
    }
 
-   void Logger::register_source_root(std::filesystem::path user_root, std::filesystem::path compile_root)
+   auto Logger::register_source_root(std::filesystem::path user_root, std::filesystem::path compile_root) -> void
    {
       if (not exists(user_root))
          throw Exception{ "the specified user source root must exist" };
@@ -71,7 +71,7 @@ namespace eru
       source_roots_.emplace_back(std::move(user_root), std::move(compile_root));
    }
 
-   void Logger::log(Payload const& payload)
+   auto Logger::log(Payload const& payload) -> void
    {
       std::ostream* output_stream;
       switch (payload.type)
@@ -134,7 +134,7 @@ namespace eru
          payload.message);
    }
 
-   void Logger::log_once(Payload const& payload)
+   auto Logger::log_once(Payload const& payload) -> void
    {
       if (not location_entries_.insert(payload.location).second)
          return;

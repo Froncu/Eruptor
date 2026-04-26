@@ -15,10 +15,10 @@ namespace eru
 
          ~Exception() override = default;
 
-         Exception& operator=(Exception const&) = default;
-         Exception& operator=(Exception&&) = default;
+         auto operator=(Exception const&) -> Exception& = default;
+         auto operator=(Exception&&) -> Exception& = default;
 
-         [[nodiscard]] ERU_API std::source_location const& source_location() const;
+         [[nodiscard]] ERU_API auto source_location() const -> std::source_location const&;
 
       private:
          std::source_location source_location_;

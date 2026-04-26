@@ -11,13 +11,13 @@ namespace std
    template <>
    struct hash<source_location>
    {
-      [[nodiscard]] std::size_t operator()(source_location const& location) const noexcept;
+      [[nodiscard]] auto operator()(source_location const& location) const noexcept -> std::size_t;
    };
 
    template <>
    struct equal_to<source_location>
    {
-      [[nodiscard]] bool operator()(source_location const& location_a, source_location const& location_b) const noexcept;
+      [[nodiscard]] auto operator()(source_location const& location_a, source_location const& location_b) const noexcept -> bool;
    };
 }
 
@@ -53,14 +53,14 @@ namespace eru
 
          ERU_API ~Logger();
 
-         Logger& operator=(Logger const&) = delete;
-         Logger& operator=(Logger&&) = delete;
+         auto operator=(Logger const&) -> Logger& = delete;
+         auto operator=(Logger&&) -> Logger& = delete;
 
-         ERU_API void register_framework_source_root(std::filesystem::path user_root);
-         ERU_API void register_source_root(std::filesystem::path user_root, std::filesystem::path compile_root);
+         ERU_API auto register_framework_source_root(std::filesystem::path user_root) -> void;
+         ERU_API auto register_source_root(std::filesystem::path user_root, std::filesystem::path compile_root) -> void;
 
          template <typename Message>
-         void info(Message&& message, bool const once = false, std::source_location location = std::source_location::current())
+         auto info(Message&& message, bool const once = false, std::source_location location = std::source_location::current()) -> void
          {
             {
                std::lock_guard const lock{ mutex_ };
@@ -79,8 +79,8 @@ namespace eru
          }
 
          template <typename Message>
-         void warning(Message&& message, bool const once = false,
-            std::source_location location = std::source_location::current())
+         auto warning(Message&& message, bool const once = false,
+            std::source_location location = std::source_location::current()) -> void
          {
             {
                std::lock_guard const lock{ mutex_ };
@@ -99,7 +99,7 @@ namespace eru
          }
 
          template <typename Message>
-         void error(Message&& message, bool const once = false, std::source_location location = std::source_location::current())
+         auto error(Message&& message, bool const once = false, std::source_location location = std::source_location::current()) -> void
          {
             {
                std::lock_guard const lock{ mutex_ };
@@ -118,8 +118,8 @@ namespace eru
          }
 
       private:
-         void log(Payload const& payload);
-         void log_once(Payload const& payload);
+         auto log(Payload const& payload) -> void;
+         auto log_once(Payload const& payload) -> void;
 
          std::vector<std::pair<std::filesystem::path, std::filesystem::path>> source_roots_;
          std::unordered_set<std::source_location> location_entries_{};

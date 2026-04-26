@@ -18,21 +18,21 @@ namespace eru
 
          ERU_API ~Window() = default;
 
-         Window& operator=(Window const&) = delete;
-         Window& operator=(Window&&) = delete;
+         auto operator=(Window const&) -> Window& = delete;
+         auto operator=(Window&&) -> Window& = delete;
 
-         [[nodiscard]] ERU_API GLFWwindow& native() const;
+         [[nodiscard]] ERU_API auto native() const -> GLFWwindow&;
 
-         ERU_API void change_visibility(bool visible);
+         ERU_API auto change_visibility(bool visible) -> void;
 
-         ERU_API void change_extent(glm::uvec2 extent);
-         [[nodiscard]] ERU_API glm::uvec2 extent() const;
+         ERU_API auto change_extent(glm::uvec2 extent) -> void;
+         [[nodiscard]] ERU_API auto extent() const -> glm::uvec2;
 
-         ERU_API void change_position(glm::uvec2 position);
-         [[nodiscard]] ERU_API glm::uvec2 position() const;
+         ERU_API auto change_position(glm::uvec2 position) -> void;
+         [[nodiscard]] ERU_API auto position() const -> glm::uvec2;
 
-         ERU_API void change_title(std::string_view title);
-         [[nodiscard]] ERU_API std::string_view title() const;
+         ERU_API auto change_title(std::string_view title) -> void;
+         [[nodiscard]] ERU_API auto title() const -> std::string_view;
 
       private:
          UniquePointer<GLFWwindow> native_window_;

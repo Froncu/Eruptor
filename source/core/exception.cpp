@@ -8,7 +8,7 @@ namespace eru
    {
    }
 
-   std::source_location const& Exception::source_location() const
+   auto Exception::source_location() const -> std::source_location const&
    {
       return source_location_;
    }

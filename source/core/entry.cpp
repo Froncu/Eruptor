@@ -2,10 +2,10 @@
 
 namespace eru
 {
-   [[nodiscard]] std::unique_ptr<Application> create_application(std::span<char const* const> arguments);
+   [[nodiscard]] auto create_application(std::span<char const* const> arguments) -> std::unique_ptr<Application>;
 }
 
-int main(int const arguments_count, char const* const* arguments) try
+auto main(int const arguments_count, char const* const* arguments) -> int try
 {
    std::unique_ptr const application{ eru::create_application({ arguments, static_cast<std::size_t>(arguments_count) }) };
 

@@ -8,8 +8,8 @@
 namespace eru
 {
    template <typename Message>
-   constexpr void runtime_assert(bool const condition, Message&& message,
-      std::source_location location = std::source_location::current())
+   constexpr auto runtime_assert(bool const condition, Message&& message,
+      std::source_location location = std::source_location::current()) -> void
    {
       if constexpr (DEBUG_BUILD)
       {

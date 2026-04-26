@@ -8,11 +8,11 @@
 
 namespace eru
 {
-   VKAPI_ATTR vk::Bool32 VKAPI_CALL debug_callback(
+   VKAPI_ATTR auto VKAPI_CALL debug_callback(
       vk::DebugUtilsMessageSeverityFlagBitsEXT const severity,
       vk::DebugUtilsMessageTypeFlagsEXT const,
       vk::DebugUtilsMessengerCallbackDataEXT const* const callback_data,
-      void* const)
+      void* const) -> vk::Bool32
    {
       switch (severity)
       {
@@ -74,7 +74,7 @@ namespace eru
          std::format("failed to wait idle on the device! ({})", to_string(result)));
    }
 
-   bool Application::tick()
+   auto Application::tick() -> bool
    {
       vk::raii::CommandBuffer const& command_buffer{ command_buffers_[frame_index_] };
       vk::raii::Semaphore const& image_available_semaphore{ image_available_semaphores_[frame_index_] };
@@ -275,7 +275,7 @@ namespace eru
       return keep_ticking;
    }
 
-   void Application::poll()
+   auto Application::poll() -> void
    {
       glfwPollEvents();
    }
@@ -443,7 +443,7 @@ namespace eru
       device_.updateDescriptorSets(writes, {});
    }
 
-   vk::raii::Instance Application::instance(std::string_view const name, std::uint32_t const version) const
+   auto Application::instance(std::string_view const name, std::uint32_t const version) const -> vk::raii::Instance
    {
       vk::ApplicationInfo const app_info{
          .pApplicationName{ name.data() },
@@ -483,7 +483,7 @@ namespace eru
       return std::move(*instance);
    }
 
-   vk::raii::DebugUtilsMessengerEXT Application::debug_messenger() const
+   auto Application::debug_messenger() const -> vk::raii::DebugUtilsMessengerEXT
    {
       vk::ResultValue debug_messenger{
          instance_.createDebugUtilsMessengerEXT({
@@ -507,14 +507,14 @@ namespace eru
       return std::move(*debug_messenger);
    }
 
-   vk::raii::SurfaceKHR Application::surface() const
+   auto Application::surface() const -> vk::raii::SurfaceKHR
    {
       VkSurfaceKHR surface;
       glfwCreateWindowSurface(*instance_, &window_.native(), nullptr, &surface);
       return { instance_, surface };
    }
 
-   vk::raii::PhysicalDevice Application::physical_device() const
+   auto Application::physical_device() const -> vk::raii::PhysicalDevice
    {
       vk::ResultValue const physical_devices{ instance_.enumeratePhysicalDevices() };
       runtime_assert(physical_devices.has_value(),
@@ -539,7 +539,7 @@ namespace eru
       return *physical_device;
    }
 
-   std::uint32_t Application::queue_family_index() const
+   auto Application::queue_family_index() const -> std::uint32_t
    {
       // TODO: use vk::StructureChain
       auto&& queue_family_properties{ physical_device_.getQueueFamilyProperties2() | std::ranges::views::enumerate };
@@ -567,7 +567,7 @@ namespace eru
       return static_cast<std::uint32_t>(queue_family.index());
    }
 
-   vk::raii::Device Application::device() const
+   auto Application::device() const -> vk::raii::Device
    {
       vk::StructureChain<
          vk::PhysicalDeviceFeatures2,
@@ -627,7 +627,7 @@ namespace eru
       return std::move(*device);
    }
 
-   vk::raii::Queue Application::queue() const
+   auto Application::queue() const -> vk::raii::Queue
    {
       return device_.getQueue2({
          .queueFamilyIndex{ queue_family_index_ },
@@ -635,7 +635,7 @@ namespace eru
       });
    }
 
-   vk::SurfaceFormatKHR Application::surface_format() const
+   auto Application::surface_format() const -> vk::SurfaceFormatKHR
    {
       // TODO: use `vk::StructureChain` and `getSurfaceFormats2KHR` for more functionality
       vk::ResultValue const available_surface_formats{ physical_device_.getSurfaceFormatsKHR(surface_) };
@@ -662,7 +662,7 @@ namespace eru
       return *surface_format;
    }
 
-   vk::Extent2D Application::surface_extent() const
+   auto Application::surface_extent() const -> vk::Extent2D
    {
       vk::ResultValue const surface_capabilities{ physical_device_.getSurfaceCapabilitiesKHR(surface_) };
       runtime_assert(surface_capabilities.has_value(),
@@ -685,7 +685,7 @@ namespace eru
       return surface_capabilities->currentExtent;
    }
 
-   vk::raii::SwapchainKHR Application::swap_chain() const
+   auto Application::swap_chain() const -> vk::raii::SwapchainKHR
    {
       // TODO: use `vk::StructureChain` for more functionality
       vk::ResultValue const available_surface_present_modes{ physical_device_.getSurfacePresentModesKHR(surface_) };
@@ -743,7 +743,7 @@ namespace eru
       return std::move(*swap_chain);
    }
 
-   std::vector<vk::Image> Application::swap_chain_images() const
+   auto Application::swap_chain_images() const -> std::vector<vk::Image>
    {
       vk::ResultValue swap_chain_images{ swap_chain_.getImages() };
       runtime_assert(swap_chain_images.has_value(),
@@ -752,7 +752,7 @@ namespace eru
       return std::move(*swap_chain_images);
    }
 
-   std::vector<vk::raii::ImageView> Application::swap_chain_image_views() const
+   auto Application::swap_chain_image_views() const -> std::vector<vk::raii::ImageView>
    {
       vk::ImageViewCreateInfo create_info{
          .viewType{ vk::ImageViewType::e2D },
@@ -787,7 +787,7 @@ namespace eru
       return image_views;
    }
 
-   vk::raii::DescriptorSetLayout Application::descriptor_set_layout() const
+   auto Application::descriptor_set_layout() const -> vk::raii::DescriptorSetLayout
    {
       std::array constexpr bindings{
          std::to_array<vk::DescriptorSetLayoutBinding>({
@@ -812,7 +812,7 @@ namespace eru
       return std::move(*descriptor_set_layout);
    }
 
-   vk::raii::PipelineLayout Application::pipeline_layout() const
+   auto Application::pipeline_layout() const -> vk::raii::PipelineLayout
    {
       // TODO: how to pass a container of vk::raii namespaced descriptor set layouts without creating a proxy container?
       vk::ResultValue pipeline_layout{
@@ -827,7 +827,7 @@ namespace eru
       return std::move(pipeline_layout.value);
    }
 
-   vk::raii::Pipeline Application::pipeline() const
+   auto Application::pipeline() const -> vk::raii::Pipeline
    {
       Slang::ComPtr<slang::IGlobalSession> global_session;
       createGlobalSession(global_session.writeRef());
@@ -979,7 +979,7 @@ namespace eru
       return std::move(*pipeline);
    }
 
-   vk::raii::CommandPool Application::command_pool() const
+   auto Application::command_pool() const -> vk::raii::CommandPool
    {
       vk::ResultValue command_pool{
          device_.createCommandPool({
@@ -993,7 +993,7 @@ namespace eru
       return std::move(*command_pool);
    }
 
-   std::vector<vk::raii::CommandBuffer> Application::command_buffers() const
+   auto Application::command_buffers() const -> std::vector<vk::raii::CommandBuffer>
    {
       vk::ResultValue command_buffers{
          device_.allocateCommandBuffers({
@@ -1008,7 +1008,7 @@ namespace eru
       return std::move(*command_buffers);
    }
 
-   std::vector<vk::raii::Semaphore> Application::semaphores() const
+   auto Application::semaphores() const -> std::vector<vk::raii::Semaphore>
    {
       std::vector<vk::raii::Semaphore> semaphores{};
       semaphores.reserve(FRAMES_IN_FLIGHT);
@@ -1024,7 +1024,7 @@ namespace eru
       return semaphores;
    }
 
-   std::vector<vk::raii::Fence> Application::fences() const
+   auto Application::fences() const -> std::vector<vk::raii::Fence>
    {
       std::vector<vk::raii::Fence> fences{};
       fences.reserve(FRAMES_IN_FLIGHT);
@@ -1044,7 +1044,7 @@ namespace eru
       return fences;
    }
 
-   vk::raii::Buffer Application::buffer(vk::BufferCreateInfo const& create_info) const
+   auto Application::buffer(vk::BufferCreateInfo const& create_info) const -> vk::raii::Buffer
    {
       vk::ResultValue buffer{ device_.createBuffer(create_info) };
       runtime_assert(buffer.has_value(),
@@ -1053,8 +1053,8 @@ namespace eru
       return std::move(*buffer);
    }
 
-   vk::raii::DeviceMemory Application::memory(vk::MemoryRequirements const& requirements,
-      vk::MemoryPropertyFlags const properties) const
+   auto Application::memory(vk::MemoryRequirements const& requirements,
+      vk::MemoryPropertyFlags const properties) const -> vk::raii::DeviceMemory
    {
       vk::PhysicalDeviceMemoryProperties const available_properties{ physical_device_.getMemoryProperties() };
       std::bitset<sizeof(requirements.memoryTypeBits) * 8> const type_bits{ requirements.memoryTypeBits };
@@ -1077,7 +1077,7 @@ namespace eru
       return std::move(*device_memory);
    }
 
-   vk::raii::Buffer Application::vertex_buffer() const
+   auto Application::vertex_buffer() const -> vk::raii::Buffer
    {
       return buffer({
          .size{ sizeof(decltype(vertices_)::value_type) * vertices_.size() },
@@ -1086,12 +1086,12 @@ namespace eru
       });
    }
 
-   vk::raii::DeviceMemory Application::vertex_buffer_memory() const
+   auto Application::vertex_buffer_memory() const -> vk::raii::DeviceMemory
    {
       return memory(vertex_buffer_.getMemoryRequirements(), vk::MemoryPropertyFlagBits::eDeviceLocal);
    }
 
-   vk::raii::Buffer Application::index_buffer() const
+   auto Application::index_buffer() const -> vk::raii::Buffer
    {
       return buffer({
          .size{ sizeof(decltype(vertices_)::value_type) * vertices_.size() },
@@ -1100,12 +1100,12 @@ namespace eru
       });
    }
 
-   vk::raii::DeviceMemory Application::index_buffer_memory() const
+   auto Application::index_buffer_memory() const -> vk::raii::DeviceMemory
    {
       return memory(index_buffer_.getMemoryRequirements(), vk::MemoryPropertyFlagBits::eDeviceLocal);
    }
 
-   std::vector<vk::raii::Buffer> Application::uniform_buffers() const
+   auto Application::uniform_buffers() const -> std::vector<vk::raii::Buffer>
    {
       std::vector<vk::raii::Buffer> uniform_buffers{};
       uniform_buffers.reserve(FRAMES_IN_FLIGHT);
@@ -1119,7 +1119,7 @@ namespace eru
       return uniform_buffers;
    }
 
-   std::vector<vk::raii::DeviceMemory> Application::uniform_buffer_memories() const
+   auto Application::uniform_buffer_memories() const -> std::vector<vk::raii::DeviceMemory>
    {
       std::vector<vk::raii::DeviceMemory> uniform_buffer_memories{};
       uniform_buffer_memories.reserve(FRAMES_IN_FLIGHT);
@@ -1133,7 +1133,7 @@ namespace eru
       return uniform_buffer_memories;
    }
 
-   vk::raii::Image Application::texture() const
+   auto Application::texture() const -> vk::raii::Image
    {
       // stbi_load
       //
@@ -1176,12 +1176,12 @@ namespace eru
       return { device_, {} };
    }
 
-   vk::raii::DeviceMemory Application::texture_memory() const
+   auto Application::texture_memory() const -> vk::raii::DeviceMemory
    {
       return { device_, {} };
    }
 
-   vk::raii::DescriptorPool Application::descriptor_pool() const
+   auto Application::descriptor_pool() const -> vk::raii::DescriptorPool
    {
       std::array constexpr desciptor_pool_sizes{
          std::to_array<vk::DescriptorPoolSize>({
@@ -1206,7 +1206,7 @@ namespace eru
       return std::move(*descriptor_pool);
    }
 
-   std::vector<vk::raii::DescriptorSet> Application::descriptor_sets() const
+   auto Application::descriptor_sets() const -> std::vector<vk::raii::DescriptorSet>
    {
       std::array<vk::DescriptorSetLayout, FRAMES_IN_FLIGHT> layouts{};
       std::ranges::fill(layouts, *descriptor_set_layout_);
@@ -1224,7 +1224,7 @@ namespace eru
       return std::move(*descriptor_sets);
    }
 
-   void Application::recreate_swap_chain()
+   auto Application::recreate_swap_chain() -> void
    {
       surface_extent_ = surface_extent();
       swap_chain_.clear();

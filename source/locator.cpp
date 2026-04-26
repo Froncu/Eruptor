@@ -2,7 +2,7 @@
 
 namespace eru
 {
-   void Locator::remove_all()
+   auto Locator::remove_all() -> void
    {
       Locator& locator{ instance() };
 
@@ -14,7 +14,7 @@ namespace eru
       locator.owned_service_indices_.clear();
    }
 
-   Locator& Locator::instance()
+   auto Locator::instance() -> Locator&
    {
       static Locator locator{};
       return locator;

@@ -26,8 +26,8 @@ namespace eru
 
                ~ConstructionKey() = default;
 
-               ConstructionKey& operator=(ConstructionKey const&) = delete;
-               ConstructionKey& operator=(ConstructionKey&&) = delete;
+               auto operator=(ConstructionKey const&) -> ConstructionKey& = delete;
+               auto operator=(ConstructionKey&&) -> ConstructionKey& = delete;
 
             private:
                explicit ConstructionKey() = default;
@@ -35,7 +35,7 @@ namespace eru
 
          template<typename Service, std::derived_from<Service> Provider = Service, typename... Arguments>
             requires std::constructible_from<Provider, ConstructionKey, Arguments...>
-         static Service& provide(Arguments&&... arguments)
+         static auto provide(Arguments&&... arguments) -> Service&
          {
             Locator& locator{ instance() };
 
@@ -58,7 +58,7 @@ namespace eru
          }
 
          template<typename Service, std::derived_from<Service> Provider = Service>
-         static Service& provide(Provider& provider)
+         static auto provide(Provider& provider) -> Service&
          {
             Locator& locator{ instance() };
 
@@ -66,10 +66,10 @@ namespace eru
             return provider;
          }
 
-         ERU_API static void remove_all();
+         ERU_API static auto remove_all() -> void;
 
          template<typename Service>
-         [[nodiscard]] static Service& get()
+         [[nodiscard]] static auto get() -> Service&
          {
             Locator& locator{ instance() };
 
@@ -89,8 +89,8 @@ namespace eru
          Locator(Locator const&) = delete;
          Locator(Locator&&) = delete;
 
-         Locator& operator=(Locator const&) = delete;
-         Locator& operator=(Locator&&) = delete;
+         auto operator=(Locator const&) -> Locator& = delete;
+         auto operator=(Locator&&) -> Locator& = delete;
 
       private:
          Locator() = default;
@@ -98,7 +98,7 @@ namespace eru
          ~Locator() = default;
 
          // TODO: not a fan of this, but neither do I like the idea of having the user call `Locator::instance()`
-         [[nodiscard]] ERU_API static Locator& instance();
+         [[nodiscard]] ERU_API static auto instance() -> Locator&;
 
          std::unordered_map<std::type_index, std::size_t> owned_service_indices_{};
          std::vector<UniquePointer<void>> owned_services_{};

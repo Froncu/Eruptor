@@ -26,8 +26,8 @@ namespace eru
 
             ERU_API ~LocatorRegistrator();
 
-            LocatorRegistrator& operator=(LocatorRegistrator&&) = delete;
-            LocatorRegistrator& operator=(LocatorRegistrator&) = delete;
+            auto operator=(LocatorRegistrator&&) -> LocatorRegistrator& = delete;
+            auto operator=(LocatorRegistrator&) -> LocatorRegistrator& = delete;
       };
 
       class GLFWcontext final
@@ -39,11 +39,11 @@ namespace eru
 
             ERU_API ~GLFWcontext();
 
-            GLFWcontext& operator=(GLFWcontext&&) = delete;
-            GLFWcontext& operator=(GLFWcontext&) = delete;
+            auto operator=(GLFWcontext&&) -> GLFWcontext& = delete;
+            auto operator=(GLFWcontext&) -> GLFWcontext& = delete;
       };
 
-      static auto constexpr FRAMES_IN_FLIGHT{ 2 };
+      static constexpr auto FRAMES_IN_FLIGHT{ 2 };
 
       public:
          Application(Application const&) = delete;
@@ -51,11 +51,11 @@ namespace eru
 
          ERU_API virtual ~Application();
 
-         Application& operator=(Application const&) = delete;
-         Application& operator=(Application&&) = delete;
+         auto operator=(Application const&) -> Application& = delete;
+         auto operator=(Application&&) -> Application& = delete;
 
-         [[nodiscard]] ERU_API bool tick();
-         ERU_API void poll();
+         [[nodiscard]] ERU_API auto tick() -> bool;
+         ERU_API auto poll() -> void;
 
          bool keep_ticking{ true };
 
@@ -63,39 +63,39 @@ namespace eru
          ERU_API explicit Application(std::string_view name = "Eruptor", std::uint32_t version = VK_MAKE_VERSION(0, 0, 0));
 
       private:
-         [[nodiscard]] vk::raii::Instance instance(std::string_view name, std::uint32_t version) const;
-         [[nodiscard]] vk::raii::DebugUtilsMessengerEXT debug_messenger() const;
-         [[nodiscard]] vk::raii::SurfaceKHR surface() const;
-         [[nodiscard]] vk::raii::PhysicalDevice physical_device() const;
-         [[nodiscard]] std::uint32_t queue_family_index() const;
-         [[nodiscard]] vk::raii::Device device() const;
-         [[nodiscard]] vk::raii::Queue queue() const;
-         [[nodiscard]] vk::SurfaceFormatKHR surface_format() const;
-         [[nodiscard]] vk::Extent2D surface_extent() const;
-         [[nodiscard]] vk::raii::SwapchainKHR swap_chain() const;
-         [[nodiscard]] std::vector<vk::Image> swap_chain_images() const;
-         [[nodiscard]] std::vector<vk::raii::ImageView> swap_chain_image_views() const;
-         [[nodiscard]] vk::raii::DescriptorSetLayout descriptor_set_layout() const;
-         [[nodiscard]] vk::raii::PipelineLayout pipeline_layout() const;
-         [[nodiscard]] vk::raii::Pipeline pipeline() const;
-         [[nodiscard]] vk::raii::CommandPool command_pool() const;
-         [[nodiscard]] std::vector<vk::raii::CommandBuffer> command_buffers() const;
-         [[nodiscard]] std::vector<vk::raii::Semaphore> semaphores() const;
-         [[nodiscard]] std::vector<vk::raii::Fence> fences() const;
-         [[nodiscard]] vk::raii::Buffer buffer(vk::BufferCreateInfo const& create_info) const;
-         [[nodiscard]] vk::raii::DeviceMemory memory(vk::MemoryRequirements const& requirements, vk::MemoryPropertyFlags properties) const;
-         [[nodiscard]] vk::raii::Buffer vertex_buffer() const;
-         [[nodiscard]] vk::raii::DeviceMemory vertex_buffer_memory() const;
-         [[nodiscard]] vk::raii::Buffer index_buffer() const;
-         [[nodiscard]] vk::raii::DeviceMemory index_buffer_memory() const;
-         [[nodiscard]] std::vector<vk::raii::Buffer> uniform_buffers() const;
-         [[nodiscard]] std::vector<vk::raii::DeviceMemory> uniform_buffer_memories() const;
-         [[nodiscard]] vk::raii::Image texture() const;
-         [[nodiscard]] vk::raii::DeviceMemory texture_memory() const;
-         [[nodiscard]] vk::raii::DescriptorPool descriptor_pool() const;
-         [[nodiscard]] std::vector<vk::raii::DescriptorSet> descriptor_sets() const;
+         [[nodiscard]] auto instance(std::string_view name, std::uint32_t version) const -> vk::raii::Instance;
+         [[nodiscard]] auto debug_messenger() const -> vk::raii::DebugUtilsMessengerEXT;
+         [[nodiscard]] auto surface() const -> vk::raii::SurfaceKHR;
+         [[nodiscard]] auto physical_device() const -> vk::raii::PhysicalDevice;
+         [[nodiscard]] auto queue_family_index() const -> std::uint32_t;
+         [[nodiscard]] auto device() const -> vk::raii::Device;
+         [[nodiscard]] auto queue() const -> vk::raii::Queue;
+         [[nodiscard]] auto surface_format() const -> vk::SurfaceFormatKHR;
+         [[nodiscard]] auto surface_extent() const -> vk::Extent2D;
+         [[nodiscard]] auto swap_chain() const -> vk::raii::SwapchainKHR;
+         [[nodiscard]] auto swap_chain_images() const -> std::vector<vk::Image>;
+         [[nodiscard]] auto swap_chain_image_views() const -> std::vector<vk::raii::ImageView>;
+         [[nodiscard]] auto descriptor_set_layout() const -> vk::raii::DescriptorSetLayout;
+         [[nodiscard]] auto pipeline_layout() const -> vk::raii::PipelineLayout;
+         [[nodiscard]] auto pipeline() const -> vk::raii::Pipeline;
+         [[nodiscard]] auto command_pool() const -> vk::raii::CommandPool;
+         [[nodiscard]] auto command_buffers() const -> std::vector<vk::raii::CommandBuffer>;
+         [[nodiscard]] auto semaphores() const -> std::vector<vk::raii::Semaphore>;
+         [[nodiscard]] auto fences() const -> std::vector<vk::raii::Fence>;
+         [[nodiscard]] auto buffer(vk::BufferCreateInfo const& create_info) const -> vk::raii::Buffer;
+         [[nodiscard]] auto memory(vk::MemoryRequirements const& requirements, vk::MemoryPropertyFlags properties) const -> vk::raii::DeviceMemory;
+         [[nodiscard]] auto vertex_buffer() const -> vk::raii::Buffer;
+         [[nodiscard]] auto vertex_buffer_memory() const -> vk::raii::DeviceMemory;
+         [[nodiscard]] auto index_buffer() const -> vk::raii::Buffer;
+         [[nodiscard]] auto index_buffer_memory() const -> vk::raii::DeviceMemory;
+         [[nodiscard]] auto uniform_buffers() const -> std::vector<vk::raii::Buffer>;
+         [[nodiscard]] auto uniform_buffer_memories() const -> std::vector<vk::raii::DeviceMemory>;
+         [[nodiscard]] auto texture() const -> vk::raii::Image;
+         [[nodiscard]] auto texture_memory() const -> vk::raii::DeviceMemory;
+         [[nodiscard]] auto descriptor_pool() const -> vk::raii::DescriptorPool;
+         [[nodiscard]] auto descriptor_sets() const -> std::vector<vk::raii::DescriptorSet>;
 
-         void recreate_swap_chain();
+         auto recreate_swap_chain() -> void;
 
          std::uint8_t frame_index_{};
          std::vector<Vertex> const vertices_{
