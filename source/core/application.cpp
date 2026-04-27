@@ -175,8 +175,13 @@ namespace eru
          }
       });
 
-      command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline_layout_, 0, *descriptor_sets_[frame_index_],
-         nullptr);
+      std::array const descriptor_sets{
+         std::to_array<vk::DescriptorSet>({
+            *uniform_buffer_descriptor_sets_[frame_index_],
+            *sampler_descriptor_set_
+         })
+      };
+      command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline_layout_, 0, descriptor_sets, nullptr);
       command_buffer.drawIndexed(static_cast<std::uint32_t>(indices_.size()), 1, 0, 0, 0);
       command_buffer.endRendering();
 
@@ -345,6 +350,39 @@ namespace eru
 
       //
 
+      result = image_.bindMemory(image_memory_, 0);
+      runtime_assert(result == vk::Result::eSuccess,
+         std::format("failed to bind image buffer's memory! ({})", to_string(result)));
+
+      image_view_ = image_view();
+
+      vk::DeviceSize const image_buffer_size{ texture_->dataSize };
+      vk::raii::Buffer const image_staging_buffer{
+         buffer({
+            .size{ image_buffer_size },
+            .usage{ vk::BufferUsageFlagBits::eTransferSrc },
+            .sharingMode{ vk::SharingMode::eExclusive }
+         })
+      };
+
+      vk::raii::DeviceMemory const image_staging_buffer_memory{
+         memory(image_staging_buffer.getMemoryRequirements(),
+            vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent)
+      };
+
+      result = image_staging_buffer.bindMemory(image_staging_buffer_memory, 0);
+      runtime_assert(result == vk::Result::eSuccess,
+         std::format("failed to bind image staging buffer's memory! ({})", to_string(result)));
+
+      mapped_memory = image_staging_buffer_memory.mapMemory(0, image_buffer_size);
+      runtime_assert(mapped_memory.has_value(),
+         std::format("failed to map image staging buffer's memory! ({})", to_string(mapped_memory.result)));
+
+      std::memcpy(*mapped_memory, texture_->pData, image_buffer_size);
+      image_staging_buffer_memory.unmapMemory();
+
+      //
+
       vk::ResultValue const command_buffers{
          device_.allocateCommandBuffers({
             .commandPool{ command_pool_ },
@@ -389,6 +427,80 @@ namespace eru
          .pRegions{ std::ranges::data(index_buffer_copy_regions) }
       });
 
+      std::array image_memory_barriers{
+         std::to_array<vk::ImageMemoryBarrier2>({
+            {
+               .srcStageMask{ vk::PipelineStageFlagBits2::eNone },
+               .srcAccessMask{ vk::AccessFlagBits2::eNone },
+               .dstStageMask{ vk::PipelineStageFlagBits2::eTransfer },
+               .dstAccessMask{ vk::AccessFlagBits2::eTransferWrite },
+               .oldLayout{ vk::ImageLayout::eUndefined },
+               .newLayout{ vk::ImageLayout::eTransferDstOptimal },
+               .image{ image_ },
+               .subresourceRange{
+                  .aspectMask{ vk::ImageAspectFlagBits::eColor },
+                  .baseMipLevel{ 0 },
+                  .levelCount{ 1 },
+                  .baseArrayLayer{ 0 },
+                  .layerCount{ 1 }
+               }
+            }
+         })
+      };
+      command_buffers->front().pipelineBarrier2({
+         .imageMemoryBarrierCount{ static_cast<std::uint32_t>(std::ranges::size(image_memory_barriers)) },
+         .pImageMemoryBarriers{ std::ranges::data(image_memory_barriers) }
+      });
+
+      std::array const image_buffer_copy_regions{
+         std::to_array<vk::BufferImageCopy2>({
+            {
+               .imageSubresource{
+                  .aspectMask{ vk::ImageAspectFlagBits::eColor },
+                  .mipLevel{ 0 },
+                  .baseArrayLayer{ 0 },
+                  .layerCount{ 1 }
+               },
+               .imageExtent{
+                  .width{ texture_->baseWidth },
+                  .height{ texture_->baseHeight },
+                  .depth{ texture_->baseDepth }
+               }
+            }
+         })
+      };
+      command_buffers->front().copyBufferToImage2({
+         .srcBuffer{ image_staging_buffer },
+         .dstImage{ image_ },
+         .dstImageLayout{ vk::ImageLayout::eTransferDstOptimal },
+         .regionCount{ static_cast<std::uint32_t>(std::ranges::size(image_buffer_copy_regions)) },
+         .pRegions{ std::ranges::data(image_buffer_copy_regions) }
+      });
+
+      image_memory_barriers =
+         std::to_array<vk::ImageMemoryBarrier2>({
+            {
+               .srcStageMask{ vk::PipelineStageFlagBits2::eTransfer },
+               .srcAccessMask{ vk::AccessFlagBits2::eTransferWrite },
+               .dstStageMask{ vk::PipelineStageFlagBits2::eNone },
+               .dstAccessMask{ vk::AccessFlagBits2::eNone },
+               .oldLayout{ vk::ImageLayout::eTransferDstOptimal },
+               .newLayout{ vk::ImageLayout::eShaderReadOnlyOptimal },
+               .image{ image_ },
+               .subresourceRange{
+                  .aspectMask{ vk::ImageAspectFlagBits::eColor },
+                  .baseMipLevel{ 0 },
+                  .levelCount{ 1 },
+                  .baseArrayLayer{ 0 },
+                  .layerCount{ 1 }
+               }
+            }
+         });
+      command_buffers->front().pipelineBarrier2({
+         .imageMemoryBarrierCount{ static_cast<std::uint32_t>(std::ranges::size(image_memory_barriers)) },
+         .pImageMemoryBarriers{ std::ranges::data(image_memory_barriers) }
+      });
+
       result = command_buffers->front().end();
       runtime_assert(result == vk::Result::eSuccess,
          std::format("failed to end command buffer! ({})", to_string(result)));
@@ -411,7 +523,7 @@ namespace eru
       std::vector<vk::DescriptorBufferInfo> buffer_infos{};
       buffer_infos.reserve(FRAMES_IN_FLIGHT);
       std::vector<vk::WriteDescriptorSet> writes{};
-      writes.reserve(FRAMES_IN_FLIGHT);
+      writes.reserve(FRAMES_IN_FLIGHT + 2);
       for (std::size_t index{}; index < FRAMES_IN_FLIGHT; ++index)
       {
          uniform_buffers_[index].bindMemory(uniform_buffer_memories_[index], 0);
@@ -429,16 +541,47 @@ namespace eru
          });
 
          writes.push_back({
-            .dstSet{ descriptor_sets_[index] },
-            .dstBinding{},
-            .dstArrayElement{},
+            .dstSet{ uniform_buffer_descriptor_sets_[index] },
+            .dstBinding{ 0 },
+            .dstArrayElement{ 0 },
             .descriptorCount{ 1 },
             .descriptorType{ vk::DescriptorType::eUniformBuffer },
-            .pImageInfo{},
+            .pImageInfo{ nullptr },
             .pBufferInfo{ &buffer_infos[index] },
-            .pTexelBufferView{}
+            .pTexelBufferView{ nullptr }
          });
       }
+
+      vk::DescriptorImageInfo const sampler_info{
+         .sampler{ sampler_ }
+      };
+
+      writes.push_back({
+         .dstSet{ sampler_descriptor_set_ },
+         .dstBinding{ 0 },
+         .dstArrayElement{ 0 },
+         .descriptorCount{ 1 },
+         .descriptorType{ vk::DescriptorType::eSampler },
+         .pImageInfo{ &sampler_info },
+         .pBufferInfo{ nullptr },
+         .pTexelBufferView{ nullptr }
+      });
+
+      vk::DescriptorImageInfo const image_info{
+         .imageView{ image_view_ },
+         .imageLayout{ vk::ImageLayout::eShaderReadOnlyOptimal },
+      };
+
+      writes.push_back({
+         .dstSet{ sampler_descriptor_set_ },
+         .dstBinding{ 1 },
+         .dstArrayElement{ 0 },
+         .descriptorCount{ 1 },
+         .descriptorType{ vk::DescriptorType::eSampledImage },
+         .pImageInfo{ &image_info },
+         .pBufferInfo{ nullptr },
+         .pTexelBufferView{ nullptr }
+      });
 
       device_.updateDescriptorSets(writes, {});
    }
@@ -576,19 +719,23 @@ namespace eru
          vk::PhysicalDeviceVulkan14Features,
          vk::PhysicalDeviceSwapchainMaintenance1FeaturesEXT> const device_feature_chain{
          {
+            .features
+            {
+               .samplerAnisotropy{ vk::True }
+            }
          },
          {
-            .shaderDrawParameters{ true },
+            .shaderDrawParameters{ vk::True },
          },
          {
-            .synchronization2{ true },
-            .dynamicRendering{ true }
+            .synchronization2{ vk::True },
+            .dynamicRendering{ vk::True },
          },
          {
-            .maintenance5{ true }
+            .maintenance5{ vk::True }
          },
          {
-            .swapchainMaintenance1{ true }
+            .swapchainMaintenance1{ vk::True }
          }
       };
 
@@ -787,7 +934,7 @@ namespace eru
       return image_views;
    }
 
-   auto Application::descriptor_set_layout() const -> vk::raii::DescriptorSetLayout
+   auto Application::uniform_buffer_descriptor_set_layout() const -> vk::raii::DescriptorSetLayout
    {
       std::array constexpr bindings{
          std::to_array<vk::DescriptorSetLayoutBinding>({
@@ -807,18 +954,55 @@ namespace eru
          })
       };
       runtime_assert(descriptor_set_layout.has_value(),
-         std::format("failed to create descriptor set layout! ({})", to_string(descriptor_set_layout.result)));
+         std::format("failed to create uniform buffer descriptor set layout! ({})", to_string(descriptor_set_layout.result)));
+
+      return std::move(*descriptor_set_layout);
+   }
+
+   auto Application::sampler_descriptor_set_layout() const -> vk::raii::DescriptorSetLayout
+   {
+      std::array constexpr bindings{
+         std::to_array<vk::DescriptorSetLayoutBinding>({
+            {
+               .binding{ 0 },
+               .descriptorType{ vk::DescriptorType::eSampler },
+               .descriptorCount{ 1 },
+               .stageFlags{ vk::ShaderStageFlagBits::eFragment }
+            },
+            {
+               .binding{ 1 },
+               .descriptorType{ vk::DescriptorType::eSampledImage },
+               .descriptorCount{ 1 },
+               .stageFlags{ vk::ShaderStageFlagBits::eFragment }
+            }
+         })
+      };
+
+      vk::ResultValue descriptor_set_layout{
+         device_.createDescriptorSetLayout({
+            .bindingCount{ static_cast<std::uint32_t>(std::ranges::size(bindings)) },
+            .pBindings{ std::ranges::data(bindings) }
+         })
+      };
+      runtime_assert(descriptor_set_layout.has_value(),
+         std::format("failed to create sampler descriptor set layout! ({})", to_string(descriptor_set_layout.result)));
 
       return std::move(*descriptor_set_layout);
    }
 
    auto Application::pipeline_layout() const -> vk::raii::PipelineLayout
    {
-      // TODO: how to pass a container of vk::raii namespaced descriptor set layouts without creating a proxy container?
+      std::array const layouts{
+         std::to_array<vk::DescriptorSetLayout>({
+            *uniform_buffer_descriptor_set_layout_,
+            *sampler_descriptor_set_layout_
+         })
+      };
+
       vk::ResultValue pipeline_layout{
          device_.createPipelineLayout({
-            .setLayoutCount{ 1 },
-            .pSetLayouts{ &*descriptor_set_layout_ }
+            .setLayoutCount{ static_cast<std::uint32_t>(std::ranges::size(layouts)) },
+            .pSetLayouts{ std::ranges::data(layouts) }
          })
       };
       runtime_assert(pipeline_layout.has_value(),
@@ -1133,52 +1317,133 @@ namespace eru
       return uniform_buffer_memories;
    }
 
-   auto Application::texture() const -> vk::raii::Image
+   auto Application::texture(std::string_view const path) const -> UniquePointer<ktxTexture2>
    {
-      // stbi_load
-      //
-      // ktxTexture2* texture;
-      // ktxTextureCreateInfo const create_info{
-      //    .vkFormat{ VK_FORMAT_R8G8B8A8_SRGB },
-      //    .baseWidth{ 512 },
-      //    .baseHeight{ 512 },
-      //    .baseDepth{ 1 },
-      //    .numDimensions{ 2 },
-      //    .numLevels{ 1 },
-      //    .numLayers{ 1 },
-      //    .numFaces{ 1 },
-      //    .isArray{ KTX_FALSE },
-      //    .generateMipmaps{ KTX_FALSE }
-      // };
-      //
-      // ktxTexture2_CreateFromNamedFile("assets/textures/text.ktx2", &create_info, KTX_TEXTURE_CREATE_ALLOC_STORAGE, &texture);
-      //
-      // ktx_error_code_e result{ ktxTexture2_Create(&create_info, KTX_TEXTURE_CREATE_ALLOC_STORAGE, &texture) };
-      // runtime_assert(result == KTX_SUCCESS,
-      //    std::format("failed to load create ktx texture! ({})", ktxErrorString(result)));
-      //
-      // std::vector<std::uint8_t> image_bytes{};
-      // if (std::ifstream image{ "assets/textures/text.png", std::ios::binary }; image.is_open())
-      //    image_bytes = { std::istreambuf_iterator{ image }, {} };
-      //
-      // ktxTexture_SetImageFromMemory(reinterpret_cast<ktxTexture*>(texture), 0, 0, 0, image_bytes.data(), image_bytes.size());
-      //
-      // // Get texture dimensions and data
-      // uint32_t texWidth = texture->baseWidth;
-      // uint32_t texHeight = texture->baseHeight;
-      // ktx_size_t imageSize = texture->dataSize;
-      // ktx_uint8_t* ktxTextureData = texture->pData;
-      // std::ignore = texWidth;
-      // std::ignore = texHeight;
-      // std::ignore = imageSize;
-      // std::ignore = ktxTextureData;
+      if (not std::filesystem::exists(path))
+         throw Exception{ std::format("\"{}\" does not exist!", path) };
 
-      return { device_, {} };
+      if (not std::filesystem::is_regular_file(path))
+         throw Exception{ std::format("\"{}\" is not a regular file!", path) };
+
+      int width{};
+      int height{};
+      constexpr auto desired_channels{ STBI_rgb_alpha };
+      UniquePointer<stbi_uc> const raw_image{ stbi_load(path.data(), &width, &height, nullptr, desired_channels), stbi_image_free };
+      if (not raw_image)
+         throw Exception{ std::format("failed to load image! ({})", stbi_failure_reason()) };
+
+      UniquePointer<ktxTexture2> texture{
+         [width, height] -> ktxTexture2*
+         {
+            ktxTextureCreateInfo const create_info{
+               .glInternalformat{},
+               .vkFormat{ VK_FORMAT_R8G8B8A8_SRGB },
+               .pDfd{},
+               .baseWidth{ static_cast<ktx_uint32_t>(width) },
+               .baseHeight{ static_cast<ktx_uint32_t>(height) },
+               .baseDepth{ 1 },
+               .numDimensions{ 2 },
+               .numLevels{ 1 },
+               .numLayers{ 1 },
+               .numFaces{ 1 },
+               .isArray{ KTX_FALSE },
+               .generateMipmaps{ KTX_FALSE }
+            };
+            ktxTexture2* texture;
+
+            ktx_error_code_e const result{ ktxTexture2_Create(&create_info, KTX_TEXTURE_CREATE_ALLOC_STORAGE, &texture) };
+            runtime_assert(result == KTX_SUCCESS, std::format("failed to create ktx texture! ({})", ktxErrorString(result)));
+
+            return texture;
+         }(),
+         ktxTexture2_Destroy
+      };
+
+      ktx_error_code_e const result{
+         ktxTexture_SetImageFromMemory(ktxTexture(texture.get()), 0, 0, 0, raw_image.get(), width * height * desired_channels)
+      };
+      runtime_assert(result == KTX_SUCCESS, std::format("failed to set ktx image data! ({})", ktxErrorString(result)));
+
+      return texture;
    }
 
-   auto Application::texture_memory() const -> vk::raii::DeviceMemory
+   auto Application::image() const -> vk::raii::Image
    {
-      return { device_, {} };
+      vk::ResultValue image{
+         device_.createImage({
+            .flags{},
+            .imageType{ static_cast<vk::ImageType>(texture_->numDimensions - 1) },
+            .format{ static_cast<vk::Format>(texture_->vkFormat) },
+            .extent{
+               .width{ texture_->baseWidth },
+               .height{ texture_->baseHeight },
+               .depth{ texture_->baseDepth }
+            },
+            .mipLevels{ texture_->numLevels },
+            .arrayLayers{ texture_->numLayers },
+            .samples{ vk::SampleCountFlagBits::e1 },
+            .tiling{ vk::ImageTiling::eOptimal },
+            .usage{ vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst },
+            .sharingMode{ vk::SharingMode::eExclusive },
+            .initialLayout{ vk::ImageLayout::eUndefined },
+         })
+      };
+      runtime_assert(image.result == vk::Result::eSuccess, std::format("failed to create image! ({})", to_string(image.result)));
+
+      return std::move(*image);
+   }
+
+   auto Application::image_view() const -> vk::raii::ImageView
+   {
+      vk::ResultValue image_view{
+         device_.createImageView({
+            .image{ image_ },
+            .viewType{ vk::ImageViewType::e2D },
+            .format{ static_cast<vk::Format>(texture_->vkFormat) },
+            .subresourceRange{
+               .aspectMask{ vk::ImageAspectFlagBits::eColor },
+               .baseMipLevel{ 0 },
+               .levelCount{ 1 },
+               .baseArrayLayer{ 0 },
+               .layerCount{ 1 }
+            }
+         })
+      };
+      runtime_assert(image_view.result == vk::Result::eSuccess, std::format("failed to create image view! ({})", to_string(image_view.result)));
+
+      return std::move(*image_view);
+   }
+
+   auto Application::sampler() const -> vk::raii::Sampler
+   {
+      vk::PhysicalDeviceProperties const properties{ physical_device_.getProperties() };
+      vk::ResultValue sampler{
+         device_.createSampler({
+            .magFilter{ vk::Filter::eLinear },
+            .minFilter{ vk::Filter::eLinear },
+            .mipmapMode{ vk::SamplerMipmapMode::eLinear },
+            .addressModeU{ vk::SamplerAddressMode::eRepeat },
+            .addressModeV{ vk::SamplerAddressMode::eRepeat },
+            .addressModeW{ vk::SamplerAddressMode::eRepeat },
+            .mipLodBias{},
+            .anisotropyEnable{ vk::True },
+            .maxAnisotropy{ properties.limits.maxSamplerAnisotropy },
+            .compareEnable{ vk::False },
+            .compareOp{ vk::CompareOp::eAlways },
+            .minLod{ 0.0f },
+            .maxLod{ 0.0f },
+            .borderColor{ vk::BorderColor::eFloatTransparentBlack },
+            .unnormalizedCoordinates{ vk::False }
+         })
+      };
+      runtime_assert(sampler.result == vk::Result::eSuccess, std::format("failed to create sampler! ({})", to_string(sampler.result)));
+
+      return std::move(*sampler);
+   }
+
+   auto Application::image_memory() const -> vk::raii::DeviceMemory
+   {
+      return memory(image_.getMemoryRequirements(), vk::MemoryPropertyFlagBits::eDeviceLocal);
    }
 
    auto Application::descriptor_pool() const -> vk::raii::DescriptorPool
@@ -1188,6 +1453,14 @@ namespace eru
             {
                .type{ vk::DescriptorType::eUniformBuffer },
                .descriptorCount{ FRAMES_IN_FLIGHT }
+            },
+            {
+               .type{ vk::DescriptorType::eSampler },
+               .descriptorCount{ 1 }
+            },
+            {
+               .type{ vk::DescriptorType::eSampledImage },
+               .descriptorCount{ 1 }
             }
          })
       };
@@ -1195,7 +1468,7 @@ namespace eru
       vk::ResultValue descriptor_pool{
          device_.createDescriptorPool({
             .flags{ vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet },
-            .maxSets{ FRAMES_IN_FLIGHT },
+            .maxSets{ FRAMES_IN_FLIGHT + 1 },
             .poolSizeCount{ static_cast<std::uint32_t>(std::ranges::size(desciptor_pool_sizes)) },
             .pPoolSizes{ std::ranges::data(desciptor_pool_sizes) }
          })
@@ -1206,10 +1479,10 @@ namespace eru
       return std::move(*descriptor_pool);
    }
 
-   auto Application::descriptor_sets() const -> std::vector<vk::raii::DescriptorSet>
+   auto Application::uniform_buffer_descriptor_sets() const -> std::vector<vk::raii::DescriptorSet>
    {
       std::array<vk::DescriptorSetLayout, FRAMES_IN_FLIGHT> layouts{};
-      std::ranges::fill(layouts, *descriptor_set_layout_);
+      std::ranges::fill(layouts, *uniform_buffer_descriptor_set_layout_);
 
       vk::ResultValue descriptor_sets{
          device_.allocateDescriptorSets({
@@ -1222,6 +1495,21 @@ namespace eru
          std::format("failed to allocate descriptor sets! ({})", to_string(descriptor_sets.result)));
 
       return std::move(*descriptor_sets);
+   }
+
+   auto Application::sampler_descriptor_set() const -> vk::raii::DescriptorSet
+   {
+      vk::ResultValue descriptor_sets{
+         device_.allocateDescriptorSets({
+            .descriptorPool{ descriptor_pool_ },
+            .descriptorSetCount{ 1 },
+            .pSetLayouts{ &*sampler_descriptor_set_layout_ }
+         })
+      };
+      runtime_assert(descriptor_sets.has_value(),
+         std::format("failed to allocate descriptor sets! ({})", to_string(descriptor_sets.result)));
+
+      return std::move(descriptor_sets->front());
    }
 
    auto Application::recreate_swap_chain() -> void

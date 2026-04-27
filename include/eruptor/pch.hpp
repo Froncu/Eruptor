@@ -22,6 +22,7 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <ktx.h>
 #include <vulkan/vulkan_raii.hpp>
 
 #endif

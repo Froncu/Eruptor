@@ -25,6 +25,12 @@ namespace eru
             .binding{ 0 },
             .format{ vk::Format::eR32G32B32Sfloat },
             .offset{ offsetof(Vertex, color) }
+         },
+         {
+            .location{ 2 },
+            .binding{ 0 },
+            .format{ vk::Format::eR32G32Sfloat },
+            .offset{ offsetof(Vertex, texture_coordinate) }
          }
       }
    };

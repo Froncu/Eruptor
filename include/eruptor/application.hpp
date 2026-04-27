@@ -75,7 +75,8 @@ namespace eru
          [[nodiscard]] auto swap_chain() const -> vk::raii::SwapchainKHR;
          [[nodiscard]] auto swap_chain_images() const -> std::vector<vk::Image>;
          [[nodiscard]] auto swap_chain_image_views() const -> std::vector<vk::raii::ImageView>;
-         [[nodiscard]] auto descriptor_set_layout() const -> vk::raii::DescriptorSetLayout;
+         [[nodiscard]] auto uniform_buffer_descriptor_set_layout() const -> vk::raii::DescriptorSetLayout;
+         [[nodiscard]] auto sampler_descriptor_set_layout() const -> vk::raii::DescriptorSetLayout;
          [[nodiscard]] auto pipeline_layout() const -> vk::raii::PipelineLayout;
          [[nodiscard]] auto pipeline() const -> vk::raii::Pipeline;
          [[nodiscard]] auto command_pool() const -> vk::raii::CommandPool;
@@ -90,19 +91,23 @@ namespace eru
          [[nodiscard]] auto index_buffer_memory() const -> vk::raii::DeviceMemory;
          [[nodiscard]] auto uniform_buffers() const -> std::vector<vk::raii::Buffer>;
          [[nodiscard]] auto uniform_buffer_memories() const -> std::vector<vk::raii::DeviceMemory>;
-         [[nodiscard]] auto texture() const -> vk::raii::Image;
-         [[nodiscard]] auto texture_memory() const -> vk::raii::DeviceMemory;
+         [[nodiscard]] auto texture(std::string_view path) const -> UniquePointer<ktxTexture2>;
+         [[nodiscard]] auto image() const -> vk::raii::Image;
+         [[nodiscard]] auto image_view() const -> vk::raii::ImageView;
+         [[nodiscard]] auto sampler() const -> vk::raii::Sampler;
+         [[nodiscard]] auto image_memory() const -> vk::raii::DeviceMemory;
          [[nodiscard]] auto descriptor_pool() const -> vk::raii::DescriptorPool;
-         [[nodiscard]] auto descriptor_sets() const -> std::vector<vk::raii::DescriptorSet>;
+         [[nodiscard]] auto uniform_buffer_descriptor_sets() const -> std::vector<vk::raii::DescriptorSet>;
+         [[nodiscard]] auto sampler_descriptor_set() const -> vk::raii::DescriptorSet;
 
          auto recreate_swap_chain() -> void;
 
          std::uint8_t frame_index_{};
          std::vector<Vertex> const vertices_{
-            { { -0.5f, -0.5f }, { 1.0f, 0.0f, 0.0f } },
-            { { 0.5f, -0.5f }, { 0.0f, 1.0f, 0.0f } },
-            { { 0.5f, 0.5f }, { 0.0f, 0.0f, 1.0f } },
-            { { -0.5f, 0.5f }, { 1.0f, 1.0f, 1.0f } }
+            { { -0.5f, -0.5f }, { 1.0f, 0.0f, 0.0f }, { 1.0f, 0.0f } },
+            { { 0.5f, -0.5f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f } },
+            { { 0.5f, 0.5f }, { 0.0f, 0.0f, 1.0f }, { 0.0f, 1.0f } },
+            { { -0.5f, 0.5f }, { 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f } }
          };
          std::vector<uint16_t> const indices_{ 0, 1, 3, 2 };
 
@@ -123,7 +128,8 @@ namespace eru
          vk::raii::SwapchainKHR swap_chain_{ swap_chain() };
          std::vector<vk::Image> swap_chain_images_{ swap_chain_images() };
          std::vector<vk::raii::ImageView> swap_chain_image_views_{ swap_chain_image_views() };
-         vk::raii::DescriptorSetLayout const descriptor_set_layout_{ descriptor_set_layout() };
+         vk::raii::DescriptorSetLayout const uniform_buffer_descriptor_set_layout_{ uniform_buffer_descriptor_set_layout() };
+         vk::raii::DescriptorSetLayout const sampler_descriptor_set_layout_{ sampler_descriptor_set_layout() };
          vk::raii::PipelineLayout const pipeline_layout_{ pipeline_layout() };
          vk::raii::Pipeline const pipeline_{ pipeline() };
          vk::raii::CommandPool const command_pool_{ command_pool() };
@@ -138,10 +144,14 @@ namespace eru
          std::vector<vk::raii::Buffer> uniform_buffers_{ uniform_buffers() };
          std::vector<vk::raii::DeviceMemory> uniform_buffer_memories_{ uniform_buffer_memories() };
          std::vector<UniformBufferObject*> uniform_buffer_mapped_{};
-         vk::raii::Image const texture_{ texture() };
-         vk::raii::DeviceMemory const texture_memory_{ texture_memory() };
+         UniquePointer<ktxTexture2> const texture_{ texture("assets/textures/test.png") };
+         vk::raii::Image const image_{ image() };
+         vk::raii::ImageView image_view_{ nullptr };
+         vk::raii::Sampler const sampler_{ sampler() };
+         vk::raii::DeviceMemory const image_memory_{ image_memory() };
          vk::raii::DescriptorPool const descriptor_pool_{ descriptor_pool() };
-         std::vector<vk::raii::DescriptorSet> const descriptor_sets_{ descriptor_sets() };
+         std::vector<vk::raii::DescriptorSet> const uniform_buffer_descriptor_sets_{ uniform_buffer_descriptor_sets() };
+         vk::raii::DescriptorSet const sampler_descriptor_set_{ sampler_descriptor_set() };
    };
 }
 
