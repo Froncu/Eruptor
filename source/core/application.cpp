@@ -122,7 +122,7 @@ namespace eru
          std::format("failed to begin command buffer! ({})", to_string(result)));
 
       vk::ImageMemoryBarrier2 const begin_barrier{
-         .srcStageMask{ vk::PipelineStageFlagBits2::eNone },
+         .srcStageMask{ vk::PipelineStageFlagBits2::eColorAttachmentOutput },
          .srcAccessMask{ vk::AccessFlagBits2::eNone },
          .dstStageMask{ vk::PipelineStageFlagBits2::eColorAttachmentOutput },
          .dstAccessMask{ vk::AccessFlagBits2::eColorAttachmentWrite },
@@ -183,7 +183,7 @@ namespace eru
       vk::ImageMemoryBarrier2 const end_barrier{
          .srcStageMask{ vk::PipelineStageFlagBits2::eColorAttachmentOutput },
          .srcAccessMask{ vk::AccessFlagBits2::eColorAttachmentWrite },
-         .dstStageMask{ vk::PipelineStageFlagBits2::eBottomOfPipe },
+         .dstStageMask{ vk::PipelineStageFlagBits2::eColorAttachmentOutput },
          .dstAccessMask{ vk::AccessFlagBits2::eNone },
          .oldLayout{ vk::ImageLayout::eColorAttachmentOptimal },
          .newLayout{ vk::ImageLayout::ePresentSrcKHR },
