@@ -129,7 +129,7 @@ namespace eru
          std::mutex mutex_{};
          std::condition_variable condition_{};
          std::jthread thread_{
-            [this](std::stop_token const& stop_token)
+            [this](std::stop_token const& stop_token) -> void
             {
                LogInfo log_info;
                while (true)

@@ -14,7 +14,7 @@ namespace std
       auto const generate{
          [&seed](size_t const hash) -> void
          {
-            seed ^= hash + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+            seed ^= hash + 0x9e'37'79'b9 + (seed << 6) + (seed >> 2);
          }
       };
 
@@ -29,17 +29,14 @@ namespace std
    auto equal_to<source_location>::operator()(source_location const& location_a,
       source_location const& location_b) const noexcept -> bool
    {
-      if (location_a.line() not_eq location_b.line() or
-         location_a.column() not_eq location_b.column())
+      if (location_a.line() not_eq location_b.line() or location_a.column() not_eq location_b.column())
          return false;
 
-      if (location_a.file_name() == location_b.file_name() and
-         location_a.function_name() == location_b.function_name())
+      if (location_a.file_name() == location_b.file_name() and location_a.function_name() == location_b.function_name())
          return true;
 
-      return
-         not std::strcmp(location_a.file_name(), location_b.file_name()) and
-         not std::strcmp(location_a.function_name(), location_b.function_name());
+      return not std::strcmp(location_a.file_name(), location_b.file_name())
+         and not std::strcmp(location_a.function_name(), location_b.function_name());
    }
 }
 
