@@ -146,7 +146,7 @@ namespace eru
          .imageLayout{ vk::ImageLayout::eColorAttachmentOptimal },
          .loadOp{ vk::AttachmentLoadOp::eClear },
          .storeOp{ vk::AttachmentStoreOp::eStore },
-         .clearValue{ vk::ClearColorValue{ 0.1f, 0.1f, 0.1f, 1.0f } }
+         .clearValue{ vk::ClearColorValue{ 0.0f, 0.0f, 0.0f, 0.0f } }
       };
 
       command_buffer.beginRendering({
