@@ -717,7 +717,8 @@ namespace eru
          vk::PhysicalDeviceVulkan11Features,
          vk::PhysicalDeviceVulkan13Features,
          vk::PhysicalDeviceVulkan14Features,
-         vk::PhysicalDeviceSwapchainMaintenance1FeaturesEXT> const device_feature_chain{
+         vk::PhysicalDeviceSwapchainMaintenance1FeaturesEXT,
+         vk::PhysicalDevicePageableDeviceLocalMemoryFeaturesEXT> const device_feature_chain{
          {
             .features
             {
@@ -736,6 +737,9 @@ namespace eru
          },
          {
             .swapchainMaintenance1{ vk::True }
+         },
+         {
+            .pageableDeviceLocalMemory{ vk::True }
          }
       };
 
@@ -754,6 +758,8 @@ namespace eru
 
       std::array constexpr device_extension_names{
          std::to_array<char const* const>({
+            vk::EXTMemoryPriorityExtensionName,
+            vk::EXTPageableDeviceLocalMemoryExtensionName,
             vk::KHRSwapchainExtensionName
          })
       };
@@ -1249,8 +1255,13 @@ namespace eru
             and (available_properties.memoryProperties.memoryTypes[index].propertyFlags & properties) == properties)
             break;
 
+      vk::MemoryPriorityAllocateInfoEXT constexpr priority_allocate_info{
+         .priority{ 1.0f }
+      };
+
       vk::ResultValue device_memory{
          device_.allocateMemory({
+            .pNext{ &priority_allocate_info },
             .allocationSize{ requirements.size },
             .memoryTypeIndex{ index }
          })
