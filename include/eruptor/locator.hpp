@@ -44,26 +44,17 @@ namespace eru
                void_deleter<Provider>
             };
 
-            auto&& [service_index, did_insert]{ locator.owned_service_indices_.emplace(type_index<Service>(), locator.owned_services_.size()) };
+            auto&& [service_index, did_insert]{ locator.service_indices_.emplace(type_index<Service>(), locator.services_.size()) };
             if (did_insert)
-               return *static_cast<Service*>(locator.owned_services_.emplace_back(std::move(new_provider)).get());
+               return *static_cast<Service*>(locator.services_.emplace_back(std::move(new_provider)).get());
 
-            UniquePointer<void>& current_provider{ locator.owned_services_[service_index->second] };
+            UniquePointer<void>& current_provider{ locator.services_[service_index->second] };
 
             if constexpr (std::movable<Service>)
                *static_cast<Service*>(new_provider.get()) = std::move(*static_cast<Service*>(current_provider.get()));
 
             current_provider = std::move(new_provider);
             return *static_cast<Service*>(current_provider.get());
-         }
-
-         template<typename Service, std::derived_from<Service> Provider = Service>
-         static auto provide(Provider& provider) -> Service&
-         {
-            Locator& locator{ instance() };
-
-            locator.viewed_services_[type_index<Service>()] = &provider;
-            return provider;
          }
 
          ERU_API static auto remove_all() -> void;
@@ -73,13 +64,9 @@ namespace eru
          {
             Locator& locator{ instance() };
 
-            if (auto const viewed_service{ locator.viewed_services_.find(type_index<Service>()) };
-               viewed_service not_eq locator.viewed_services_.end())
-               return *static_cast<Service*>(viewed_service->second);
-
-            if (auto const owned_service_index{ locator.owned_service_indices_.find(type_index<Service>()) };
-               owned_service_index not_eq locator.owned_service_indices_.end())
-               return *static_cast<Service* const>(locator.owned_services_[owned_service_index->second].get());
+            if (auto const service_index{ locator.service_indices_.find(type_index<Service>()) };
+               service_index not_eq locator.service_indices_.end())
+               return *static_cast<Service* const>(locator.services_[service_index->second].get());
 
             throw Exception{
                std::format("attempted to get \"{}\" which hasn't been provided", typeid(Service).name())
@@ -95,14 +82,13 @@ namespace eru
       private:
          Locator() = default;
 
-         ~Locator() = default;
+         ~Locator();
 
          // TODO: not a fan of this, but neither do I like the idea of having the user call `Locator::instance()`
          [[nodiscard]] ERU_API static auto instance() -> Locator&;
 
-         std::unordered_map<std::type_index, std::size_t> owned_service_indices_{};
-         std::vector<UniquePointer<void>> owned_services_{};
-         std::unordered_map<std::type_index, void*> viewed_services_{};
+         std::unordered_map<std::type_index, std::size_t> service_indices_{};
+         std::vector<UniquePointer<void>> services_{};
    };
 }
 

@@ -1,6 +1,7 @@
 #ifndef APPLICATION_HPP
 #define APPLICATION_HPP
 
+#include "locator.hpp"
 #include "eruptor/api.hpp"
 #include "eruptor/pch.hpp"
 #include "eruptor/vertex.hpp"
@@ -17,19 +18,6 @@ namespace eru
 
    class Application
    {
-      class LocatorRegistrator final
-      {
-         public:
-            ERU_API explicit LocatorRegistrator(Application& application);
-            LocatorRegistrator(LocatorRegistrator const&) = delete;
-            LocatorRegistrator(LocatorRegistrator&&) = delete;
-
-            ERU_API ~LocatorRegistrator();
-
-            auto operator=(LocatorRegistrator&&) -> LocatorRegistrator& = delete;
-            auto operator=(LocatorRegistrator&) -> LocatorRegistrator& = delete;
-      };
-
       class GLFWcontext final
       {
          public:
@@ -60,7 +48,7 @@ namespace eru
          bool keep_ticking{ true };
 
       protected:
-         ERU_API explicit Application(std::string_view name = "Eruptor", std::uint32_t version = VK_MAKE_VERSION(0, 0, 0));
+         ERU_API explicit Application(Locator::ConstructionKey, std::string_view name = "Eruptor", std::uint32_t version = VK_MAKE_VERSION(0, 0, 0));
 
       private:
          [[nodiscard]] auto instance(std::string_view name, std::uint32_t version) const -> vk::raii::Instance;
@@ -120,7 +108,6 @@ namespace eru
          };
          std::vector<uint16_t> const indices_{ 0, 1, 3, 2, 4, 5, 7, 6 };
 
-         LocatorRegistrator const locator_registrator_{ *this };
          GLFWcontext const glfw_context_{};
          vk::raii::Context const vulkan_context_{};
          Window window_{ { 1280, 720 }, "Magma" };

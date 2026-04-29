@@ -6,12 +6,15 @@ namespace eru
    {
       Locator& locator{ instance() };
 
-      locator.viewed_services_.clear();
+      while (not locator.services_.empty())
+         locator.services_.pop_back();
 
-      while (not locator.owned_services_.empty())
-         locator.owned_services_.pop_back();
+      locator.service_indices_.clear();
+   }
 
-      locator.owned_service_indices_.clear();
+   Locator::~Locator()
+   {
+      remove_all();
    }
 
    auto Locator::instance() -> Locator&
