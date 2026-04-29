@@ -11,6 +11,7 @@
 #include "eruptor/locator.hpp"
 #include "eruptor/logger.hpp"
 #include "eruptor/pch.hpp"
+#include "eruptor/platform.hpp"
 #include "eruptor/runtime_assert.hpp"
 #include "eruptor/type_index.hpp"
 #include "eruptor/unique_pointer.hpp"

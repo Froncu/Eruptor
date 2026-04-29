@@ -1,6 +1,4 @@
-﻿#include "eruptor/application.hpp"
-#include "eruptor/locator.hpp"
-#include "eruptor/window.hpp"
+﻿#include "eruptor/window.hpp"
 
 #include "core/dependencies.hpp"
 
@@ -12,11 +10,6 @@ namespace eru
          glfwDestroyWindow
       }
    {
-      glfwSetWindowCloseCallback(native_window_.get(),
-         [](GLFWwindow* const)
-         {
-            Locator::get<Application>().keep_ticking = false;
-         });
    }
 
    auto Window::native() const -> GLFWwindow&

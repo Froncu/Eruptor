@@ -7,6 +7,8 @@
 #include "eruptor/vertex.hpp"
 #include "eruptor/window.hpp"
 
+struct ktxTexture2;
+
 namespace eru
 {
    struct UniformBufferObject
@@ -18,19 +20,6 @@ namespace eru
 
    class Application
    {
-      class GLFWcontext final
-      {
-         public:
-            ERU_API GLFWcontext();
-            GLFWcontext(GLFWcontext const&) = delete;
-            GLFWcontext(GLFWcontext&&) = delete;
-
-            ERU_API ~GLFWcontext();
-
-            auto operator=(GLFWcontext&&) -> GLFWcontext& = delete;
-            auto operator=(GLFWcontext&) -> GLFWcontext& = delete;
-      };
-
       static constexpr auto FRAMES_IN_FLIGHT{ 2 };
 
       public:
@@ -43,7 +32,6 @@ namespace eru
          auto operator=(Application&&) -> Application& = delete;
 
          [[nodiscard]] ERU_API auto tick() -> bool;
-         ERU_API auto poll() -> void;
 
          bool keep_ticking{ true };
 
@@ -107,8 +95,6 @@ namespace eru
             { { -0.5f, 0.5f, 0.0f }, { 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f } }
          };
          std::vector<uint16_t> const indices_{ 0, 1, 3, 2, 4, 5, 7, 6 };
-
-         GLFWcontext const glfw_context_{};
          vk::raii::Context const vulkan_context_{};
          Window window_{ { 1280, 720 }, "Magma" };
 

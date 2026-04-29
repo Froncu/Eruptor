@@ -2,6 +2,7 @@
 #include "eruptor/exception.hpp"
 #include "eruptor/locator.hpp"
 #include "eruptor/logger.hpp"
+#include "eruptor/platform.hpp"
 #include "eruptor/runtime_assert.hpp"
 
 #include "core/dependencies.hpp"
@@ -36,24 +37,6 @@ namespace eru
       }
 
       return vk::False;
-   }
-
-   Application::GLFWcontext::GLFWcontext()
-   {
-      glfwSetErrorCallback(
-         [](int const code, char const* const description)
-         {
-            runtime_assert(false, std::format("GLFW encountered error code {}! ({})", code, description));
-         });
-
-      glfwInit();
-      glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-      glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-   }
-
-   Application::GLFWcontext::~GLFWcontext()
-   {
-      glfwTerminate();
    }
 
    Application::~Application()
@@ -275,12 +258,9 @@ namespace eru
       }
 
       ++frame_index_ %= FRAMES_IN_FLIGHT;
-      return keep_ticking;
-   }
 
-   auto Application::poll() -> void
-   {
-      glfwPollEvents();
+      Locator::get<Platform>().poll();
+      return keep_ticking;
    }
 
    Application::Application(Locator::ConstructionKey, std::string_view const name, std::uint32_t const version)
@@ -636,8 +616,6 @@ namespace eru
          vulkan_context_.createInstance({
             .flags{},
             .pApplicationInfo{ &app_info },
-            .enabledLayerCount{},
-            .ppEnabledLayerNames{},
             .enabledExtensionCount{ static_cast<std::uint32_t>(std::ranges::size(extension_names)) },
             .ppEnabledExtensionNames{ std::ranges::data(extension_names) }
          })

@@ -2,17 +2,18 @@
 
 namespace eru
 {
-   auto create_application(std::span<char const* const> arguments) -> void;
+   auto provide_application(std::span<char const* const> arguments) -> void;
 }
 
 auto main(int const arguments_count, char const* const* arguments) -> int try
 {
    eru::Locator::provide<eru::Logger>();
-   eru::create_application({ arguments, static_cast<std::size_t>(arguments_count) });
+   eru::Locator::provide<eru::Platform>();
+   eru::provide_application({ arguments, static_cast<std::size_t>(arguments_count) });
 
-   eru::Application& application{ eru::Locator::get<eru::Application>() };
-   while (application.tick())
-      application.poll();
+   while (eru::Locator::get<eru::Application>().tick())
+   {
+   }
 
    eru::Locator::remove_all();
    return 0;

@@ -46,10 +46,10 @@ target_compile_definitions(${PROJECT_NAME}
 
 target_link_libraries(${PROJECT_NAME}
    PUBLIC glm::glm-header-only
-   PUBLIC KTX::ktx
    PUBLIC Vulkan::Headers
    PRIVATE assimp::assimp
    PRIVATE glfw
+   PRIVATE KTX::ktx
    PRIVATE slang::slang)
 
 set_project_defaults(${PROJECT_NAME})
