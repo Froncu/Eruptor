@@ -37,6 +37,7 @@ target_precompile_headers(${PROJECT_NAME}
    PRIVATE source/core/dependencies.hpp)
 
 target_compile_definitions(${PROJECT_NAME}
+   PUBLIC GLM_FORCE_DEPTH_ZERO_TO_ONE
    PUBLIC VULKAN_HPP_NO_STRUCT_CONSTRUCTORS
    PUBLIC VULKAN_HPP_NO_EXCEPTIONS
    PUBLIC $<$<BOOL:${ERU_BUILD_SHARED}>:ERU_SHARED>

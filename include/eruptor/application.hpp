@@ -99,17 +99,26 @@ namespace eru
          [[nodiscard]] auto descriptor_pool() const -> vk::raii::DescriptorPool;
          [[nodiscard]] auto uniform_buffer_descriptor_sets() const -> std::vector<vk::raii::DescriptorSet>;
          [[nodiscard]] auto sampler_descriptor_set() const -> vk::raii::DescriptorSet;
+         [[nodiscard]] auto depth_image() const -> vk::raii::Image;
+         [[nodiscard]] auto depth_image_view() const -> vk::raii::ImageView;
+         [[nodiscard]] auto depth_image_memory() const -> vk::raii::DeviceMemory;
 
          auto recreate_swap_chain() -> void;
 
          std::uint8_t frame_index_{};
          std::vector<Vertex> const vertices_{
-            { { -0.5f, -0.5f }, { 1.0f, 0.0f, 0.0f }, { 1.0f, 0.0f } },
-            { { 0.5f, -0.5f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f } },
-            { { 0.5f, 0.5f }, { 0.0f, 0.0f, 1.0f }, { 0.0f, 1.0f } },
-            { { -0.5f, 0.5f }, { 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f } }
+
+               { { -0.5f, -0.5f, -0.2f }, { 1.0f, 0.0f, 0.0f }, { 1.0f, 0.0f } },
+               { { 0.5f, -0.5f, -0.2 }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f } },
+               { { 0.5f, 0.5f, -0.2f }, { 0.0f, 0.0f, 1.0f }, { 0.0f, 1.0f } },
+               { { -0.5f, 0.5f, -0.2f }, { 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f } },
+
+            { { -0.5f, -0.5f, 0.0f }, { 1.0f, 0.0f, 0.0f }, { 1.0f, 0.0f } },
+            { { 0.5f, -0.5f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f } },
+            { { 0.5f, 0.5f, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 0.0f, 1.0f } },
+            { { -0.5f, 0.5f, 0.0f }, { 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f } }
          };
-         std::vector<uint16_t> const indices_{ 0, 1, 3, 2 };
+         std::vector<uint16_t> const indices_{ 0, 1, 3, 2, 4, 5, 7, 6 };
 
          LocatorRegistrator const locator_registrator_{ *this };
          GLFWcontext const glfw_context_{};
@@ -152,6 +161,9 @@ namespace eru
          vk::raii::DescriptorPool const descriptor_pool_{ descriptor_pool() };
          std::vector<vk::raii::DescriptorSet> const uniform_buffer_descriptor_sets_{ uniform_buffer_descriptor_sets() };
          vk::raii::DescriptorSet const sampler_descriptor_set_{ sampler_descriptor_set() };
+         vk::raii::Image depth_image_{ depth_image() };
+         vk::raii::DeviceMemory depth_image_memory_{ depth_image_memory() };
+         vk::raii::ImageView depth_image_view_{ nullptr };
    };
 }
 

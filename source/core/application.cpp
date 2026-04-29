@@ -149,13 +149,22 @@ namespace eru
          .clearValue{ vk::ClearColorValue{ 0.0f, 0.0f, 0.0f, 0.0f } }
       };
 
+      vk::RenderingAttachmentInfo const depth_attachment_info{
+         .imageView{ depth_image_view_ },
+         .imageLayout{ vk::ImageLayout::eDepthAttachmentOptimal },
+         .loadOp{ vk::AttachmentLoadOp::eClear },
+         .storeOp{ vk::AttachmentStoreOp::eStore },
+         .clearValue{ vk::ClearColorValue{ 1.0f, 1.0f, 1.0f, 1.0f } }
+      };
+
       command_buffer.beginRendering({
          .renderArea{
             .extent{ surface_extent_ }
          },
          .layerCount{ 1 },
          .colorAttachmentCount{ 1 },
-         .pColorAttachments{ &attachment_info }
+         .pColorAttachments{ &attachment_info },
+         .pDepthAttachment{ &depth_attachment_info }
       });
 
       command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline_);
@@ -383,6 +392,14 @@ namespace eru
 
       //
 
+      result = depth_image_.bindMemory(depth_image_memory_, 0);
+      runtime_assert(result == vk::Result::eSuccess,
+         std::format("failed to bind depth image's memory! ({})", to_string(result)));
+
+      depth_image_view_ = depth_image_view();
+
+      //
+
       vk::ResultValue const command_buffers{
          device_.allocateCommandBuffers({
             .commandPool{ command_pool_ },
@@ -443,7 +460,23 @@ namespace eru
                   .levelCount{ 1 },
                   .baseArrayLayer{ 0 },
                   .layerCount{ 1 }
-               }
+               },
+            },
+            {
+               .srcStageMask{ vk::PipelineStageFlagBits2::eNone },
+               .srcAccessMask{ vk::AccessFlagBits2::eNone },
+               .dstStageMask{ vk::PipelineStageFlagBits2::eNone },
+               .dstAccessMask{ vk::AccessFlagBits2::eNone },
+               .oldLayout{ vk::ImageLayout::eUndefined },
+               .newLayout{ vk::ImageLayout::eDepthAttachmentOptimal },
+               .image{ depth_image_ },
+               .subresourceRange{
+                  .aspectMask{ vk::ImageAspectFlagBits::eDepth },
+                  .baseMipLevel{ 0 },
+                  .levelCount{ 1 },
+                  .baseArrayLayer{ 0 },
+                  .layerCount{ 1 }
+               },
             }
          })
       };
@@ -477,7 +510,7 @@ namespace eru
          .pRegions{ std::ranges::data(image_buffer_copy_regions) }
       });
 
-      image_memory_barriers =
+      std::array end_image_memory_barriers =
          std::to_array<vk::ImageMemoryBarrier2>({
             {
                .srcStageMask{ vk::PipelineStageFlagBits2::eTransfer },
@@ -497,8 +530,8 @@ namespace eru
             }
          });
       command_buffers->front().pipelineBarrier2({
-         .imageMemoryBarrierCount{ static_cast<std::uint32_t>(std::ranges::size(image_memory_barriers)) },
-         .pImageMemoryBarriers{ std::ranges::data(image_memory_barriers) }
+         .imageMemoryBarrierCount{ static_cast<std::uint32_t>(std::ranges::size(end_image_memory_barriers)) },
+         .pImageMemoryBarriers{ std::ranges::data(end_image_memory_barriers) }
       });
 
       result = command_buffers->front().end();
@@ -1118,6 +1151,14 @@ namespace eru
          .sampleShadingEnable{ vk::False }
       };
 
+      vk::PipelineDepthStencilStateCreateInfo constexpr depth_stencil_state_create_info{
+         .depthTestEnable{ vk::True },
+         .depthWriteEnable{ vk::True },
+         .depthCompareOp{ vk::CompareOp::eLess },
+         .depthBoundsTestEnable{ vk::False },
+         .stencilTestEnable{ vk::False },
+      };
+
       std::array constexpr color_blend_attachment_state{
          std::to_array<vk::PipelineColorBlendAttachmentState>({
             {
@@ -1145,7 +1186,8 @@ namespace eru
 
       vk::PipelineRenderingCreateInfo const pipeline_rendering_create_info{
          .colorAttachmentCount{ static_cast<std::uint32_t>(std::ranges::size(color_attachments)) },
-         .pColorAttachmentFormats{ std::ranges::data(color_attachments) }
+         .pColorAttachmentFormats{ std::ranges::data(color_attachments) },
+         .depthAttachmentFormat{ vk::Format::eD16Unorm }
       };
 
       vk::ResultValue pipeline{
@@ -1158,6 +1200,7 @@ namespace eru
             .pViewportState{ &viewport_state_create_info },
             .pRasterizationState{ &rasterization_state_create_info },
             .pMultisampleState{ &multisample_state_create_info },
+            .pDepthStencilState{ &depth_stencil_state_create_info },
             .pColorBlendState{ &color_blend_state_create_info },
             .pDynamicState{ &dynamic_state_create_info },
             .layout{ pipeline_layout_ },
@@ -1523,6 +1566,60 @@ namespace eru
       return std::move(descriptor_sets->front());
    }
 
+   // TODO: look into physicalDevice.getFormatProperties to ensure the requested format is supported
+   auto Application::depth_image() const -> vk::raii::Image
+   {
+      vk::ResultValue image{
+         device_.createImage({
+            .imageType{ vk::ImageType::e2D },
+            .format{ vk::Format::eD16Unorm },
+            .extent{
+               .width{ surface_extent_.width },
+               .height{ surface_extent_.height },
+               .depth{ 1 }
+            },
+            .mipLevels{ 1 },
+            .arrayLayers{ 1 },
+            .samples{ vk::SampleCountFlagBits::e1 },
+            .tiling{ vk::ImageTiling::eOptimal },
+            .usage{ vk::ImageUsageFlagBits::eDepthStencilAttachment },
+            .sharingMode{ vk::SharingMode::eExclusive },
+            .initialLayout{ vk::ImageLayout::eUndefined },
+         })
+      };
+      runtime_assert(image.result == vk::Result::eSuccess,
+         std::format("failed to create depth image! ({})", to_string(image.result)));
+
+      return std::move(*image);
+   }
+
+   auto Application::depth_image_view() const -> vk::raii::ImageView
+   {
+      vk::ResultValue image_view{
+         device_.createImageView({
+            .image{ depth_image_ },
+            .viewType{ vk::ImageViewType::e2D },
+            .format{ vk::Format::eD16Unorm },
+            .subresourceRange{
+               .aspectMask{ vk::ImageAspectFlagBits::eDepth },
+               .baseMipLevel{ 0 },
+               .levelCount{ 1 },
+               .baseArrayLayer{ 0 },
+               .layerCount{ 1 }
+            }
+         })
+      };
+      runtime_assert(image_view.result == vk::Result::eSuccess,
+         std::format("failed to create depth image view! ({})", to_string(image_view.result)));
+
+      return std::move(*image_view);
+   }
+
+   auto Application::depth_image_memory() const -> vk::raii::DeviceMemory
+   {
+      return memory(depth_image_.getMemoryRequirements(), vk::MemoryPropertyFlagBits::eDeviceLocal);
+   }
+
    auto Application::recreate_swap_chain() -> void
    {
       surface_extent_ = surface_extent();
@@ -1530,5 +1627,60 @@ namespace eru
       swap_chain_ = swap_chain();
       swap_chain_images_ = swap_chain_images();
       swap_chain_image_views_ = swap_chain_image_views();
+      depth_image_ = depth_image();
+      depth_image_memory_ = depth_image_memory();
+      std::ignore = depth_image_.bindMemory(depth_image_memory_, 0);
+
+      // TODO: this transition should be part of the render loop
+      auto command_buffer{
+         std::move(device_.allocateCommandBuffers({
+            .commandPool{ command_pool_ },
+            .level{ vk::CommandBufferLevel::ePrimary },
+            .commandBufferCount{ 1 }
+         })->front())
+      };
+
+      command_buffer.begin({
+         .flags{ vk::CommandBufferUsageFlagBits::eOneTimeSubmit }
+      });
+
+      vk::ImageMemoryBarrier2 const barrier{
+         .srcStageMask{ vk::PipelineStageFlagBits2::eNone },
+         .srcAccessMask{ vk::AccessFlagBits2::eNone },
+         .dstStageMask{ vk::PipelineStageFlagBits2::eNone },
+         .dstAccessMask{ vk::AccessFlagBits2::eNone },
+         .oldLayout{ vk::ImageLayout::eUndefined },
+         .newLayout{ vk::ImageLayout::eDepthAttachmentOptimal },
+         .image{ depth_image_ },
+         .subresourceRange{
+            .aspectMask{ vk::ImageAspectFlagBits::eDepth },
+            .baseMipLevel{ 0 },
+            .levelCount{ 1 },
+            .baseArrayLayer{ 0 },
+            .layerCount{ 1 }
+         }
+      };
+
+      command_buffer.pipelineBarrier2({
+         .imageMemoryBarrierCount{ 1 },
+         .pImageMemoryBarriers{ &barrier }
+      });
+
+      std::ignore = command_buffer.end();
+
+      vk::CommandBufferSubmitInfo const command_buffer_submit_info{
+         .commandBuffer{ command_buffer }
+      };
+
+      queue_.submit2({
+         vk::SubmitInfo2{
+            .commandBufferInfoCount{ 1 },
+            .pCommandBufferInfos{ &command_buffer_submit_info },
+         }
+      });
+
+      device_.waitIdle();
+
+      depth_image_view_ = depth_image_view();
    }
 }
