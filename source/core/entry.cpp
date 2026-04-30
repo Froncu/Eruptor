@@ -9,6 +9,7 @@ auto main(int const arguments_count, char const* const* arguments) -> int try
 {
    eru::Locator::provide<eru::Logger>();
    eru::Locator::provide<eru::Platform>();
+   eru::Locator::provide<eru::Renderer>();
    eru::provide_application({ arguments, static_cast<std::size_t>(arguments_count) });
 
    while (eru::Locator::get<eru::Application>().tick())
