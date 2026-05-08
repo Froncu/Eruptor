@@ -12,6 +12,10 @@ namespace eru
    class Window final
    {
       public:
+         [[nodiscard]] ERU_API static auto required_instance_extension_names() -> std::span<char const* const>;
+         [[nodiscard]] ERU_API static auto presentation_support(vk::raii::Instance const& instance, vk::raii::PhysicalDevice const& physical_device,
+            std::uint32_t queue_family_index) -> bool;
+
          ERU_API explicit Window(glm::uvec2 extent = { 640, 480 }, std::string_view title = "Window");
          Window(Window const&) = delete;
          Window(Window&&) = delete;

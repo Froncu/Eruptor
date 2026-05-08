@@ -4,6 +4,22 @@
 
 namespace eru
 {
+   auto Window::required_instance_extension_names() -> std::span<char const* const>
+   {
+      std::uint32_t required_instance_extensions_count;
+      char const* const* const required_instance_extensions{
+         glfwGetRequiredInstanceExtensions(&required_instance_extensions_count)
+      };
+
+      return { required_instance_extensions, required_instance_extensions + required_instance_extensions_count };
+   }
+
+   auto Window::presentation_support(vk::raii::Instance const& instance, vk::raii::PhysicalDevice const& physical_device,
+      std::uint32_t const queue_family_index) -> bool
+   {
+      return glfwGetPhysicalDevicePresentationSupport(*instance, *physical_device, queue_family_index);
+   }
+
    Window::Window(glm::uvec2 const extent, std::string_view const title)
       : native_window_{
          glfwCreateWindow(extent.x, extent.y, title.data(), nullptr, nullptr),

@@ -596,18 +596,8 @@ namespace eru
          .apiVersion{ vk::HeaderVersionComplete }
       };
 
-      std::vector<char const*> extension_names;
-
-      {
-         std::uint32_t required_instance_extensions_count;
-         char const** const required_instance_extensions{
-            glfwGetRequiredInstanceExtensions(&required_instance_extensions_count)
-         };
-
-         extension_names.assign(required_instance_extensions,
-            required_instance_extensions + required_instance_extensions_count);
-      }
-
+      std::span const required_extension_names{ Window::required_instance_extension_names() };
+      std::vector<char const*> extension_names{ required_extension_names.begin(), required_extension_names.end() };
       extension_names.push_back(vk::EXTDebugUtilsExtensionName);
 
       vk::ResultValue instance{
@@ -690,14 +680,7 @@ namespace eru
             [this](auto&& pair)
             {
                auto&& [index, properties]{ pair };
-
-               vk::ResultValue const surface_support{
-                  physical_device_.getSurfaceSupportKHR(static_cast<std::uint32_t>(index), surface_)
-               };
-               runtime_assert(surface_support.has_value(),
-                  std::format("failed to query for surface support! ({})", to_string(surface_support.result)));
-
-               return *surface_support
+               return Window::presentation_support(instance_, physical_device_, index)
                   and static_cast<bool>(properties.queueFamilyProperties.queueFlags & vk::QueueFlagBits::eGraphics);
             })
       };
