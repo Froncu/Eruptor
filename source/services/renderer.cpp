@@ -1418,7 +1418,7 @@ namespace eru
 
    auto Renderer::sampler() const -> vk::raii::Sampler
    {
-      vk::PhysicalDeviceProperties const properties{ physical_device_.getProperties() };
+      vk::PhysicalDeviceProperties2 const properties{ physical_device_.getProperties2() };
       vk::ResultValue sampler{
          device_.createSampler({
             .magFilter{ vk::Filter::eLinear },
@@ -1429,7 +1429,7 @@ namespace eru
             .addressModeW{ vk::SamplerAddressMode::eRepeat },
             .mipLodBias{},
             .anisotropyEnable{ vk::True },
-            .maxAnisotropy{ properties.limits.maxSamplerAnisotropy },
+            .maxAnisotropy{ properties.properties.limits.maxSamplerAnisotropy },
             .compareEnable{ vk::False },
             .compareOp{ vk::CompareOp::eAlways },
             .minLod{ 0.0f },
