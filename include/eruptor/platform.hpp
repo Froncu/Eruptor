@@ -8,7 +8,7 @@ namespace eru
    class Platform final
    {
       public:
-         ERU_API Platform(Locator::ConstructionKey);
+         ERU_API explicit Platform(Locator::ConstructionKey);
          Platform(Platform const&) = delete;
          Platform(Platform&&) = delete;
 

@@ -23,7 +23,7 @@ namespace eru
       static constexpr auto FRAMES_IN_FLIGHT{ 2 };
 
       public:
-         ERU_API Renderer(Locator::ConstructionKey);
+         ERU_API explicit Renderer(Locator::ConstructionKey);
          Renderer(Renderer const&) = delete;
          Renderer(Renderer&&) noexcept = delete;
 
