@@ -1,8 +1,6 @@
 #ifndef PCH_HPP
 #define PCH_HPP
 
-#define VULKAN_HPP_ASSERT_ON_RESULT(condition) std::ignore = condition
-
 #include <bitset>
 #include <chrono>
 #include <condition_variable>
