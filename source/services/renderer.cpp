@@ -9,36 +9,6 @@
 
 namespace eru
 {
-   VKAPI_ATTR auto VKAPI_CALL debug_callback(
-      vk::DebugUtilsMessageSeverityFlagBitsEXT const severity,
-      vk::DebugUtilsMessageTypeFlagsEXT const,
-      vk::DebugUtilsMessengerCallbackDataEXT const* const callback_data,
-      void* const) -> vk::Bool32
-   {
-      switch (severity)
-      {
-         case vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose:
-            [[fallthrough]];
-
-         case vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo:
-            Locator::get<Logger>().info(callback_data->pMessage);
-            break;
-
-         case vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning:
-            Locator::get<Logger>().warning(callback_data->pMessage);
-            break;
-
-         case vk::DebugUtilsMessageSeverityFlagBitsEXT::eError:
-            Locator::get<Logger>().error(callback_data->pMessage);
-            break;
-
-         default:
-            break;
-      }
-
-      return vk::False;
-   }
-
    Renderer::Renderer(Locator::ConstructionKey)
    {
       vk::Result result{ vertex_buffer_.bindMemory(vertex_buffer_memory_, 0) };
@@ -586,68 +556,16 @@ namespace eru
       Locator::get<Platform>().poll();
    }
 
-   auto Renderer::instance() const -> vk::raii::Instance
-   {
-      vk::ApplicationInfo constexpr app_info{
-         // .pApplicationName{},
-         // .applicationVersion{},
-         .pEngineName{ "eruptor" },
-         .engineVersion{ VK_MAKE_VERSION(0, 0, 0) },
-         .apiVersion{ vk::HeaderVersionComplete }
-      };
-
-      std::span const required_extension_names{ Window::required_instance_extension_names() };
-      std::vector<char const*> extension_names{ required_extension_names.begin(), required_extension_names.end() };
-      extension_names.push_back(vk::EXTDebugUtilsExtensionName);
-
-      vk::ResultValue instance{
-         vulkan_context_.createInstance({
-            .flags{},
-            .pApplicationInfo{ &app_info },
-            .enabledExtensionCount{ static_cast<std::uint32_t>(std::ranges::size(extension_names)) },
-            .ppEnabledExtensionNames{ std::ranges::data(extension_names) }
-         })
-      };
-      runtime_assert(instance.has_value(),
-         std::format("failed to create a Vulkan instance! ({})", to_string(instance.result)));
-
-      return std::move(*instance);
-   }
-
-   auto Renderer::debug_messenger() const -> vk::raii::DebugUtilsMessengerEXT
-   {
-      vk::ResultValue debug_messenger{
-         instance_.createDebugUtilsMessengerEXT({
-            .messageSeverity{
-               vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose |
-               vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo |
-               vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning |
-               vk::DebugUtilsMessageSeverityFlagBitsEXT::eError
-            },
-            .messageType{
-               vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance |
-               vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation |
-               vk::DebugUtilsMessageTypeFlagBitsEXT::eDeviceAddressBinding
-            },
-            .pfnUserCallback{ &debug_callback }
-         })
-      };
-      runtime_assert(debug_messenger.has_value(),
-         std::format("failed to create a debug messenger! ({})", to_string(debug_messenger.result)));
-
-      return std::move(*debug_messenger);
-   }
-
    auto Renderer::surface() const -> vk::raii::SurfaceKHR
    {
       VkSurfaceKHR surface;
-      glfwCreateWindowSurface(*instance_, &window_.native(), nullptr, &surface);
-      return { instance_, surface };
+      glfwCreateWindowSurface(*context_.instance(), &window_.native(), nullptr, &surface);
+      return { context_.instance(), surface };
    }
 
    auto Renderer::physical_device() const -> vk::raii::PhysicalDevice
    {
-      vk::ResultValue const physical_devices{ instance_.enumeratePhysicalDevices() };
+      vk::ResultValue const physical_devices{ context_.instance().enumeratePhysicalDevices() };
       runtime_assert(physical_devices.has_value(),
          std::format("failed to query available physical devices! ({})", to_string(physical_devices.result)));
 
@@ -680,7 +598,7 @@ namespace eru
             [this](auto&& pair)
             {
                auto&& [index, properties]{ pair };
-               return Window::presentation_support(instance_, physical_device_, index)
+               return Window::presentation_support(context_.instance(), physical_device_, static_cast<std::uint32_t>(index))
                   and static_cast<bool>(properties.queueFamilyProperties.queueFlags & vk::QueueFlagBits::eGraphics);
             })
       };

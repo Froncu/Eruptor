@@ -1,9 +1,9 @@
 ﻿#ifndef RENDERER_HPP
 #define RENDERER_HPP
 
-#include "locator.hpp"
 #include "eruptor/api.hpp"
 #include "eruptor/pch.hpp"
+#include "eruptor/renderer_context.hpp"
 #include "eruptor/vertex.hpp"
 #include "eruptor/window.hpp"
 
@@ -35,8 +35,6 @@ namespace eru
          ERU_API auto render() -> void;
 
       private:
-         [[nodiscard]] auto instance() const -> vk::raii::Instance;
-         [[nodiscard]] auto debug_messenger() const -> vk::raii::DebugUtilsMessengerEXT;
          [[nodiscard]] auto surface() const -> vk::raii::SurfaceKHR;
          [[nodiscard]] auto physical_device() const -> vk::raii::PhysicalDevice;
          [[nodiscard]] auto queue_family_index() const -> std::uint32_t;
@@ -92,9 +90,7 @@ namespace eru
 
          Window window_{ { 1280, 720 }, "Magma" };
 
-         vk::raii::Context const vulkan_context_{};
-         vk::raii::Instance const instance_{ instance() };
-         vk::raii::DebugUtilsMessengerEXT const debug_messenger_{ debug_messenger() };
+         RendererContext context_{};
          vk::raii::SurfaceKHR const surface_{ surface() };
          vk::raii::PhysicalDevice const physical_device_{ physical_device() };
          std::uint32_t const queue_family_index_{ queue_family_index() };

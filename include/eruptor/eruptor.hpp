@@ -13,6 +13,7 @@
 #include "eruptor/pch.hpp"
 #include "eruptor/platform.hpp"
 #include "eruptor/renderer.hpp"
+#include "eruptor/renderer_context.hpp"
 #include "eruptor/runtime_assert.hpp"
 #include "eruptor/type_index.hpp"
 #include "eruptor/unique_pointer.hpp"
