@@ -12,7 +12,7 @@ namespace eru
    class Window final
    {
       public:
-         [[nodiscard]] ERU_API static auto required_instance_extension_names() -> std::span<char const* const>;
+         [[nodiscard]] ERU_API static auto required_instance_extension_names() -> std::vector<std::string_view>;
          [[nodiscard]] ERU_API static auto presentation_support(vk::raii::Instance const& instance, vk::raii::PhysicalDevice const& physical_device,
             std::uint32_t queue_family_index) -> bool;
 

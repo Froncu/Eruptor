@@ -4,7 +4,7 @@
 
 namespace eru
 {
-   auto Window::required_instance_extension_names() -> std::span<char const* const>
+   auto Window::required_instance_extension_names() -> std::vector<std::string_view>
    {
       std::uint32_t required_instance_extensions_count;
       char const* const* const required_instance_extensions{
