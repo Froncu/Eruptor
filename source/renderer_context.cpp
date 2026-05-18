@@ -1,4 +1,6 @@
-﻿#include "eruptor/renderer_context.hpp"
+﻿#include "eruptor/locator.hpp"
+#include "eruptor/logger.hpp"
+#include "eruptor/renderer_context.hpp"
 #include "eruptor/runtime_assert.hpp"
 #include "eruptor/window.hpp"
 
@@ -31,35 +33,42 @@ namespace eru
       return vk::False;
    }
 
-   RendererContext::RendererContext(std::initializer_list<char const* const> const instance_extension_names, bool const create_messenger)
+   RendererContext::RendererContext(std::initializer_list<char const* const> const requested_instance_extension_names,
+      bool const create_messenger)
       : instance_{
-         [this, &instance_extension_names, create_messenger] -> vk::raii::Instance
+         [this, &requested_instance_extension_names, create_messenger] -> vk::raii::Instance
          {
             vk::ApplicationInfo constexpr app_info{
                .apiVersion{ vk::HeaderVersionComplete }
             };
 
-            std::span const required_extension_names{ Window::required_instance_extension_names() };
-            std::vector<char const*> extension_names{ required_extension_names.begin(), required_extension_names.end() };
-            extension_names.append_range(instance_extension_names);
+            std::vector<char const*> instance_extension_names{};
+            for (std::string_view const required_instance_extension_name : Window::required_instance_extension_names())
+               instance_extension_names.emplace_back(required_instance_extension_name.data());
+            for (std::string_view const requested_instance_extension_name : requested_instance_extension_names)
+               instance_extension_names.emplace_back(requested_instance_extension_name.data());
             if (create_messenger)
-               extension_names.emplace_back(vk::EXTDebugUtilsExtensionName);
+               instance_extension_names.emplace_back(vk::EXTDebugUtilsExtensionName);
+
+            std::ranges::sort(instance_extension_names);
+            auto const erased_range{ std::ranges::unique(instance_extension_names) };
+            instance_extension_names.erase(std::ranges::begin(erased_range), std::ranges::end(erased_range));
 
             vk::ResultValue instance{
                context_.createInstance({
                   .pApplicationInfo{ &app_info },
-                  .enabledExtensionCount{ static_cast<std::uint32_t>(std::ranges::size(extension_names)) },
-                  .ppEnabledExtensionNames{ std::ranges::data(extension_names) }
+                  .enabledExtensionCount{ static_cast<std::uint32_t>(std::ranges::size(instance_extension_names)) },
+                  .ppEnabledExtensionNames{ std::ranges::data(instance_extension_names) }
                })
             };
-            runtime_assert(instance.has_value(),
+            RUNTIME_ASSERT(instance.has_value(),
                std::format("failed to create a Vulkan instance! ({})", to_string(instance.result)));
 
             return std::move(*instance);
          }()
       }
       , debug_messenger_{
-         [this, create_messenger] -> decltype(debug_messenger_)
+         [this, create_messenger] -> std::optional<vk::raii::DebugUtilsMessengerEXT>
          {
             if (not create_messenger)
                return std::nullopt;
@@ -80,7 +89,7 @@ namespace eru
                   .pfnUserCallback{ &debug_callback }
                })
             };
-            runtime_assert(debug_messenger.has_value(),
+            RUNTIME_ASSERT(debug_messenger.has_value(),
                std::format("failed to create a debug messenger! ({})", to_string(debug_messenger.result)));
 
             return std::move(*debug_messenger);

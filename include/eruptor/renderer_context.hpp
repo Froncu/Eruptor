@@ -2,14 +2,15 @@
 #define RENDERER_CONTEXT_HPP
 
 #include "eruptor/pch.hpp"
-#include "eruptor/runtime_assert.hpp"
 
 namespace eru
 {
    class RendererContext final
    {
       public:
-         ERU_API RendererContext(std::initializer_list<char const* const> instance_extension_names = {}, bool create_messenger = DEBUG_BUILD);
+         // NOTE: `std::initializer_list` doesn't work well with `std::string_view` as it has a constructor that takes a begin and end pointer, so we use `char const*` instead.
+         ERU_API RendererContext(std::initializer_list<char const* const> requested_instance_extension_names = {},
+            bool create_messenger = DEBUG_BUILD);
          RendererContext(RendererContext const&) = delete;
          RendererContext(RendererContext&&) = delete;
 
