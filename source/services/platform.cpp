@@ -8,9 +8,9 @@ namespace eru
    Platform::Platform(Locator::ConstructionKey)
    {
       glfwSetErrorCallback(
-         [](int const code, char const* const description)
+         []([[maybe_unused]] int const code, [[maybe_unused]] char const* const description)
          {
-            runtime_assert(false, std::format("GLFW encountered error code {}! ({})", code, description));
+            RUNTIME_ASSERT(false, std::format("GLFW encountered error code {}! ({})", code, description));
          });
 
       glfwInit();

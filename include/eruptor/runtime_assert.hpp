@@ -1,25 +1,19 @@
 #ifndef RUNTIME_ASSERT_HPP
 #define RUNTIME_ASSERT_HPP
 
-#include "eruptor/constants.hpp"
-#include "eruptor/locator.hpp"
-#include "eruptor/logger.hpp"
+#ifdef NDEBUG
+   #define RUNTIME_ASSERT(...)
+#else
+   #include "eruptor/logger.hpp"
+   #include "eruptor/locator.hpp"
+   #include "eruptor/pch.hpp"
 
-namespace eru
-{
-   template <typename Message>
-   constexpr auto runtime_assert(bool const condition, Message&& message,
-      std::source_location location = std::source_location::current()) -> void
-   {
-      if constexpr (DEBUG_BUILD)
-      {
-         if (condition)
-            return;
-
-         Locator::get<Logger>().error(std::forward<Message>(message), false, std::move(location));
-         std::abort();
+   #define RUNTIME_ASSERT(condition, message)\
+      if (not (condition))\
+      {\
+         eru::Locator::get<eru::Logger>().error(message);\
+         std::abort();\
       }
-   }
-}
+#endif
 
 #endif

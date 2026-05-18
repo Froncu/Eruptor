@@ -12,7 +12,7 @@ namespace eru
    Renderer::Renderer(Locator::ConstructionKey)
    {
       vk::Result result{ vertex_buffer_.bindMemory(vertex_buffer_memory_, 0) };
-      runtime_assert(result == vk::Result::eSuccess,
+      RUNTIME_ASSERT(result == vk::Result::eSuccess,
          std::format("failed to bind vertex buffer's memory! ({})", to_string(result)));
 
       vk::DeviceSize const vertex_buffer_size{ sizeof(decltype(vertices_)::value_type) * vertices_.size() };
@@ -30,11 +30,11 @@ namespace eru
       };
 
       result = vertex_staging_buffer.bindMemory(vertex_staging_buffer_memory, 0);
-      runtime_assert(result == vk::Result::eSuccess,
+      RUNTIME_ASSERT(result == vk::Result::eSuccess,
          std::format("failed to bind vertex staging buffer's memory! ({})", to_string(result)));
 
       vk::ResultValue mapped_memory{ vertex_staging_buffer_memory.mapMemory(0, vertex_buffer_size) };
-      runtime_assert(mapped_memory.has_value(),
+      RUNTIME_ASSERT(mapped_memory.has_value(),
          std::format("failed to map vertex staging buffer's memory! ({})", to_string(mapped_memory.result)));
 
       std::memcpy(*mapped_memory, vertices_.data(), vertex_buffer_size);
@@ -43,7 +43,7 @@ namespace eru
       //
 
       result = index_buffer_.bindMemory(index_buffer_memory_, 0);
-      runtime_assert(result == vk::Result::eSuccess,
+      RUNTIME_ASSERT(result == vk::Result::eSuccess,
          std::format("failed to bind index buffer's memory! ({})", to_string(result)));
 
       vk::DeviceSize const index_buffer_size{ sizeof(decltype(indices_)::value_type) * indices_.size() };
@@ -61,11 +61,11 @@ namespace eru
       };
 
       result = index_staging_buffer.bindMemory(index_staging_buffer_memory, 0);
-      runtime_assert(result == vk::Result::eSuccess,
+      RUNTIME_ASSERT(result == vk::Result::eSuccess,
          std::format("failed to bind index staging buffer's memory! ({})", to_string(result)));
 
       mapped_memory = index_staging_buffer_memory.mapMemory(0, index_buffer_size);
-      runtime_assert(mapped_memory.has_value(),
+      RUNTIME_ASSERT(mapped_memory.has_value(),
          std::format("failed to map index staging buffer's memory! ({})", to_string(mapped_memory.result)));
 
       std::memcpy(*mapped_memory, indices_.data(), index_buffer_size);
@@ -74,7 +74,7 @@ namespace eru
       //
 
       result = image_.bindMemory(image_memory_, 0);
-      runtime_assert(result == vk::Result::eSuccess,
+      RUNTIME_ASSERT(result == vk::Result::eSuccess,
          std::format("failed to bind image buffer's memory! ({})", to_string(result)));
 
       image_view_ = image_view();
@@ -94,11 +94,11 @@ namespace eru
       };
 
       result = image_staging_buffer.bindMemory(image_staging_buffer_memory, 0);
-      runtime_assert(result == vk::Result::eSuccess,
+      RUNTIME_ASSERT(result == vk::Result::eSuccess,
          std::format("failed to bind image staging buffer's memory! ({})", to_string(result)));
 
       mapped_memory = image_staging_buffer_memory.mapMemory(0, image_buffer_size);
-      runtime_assert(mapped_memory.has_value(),
+      RUNTIME_ASSERT(mapped_memory.has_value(),
          std::format("failed to map image staging buffer's memory! ({})", to_string(mapped_memory.result)));
 
       std::memcpy(*mapped_memory, texture_->pData, image_buffer_size);
@@ -107,7 +107,7 @@ namespace eru
       //
 
       result = depth_image_.bindMemory(depth_image_memory_, 0);
-      runtime_assert(result == vk::Result::eSuccess,
+      RUNTIME_ASSERT(result == vk::Result::eSuccess,
          std::format("failed to bind depth image's memory! ({})", to_string(result)));
 
       depth_image_view_ = depth_image_view();
@@ -121,13 +121,13 @@ namespace eru
             .commandBufferCount{ 1 }
          })
       };
-      runtime_assert(command_buffers.has_value(),
+      RUNTIME_ASSERT(command_buffers.has_value(),
          std::format("failed to allocate a command buffer! ({})", to_string(command_buffers.result)));
 
       result = command_buffers->front().begin({
          .flags{ vk::CommandBufferUsageFlagBits::eOneTimeSubmit }
       });
-      runtime_assert(result == vk::Result::eSuccess,
+      RUNTIME_ASSERT(result == vk::Result::eSuccess,
          std::format("failed to begin command buffer! ({})", to_string(result)));
 
       std::array const vertex_buffer_copy_regions{
@@ -249,7 +249,7 @@ namespace eru
       });
 
       result = command_buffers->front().end();
-      runtime_assert(result == vk::Result::eSuccess,
+      RUNTIME_ASSERT(result == vk::Result::eSuccess,
          std::format("failed to end command buffer! ({})", to_string(result)));
 
       queue_.submit({
@@ -261,7 +261,7 @@ namespace eru
          }
       });
       result = queue_.waitIdle();
-      runtime_assert(result == vk::Result::eSuccess,
+      RUNTIME_ASSERT(result == vk::Result::eSuccess,
          std::format("failed to wait for queue! ({})", to_string(result)));
 
       //
@@ -276,7 +276,7 @@ namespace eru
          uniform_buffers_[index].bindMemory(uniform_buffer_memories_[index], 0);
 
          mapped_memory = uniform_buffer_memories_[index].mapMemory(0, sizeof(UniformBufferObject));
-         runtime_assert(mapped_memory.has_value(),
+         RUNTIME_ASSERT(mapped_memory.has_value(),
             std::format("failed to map a uniform buffer's memory! ({})", to_string(mapped_memory.result)));
 
          uniform_buffer_mapped_.push_back(static_cast<UniformBufferObject*>(*mapped_memory));
@@ -335,8 +335,8 @@ namespace eru
 
    Renderer::~Renderer()
    {
-      vk::Result const result{ device_.waitIdle() };
-      runtime_assert(result == vk::Result::eSuccess,
+      [[maybe_unused]] vk::Result const result{ device_.waitIdle() };
+      RUNTIME_ASSERT(result == vk::Result::eSuccess,
          std::format("failed to wait idle on the device! ({})", to_string(result)));
    }
 
@@ -360,11 +360,11 @@ namespace eru
       projection[1][1] *= -1;
 
       vk::Result result{ device_.waitForFences(*presentation_finished_fence, {}, std::numeric_limits<uint64_t>::max()) };
-      runtime_assert(result == vk::Result::eSuccess,
+      RUNTIME_ASSERT(result == vk::Result::eSuccess,
          std::format("failed to wait for fence(s)! ({})", to_string(result)));
 
       result = device_.resetFences(*presentation_finished_fence);
-      runtime_assert(result == vk::Result::eSuccess,
+      RUNTIME_ASSERT(result == vk::Result::eSuccess,
          std::format("failed to reset fence(s)! ({})", to_string(result)));
 
       vk::ResultValue swap_chain_image_index{
@@ -378,13 +378,13 @@ namespace eru
             swap_chain_.acquireNextImage(std::numeric_limits<std::uint64_t>::max(), *image_available_semaphore);
       }
 
-      runtime_assert(swap_chain_image_index.has_value(),
+      RUNTIME_ASSERT(swap_chain_image_index.has_value(),
          std::format("failed to acquire next image index! ({})", to_string(swap_chain_image_index.result)));
 
       result = command_buffer.begin({
          .flags{ vk::CommandBufferUsageFlagBits::eOneTimeSubmit }
       });
-      runtime_assert(result == vk::Result::eSuccess,
+      RUNTIME_ASSERT(result == vk::Result::eSuccess,
          std::format("failed to begin command buffer! ({})", to_string(result)));
 
       vk::ImageMemoryBarrier2 const begin_barrier{
@@ -482,7 +482,7 @@ namespace eru
          });
 
       result = command_buffer.end();
-      runtime_assert(result == vk::Result::eSuccess,
+      RUNTIME_ASSERT(result == vk::Result::eSuccess,
          std::format("failed to end command buffer! ({})", to_string(result)));
 
       std::array const wait_semaphore_infos{
@@ -521,7 +521,7 @@ namespace eru
             .pSignalSemaphoreInfos{ std::ranges::data(signal_semaphore_infos) }
          }
       });
-      runtime_assert(result == vk::Result::eSuccess,
+      RUNTIME_ASSERT(result == vk::Result::eSuccess,
          std::format("failed to submit command buffer! ({})", to_string(result)));
 
       vk::SwapchainPresentFenceInfoEXT const swap_chain_present_fence_info{
@@ -546,7 +546,7 @@ namespace eru
             return;
 
          default:
-            runtime_assert(result == vk::Result::eSuccess,
+            RUNTIME_ASSERT(result == vk::Result::eSuccess,
                std::format("failed to submit command buffer! ({})", to_string(result)));
             break;
       }
@@ -566,7 +566,7 @@ namespace eru
    auto Renderer::physical_device() const -> vk::raii::PhysicalDevice
    {
       vk::ResultValue const physical_devices{ context_.instance().enumeratePhysicalDevices() };
-      runtime_assert(physical_devices.has_value(),
+      RUNTIME_ASSERT(physical_devices.has_value(),
          std::format("failed to query available physical devices! ({})", to_string(physical_devices.result)));
 
       auto const physical_device{
@@ -582,7 +582,7 @@ namespace eru
             })
       };
 
-      runtime_assert(physical_device not_eq std::ranges::end(*physical_devices),
+      RUNTIME_ASSERT(physical_device not_eq std::ranges::end(*physical_devices),
          "no suitable physical device found!");
 
       return *physical_device;
@@ -603,7 +603,7 @@ namespace eru
             })
       };
 
-      runtime_assert(queue_family not_eq std::ranges::end(queue_family_properties),
+      RUNTIME_ASSERT(queue_family not_eq std::ranges::end(queue_family_properties),
          "no suitable queue family found!");
 
       return static_cast<std::uint32_t>(queue_family.index());
@@ -673,7 +673,7 @@ namespace eru
             .ppEnabledExtensionNames{ std::ranges::data(device_extension_names) },
          })
       };
-      runtime_assert(device.has_value(),
+      RUNTIME_ASSERT(device.has_value(),
          std::format("failed to create a device! ({})", to_string(device.result)));
 
       return std::move(*device);
@@ -691,7 +691,7 @@ namespace eru
    {
       // TODO: use `vk::StructureChain` and `getSurfaceFormats2KHR` for more functionality
       vk::ResultValue const available_surface_formats{ physical_device_.getSurfaceFormatsKHR(surface_) };
-      runtime_assert(available_surface_formats.has_value(),
+      RUNTIME_ASSERT(available_surface_formats.has_value(),
          std::format("failed to query available surface formats! ({})", to_string(available_surface_formats.result)));
 
       if (std::ranges::empty(*available_surface_formats))
@@ -717,7 +717,7 @@ namespace eru
    auto Renderer::surface_extent() const -> vk::Extent2D
    {
       vk::ResultValue const surface_capabilities{ physical_device_.getSurfaceCapabilitiesKHR(surface_) };
-      runtime_assert(surface_capabilities.has_value(),
+      RUNTIME_ASSERT(surface_capabilities.has_value(),
          std::format("failed to query surface capabilities! ({})", to_string(surface_capabilities.result)));
 
       if (surface_capabilities->currentExtent.width == std::numeric_limits<std::uint32_t>::max()
@@ -741,11 +741,11 @@ namespace eru
    {
       // TODO: use `vk::StructureChain` for more functionality
       vk::ResultValue const available_surface_present_modes{ physical_device_.getSurfacePresentModesKHR(surface_) };
-      runtime_assert(available_surface_present_modes.has_value(),
+      RUNTIME_ASSERT(available_surface_present_modes.has_value(),
          std::format("failed to query available surface present modes! ({})",
             to_string(available_surface_present_modes.result)));
 
-      runtime_assert(not std::ranges::empty(*available_surface_present_modes),
+      RUNTIME_ASSERT(not std::ranges::empty(*available_surface_present_modes),
          "no present modes are available!");
 
       auto surface_present_mode{
@@ -762,7 +762,7 @@ namespace eru
 
       // TODO: use `vk::StructureChain` and `getSurfaceCapabilities2KHR` for more functionality
       vk::ResultValue const surface_capabilities{ physical_device_.getSurfaceCapabilitiesKHR(surface_) };
-      runtime_assert(surface_capabilities.has_value(),
+      RUNTIME_ASSERT(surface_capabilities.has_value(),
          std::format("failed to query surface capabilities! ({})", to_string(surface_capabilities.result)));
 
       std::uint32_t minimal_image_count{ std::max(3u, surface_capabilities->minImageCount) };
@@ -789,7 +789,7 @@ namespace eru
             .oldSwapchain{}
          })
       };
-      runtime_assert(swap_chain.has_value(),
+      RUNTIME_ASSERT(swap_chain.has_value(),
          std::format("failed to create a swap chain! ({})", to_string(swap_chain.result)));
 
       return std::move(*swap_chain);
@@ -798,7 +798,7 @@ namespace eru
    auto Renderer::swap_chain_images() const -> std::vector<vk::Image>
    {
       vk::ResultValue swap_chain_images{ swap_chain_.getImages() };
-      runtime_assert(swap_chain_images.has_value(),
+      RUNTIME_ASSERT(swap_chain_images.has_value(),
          std::format("failed to retrieve swap chain images! ({})", to_string(swap_chain_images.result)));
 
       return std::move(*swap_chain_images);
@@ -830,7 +830,7 @@ namespace eru
       {
          create_info.image = image;
          vk::ResultValue image_view{ device_.createImageView(create_info) };
-         runtime_assert(image_view.has_value(),
+         RUNTIME_ASSERT(image_view.has_value(),
             std::format("failed to create a swap chain image view! ({})", to_string(image_view.result)));
 
          image_views.push_back(std::move(*image_view));
@@ -858,7 +858,7 @@ namespace eru
             .pBindings{ std::ranges::data(bindings) }
          })
       };
-      runtime_assert(descriptor_set_layout.has_value(),
+      RUNTIME_ASSERT(descriptor_set_layout.has_value(),
          std::format("failed to create uniform buffer descriptor set layout! ({})", to_string(descriptor_set_layout.result)));
 
       return std::move(*descriptor_set_layout);
@@ -889,7 +889,7 @@ namespace eru
             .pBindings{ std::ranges::data(bindings) }
          })
       };
-      runtime_assert(descriptor_set_layout.has_value(),
+      RUNTIME_ASSERT(descriptor_set_layout.has_value(),
          std::format("failed to create sampler descriptor set layout! ({})", to_string(descriptor_set_layout.result)));
 
       return std::move(*descriptor_set_layout);
@@ -910,7 +910,7 @@ namespace eru
             .pSetLayouts{ std::ranges::data(layouts) }
          })
       };
-      runtime_assert(pipeline_layout.has_value(),
+      RUNTIME_ASSERT(pipeline_layout.has_value(),
          std::format("failed to create a pipeline layout! ({})", to_string(pipeline_layout.result)));
 
       return std::move(pipeline_layout.value);
@@ -920,7 +920,7 @@ namespace eru
    {
       Slang::ComPtr<slang::IGlobalSession> global_session;
       createGlobalSession(global_session.writeRef());
-      runtime_assert(global_session,
+      RUNTIME_ASSERT(global_session,
          std::format("failed to create a global session! ({})", slang::getLastInternalErrorMessage()));
 
       std::array slang_targets{
@@ -939,18 +939,18 @@ namespace eru
 
       Slang::ComPtr<slang::ISession> slang_session;
       global_session->createSession(slang_session_description, slang_session.writeRef());
-      runtime_assert(slang_session,
+      RUNTIME_ASSERT(slang_session,
          std::format("failed to create a slang session! ({})", slang::getLastInternalErrorMessage()));
 
       Slang::ComPtr const slang_module{
          slang_session->loadModuleFromSource("shader", "assets/shaders/shader.slang", nullptr, nullptr)
       };
-      runtime_assert(slang_module,
+      RUNTIME_ASSERT(slang_module,
          std::format("failed to load a slang module! ({})", slang::getLastInternalErrorMessage()));
 
       Slang::ComPtr<ISlangBlob> spirv;
       slang_module->getTargetCode(0, spirv.writeRef());
-      runtime_assert(spirv,
+      RUNTIME_ASSERT(spirv,
          std::format("failed to load get target code! ({})", slang::getLastInternalErrorMessage()));
 
       vk::ShaderModuleCreateInfo const shader_module_create_info{
@@ -1072,7 +1072,7 @@ namespace eru
             .layout{ pipeline_layout_ },
          })
       };
-      runtime_assert(pipeline.has_value(),
+      RUNTIME_ASSERT(pipeline.has_value(),
          std::format("failed create a pipeline! ({})", to_string(pipeline.result)));
 
       return std::move(*pipeline);
@@ -1086,7 +1086,7 @@ namespace eru
             .queueFamilyIndex{ queue_family_index_ }
          })
       };
-      runtime_assert(command_pool.has_value(),
+      RUNTIME_ASSERT(command_pool.has_value(),
          std::format("failed create a command pool! ({})", to_string(command_pool.result)));
 
       return std::move(*command_pool);
@@ -1101,7 +1101,7 @@ namespace eru
             .commandBufferCount{ FRAMES_IN_FLIGHT }
          })
       };
-      runtime_assert(command_buffers.has_value(),
+      RUNTIME_ASSERT(command_buffers.has_value(),
          std::format("failed allocate command buffers! ({})", to_string(command_buffers.result)));
 
       return std::move(*command_buffers);
@@ -1114,7 +1114,7 @@ namespace eru
       for (std::size_t index{}; index < FRAMES_IN_FLIGHT; ++index)
       {
          vk::ResultValue semaphore{ device_.createSemaphore({}) };
-         runtime_assert(semaphore.has_value(),
+         RUNTIME_ASSERT(semaphore.has_value(),
             std::format("failed create a semaphore! ({})", to_string(semaphore.result)));
 
          semaphores.push_back(std::move(*semaphore));
@@ -1134,7 +1134,7 @@ namespace eru
                .flags{ vk::FenceCreateFlagBits::eSignaled }
             })
          };
-         runtime_assert(fence.has_value(),
+         RUNTIME_ASSERT(fence.has_value(),
             std::format("failed create a fence! ({})", to_string(fence.result)));
 
          fences.push_back(std::move(*fence));
@@ -1146,7 +1146,7 @@ namespace eru
    auto Renderer::buffer(vk::BufferCreateInfo const& create_info) const -> vk::raii::Buffer
    {
       vk::ResultValue buffer{ device_.createBuffer(create_info) };
-      runtime_assert(buffer.has_value(),
+      RUNTIME_ASSERT(buffer.has_value(),
          std::format("failed to create vertex buffer! ({})", to_string(buffer.result)));
 
       return std::move(*buffer);
@@ -1175,7 +1175,7 @@ namespace eru
             .memoryTypeIndex{ index }
          })
       };
-      runtime_assert(device_memory.has_value(),
+      RUNTIME_ASSERT(device_memory.has_value(),
          std::format("failed to allocate memory! ({})", to_string(device_memory.result)));
 
       return std::move(*device_memory);
@@ -1271,18 +1271,18 @@ namespace eru
             };
             ktxTexture2* texture;
 
-            ktx_error_code_e const result{ ktxTexture2_Create(&create_info, KTX_TEXTURE_CREATE_ALLOC_STORAGE, &texture) };
-            runtime_assert(result == KTX_SUCCESS, std::format("failed to create ktx texture! ({})", ktxErrorString(result)));
+            [[maybe_unused]] ktx_error_code_e const result{ ktxTexture2_Create(&create_info, KTX_TEXTURE_CREATE_ALLOC_STORAGE, &texture) };
+            RUNTIME_ASSERT(result == KTX_SUCCESS, std::format("failed to create ktx texture! ({})", ktxErrorString(result)));
 
             return texture;
          }(),
          ktxTexture2_Destroy
       };
 
-      ktx_error_code_e const result{
+      [[maybe_unused]] ktx_error_code_e const result{
          ktxTexture_SetImageFromMemory(ktxTexture(texture.get()), 0, 0, 0, raw_image.get(), width * height * desired_channels)
       };
-      runtime_assert(result == KTX_SUCCESS, std::format("failed to set ktx image data! ({})", ktxErrorString(result)));
+      RUNTIME_ASSERT(result == KTX_SUCCESS, std::format("failed to set ktx image data! ({})", ktxErrorString(result)));
 
       return texture;
    }
@@ -1308,7 +1308,7 @@ namespace eru
             .initialLayout{ vk::ImageLayout::eUndefined },
          })
       };
-      runtime_assert(image.result == vk::Result::eSuccess, std::format("failed to create image! ({})", to_string(image.result)));
+      RUNTIME_ASSERT(image.result == vk::Result::eSuccess, std::format("failed to create image! ({})", to_string(image.result)));
 
       return std::move(*image);
    }
@@ -1329,7 +1329,7 @@ namespace eru
             }
          })
       };
-      runtime_assert(image_view.result == vk::Result::eSuccess, std::format("failed to create image view! ({})", to_string(image_view.result)));
+      RUNTIME_ASSERT(image_view.result == vk::Result::eSuccess, std::format("failed to create image view! ({})", to_string(image_view.result)));
 
       return std::move(*image_view);
    }
@@ -1356,7 +1356,7 @@ namespace eru
             .unnormalizedCoordinates{ vk::False }
          })
       };
-      runtime_assert(sampler.result == vk::Result::eSuccess, std::format("failed to create sampler! ({})", to_string(sampler.result)));
+      RUNTIME_ASSERT(sampler.result == vk::Result::eSuccess, std::format("failed to create sampler! ({})", to_string(sampler.result)));
 
       return std::move(*sampler);
    }
@@ -1393,7 +1393,7 @@ namespace eru
             .pPoolSizes{ std::ranges::data(desciptor_pool_sizes) }
          })
       };
-      runtime_assert(descriptor_pool.has_value(),
+      RUNTIME_ASSERT(descriptor_pool.has_value(),
          std::format("failed to create a descriptor pool! ({})", to_string(descriptor_pool.result)));
 
       return std::move(*descriptor_pool);
@@ -1411,7 +1411,7 @@ namespace eru
             .pSetLayouts{ std::ranges::data(layouts) }
          })
       };
-      runtime_assert(descriptor_sets.has_value(),
+      RUNTIME_ASSERT(descriptor_sets.has_value(),
          std::format("failed to allocate descriptor sets! ({})", to_string(descriptor_sets.result)));
 
       return std::move(*descriptor_sets);
@@ -1426,7 +1426,7 @@ namespace eru
             .pSetLayouts{ &*sampler_descriptor_set_layout_ }
          })
       };
-      runtime_assert(descriptor_sets.has_value(),
+      RUNTIME_ASSERT(descriptor_sets.has_value(),
          std::format("failed to allocate descriptor sets! ({})", to_string(descriptor_sets.result)));
 
       return std::move(descriptor_sets->front());
@@ -1453,7 +1453,7 @@ namespace eru
             .initialLayout{ vk::ImageLayout::eUndefined },
          })
       };
-      runtime_assert(image.result == vk::Result::eSuccess,
+      RUNTIME_ASSERT(image.result == vk::Result::eSuccess,
          std::format("failed to create depth image! ({})", to_string(image.result)));
 
       return std::move(*image);
@@ -1475,7 +1475,7 @@ namespace eru
             }
          })
       };
-      runtime_assert(image_view.result == vk::Result::eSuccess,
+      RUNTIME_ASSERT(image_view.result == vk::Result::eSuccess,
          std::format("failed to create depth image view! ({})", to_string(image_view.result)));
 
       return std::move(*image_view);
