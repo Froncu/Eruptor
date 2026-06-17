@@ -9,6 +9,36 @@
 
 namespace eru
 {
+   VKAPI_ATTR auto VKAPI_CALL debug_callback(
+      vk::DebugUtilsMessageSeverityFlagBitsEXT const severity,
+      vk::DebugUtilsMessageTypeFlagsEXT const,
+      vk::DebugUtilsMessengerCallbackDataEXT const* const callback_data,
+      void* const) -> vk::Bool32
+   {
+      switch (severity)
+      {
+         case vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose:
+            [[fallthrough]];
+
+         case vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo:
+            Locator::get<Logger>().info(callback_data->pMessage);
+            break;
+
+         case vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning:
+            Locator::get<Logger>().warning(callback_data->pMessage);
+            break;
+
+         case vk::DebugUtilsMessageSeverityFlagBitsEXT::eError:
+            Locator::get<Logger>().error(callback_data->pMessage);
+            break;
+
+         default:
+            break;
+      }
+
+      return vk::False;
+   }
+
    Renderer::Renderer(Locator::ConstructionKey)
    {
       vk::Result result{ vertex_buffer_.bindMemory(vertex_buffer_memory_, 0) };
@@ -335,7 +365,7 @@ namespace eru
 
    Renderer::~Renderer()
    {
-      [[maybe_unused]] vk::Result const result{ device_.waitIdle() };
+      vk::Result const result{ device_.waitIdle() };
       RUNTIME_ASSERT(result == vk::Result::eSuccess,
          std::format("failed to wait idle on the device! ({})", to_string(result)));
    }
@@ -556,16 +586,70 @@ namespace eru
       Locator::get<Platform>().poll();
    }
 
+   auto Renderer::instance() const -> vk::raii::Instance
+   {
+      vk::ApplicationInfo constexpr app_info{
+         // .pApplicationName{},
+         // .applicationVersion{},
+         .pEngineName{ "eruptor" },
+         .engineVersion{ VK_MAKE_VERSION(0, 0, 0) },
+         .apiVersion{ vk::HeaderVersionComplete }
+      };
+
+      std::vector<char const*> extension_names{};
+      for (std::string_view const required_extension_names : Window::required_instance_extension_names())
+         extension_names.emplace_back(required_extension_names.data());
+
+      extension_names.push_back(vk::EXTDebugUtilsExtensionName);
+
+      vk::ResultValue instance{
+         vulkan_context_.createInstance({
+            .flags{},
+            .pApplicationInfo{ &app_info },
+            .enabledExtensionCount{ static_cast<std::uint32_t>(std::ranges::size(extension_names)) },
+            .ppEnabledExtensionNames{ std::ranges::data(extension_names) }
+         })
+      };
+      RUNTIME_ASSERT(instance.has_value(),
+         std::format("failed to create a Vulkan instance! ({})", to_string(instance.result)));
+
+      return std::move(*instance);
+   }
+
+   auto Renderer::debug_messenger() const -> vk::raii::DebugUtilsMessengerEXT
+   {
+      vk::ResultValue debug_messenger{
+         instance_.createDebugUtilsMessengerEXT({
+            .messageSeverity{
+               vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose |
+               vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo |
+               vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning |
+               vk::DebugUtilsMessageSeverityFlagBitsEXT::eError
+            },
+            .messageType{
+               vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance |
+               vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation |
+               vk::DebugUtilsMessageTypeFlagBitsEXT::eDeviceAddressBinding
+            },
+            .pfnUserCallback{ &debug_callback }
+         })
+      };
+      RUNTIME_ASSERT(debug_messenger.has_value(),
+         std::format("failed to create a debug messenger! ({})", to_string(debug_messenger.result)));
+
+      return std::move(*debug_messenger);
+   }
+
    auto Renderer::surface() const -> vk::raii::SurfaceKHR
    {
       VkSurfaceKHR surface;
-      glfwCreateWindowSurface(*context_.instance(), &window_.native(), nullptr, &surface);
-      return { context_.instance(), surface };
+      glfwCreateWindowSurface(*instance_, &window_.native(), nullptr, &surface);
+      return { instance_, surface };
    }
 
    auto Renderer::physical_device() const -> vk::raii::PhysicalDevice
    {
-      vk::ResultValue const physical_devices{ context_.instance().enumeratePhysicalDevices() };
+      vk::ResultValue const physical_devices{ instance_.enumeratePhysicalDevices() };
       RUNTIME_ASSERT(physical_devices.has_value(),
          std::format("failed to query available physical devices! ({})", to_string(physical_devices.result)));
 
@@ -598,7 +682,7 @@ namespace eru
             [this](auto&& pair)
             {
                auto&& [index, properties]{ pair };
-               return Window::presentation_support(context_.instance(), physical_device_, static_cast<std::uint32_t>(index))
+               return Window::presentation_support(instance_, physical_device_, index)
                   and static_cast<bool>(properties.queueFamilyProperties.queueFlags & vk::QueueFlagBits::eGraphics);
             })
       };
@@ -1271,7 +1355,7 @@ namespace eru
             };
             ktxTexture2* texture;
 
-            [[maybe_unused]] ktx_error_code_e const result{ ktxTexture2_Create(&create_info, KTX_TEXTURE_CREATE_ALLOC_STORAGE, &texture) };
+            ktx_error_code_e const result{ ktxTexture2_Create(&create_info, KTX_TEXTURE_CREATE_ALLOC_STORAGE, &texture) };
             RUNTIME_ASSERT(result == KTX_SUCCESS, std::format("failed to create ktx texture! ({})", ktxErrorString(result)));
 
             return texture;
@@ -1279,7 +1363,7 @@ namespace eru
          ktxTexture2_Destroy
       };
 
-      [[maybe_unused]] ktx_error_code_e const result{
+      ktx_error_code_e const result{
          ktxTexture_SetImageFromMemory(ktxTexture(texture.get()), 0, 0, 0, raw_image.get(), width * height * desired_channels)
       };
       RUNTIME_ASSERT(result == KTX_SUCCESS, std::format("failed to set ktx image data! ({})", ktxErrorString(result)));
