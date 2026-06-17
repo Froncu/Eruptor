@@ -42,7 +42,7 @@ namespace std
 
 namespace eru
 {
-   Logger::Logger(Locator::ConstructionKey)
+   Logger::Logger(PassKey<Locator>)
    {
    }
 

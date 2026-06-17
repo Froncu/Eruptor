@@ -1,7 +1,7 @@
-﻿#include "eruptor/exception.hpp"
+﻿#include "eruptor/context.hpp"
+#include "eruptor/exception.hpp"
 #include "eruptor/locator.hpp"
 #include "eruptor/logger.hpp"
-#include "eruptor/platform.hpp"
 #include "eruptor/renderer.hpp"
 #include "eruptor/runtime_assert.hpp"
 
@@ -9,7 +9,7 @@
 
 namespace eru
 {
-   Renderer::Renderer(Locator::ConstructionKey)
+   Renderer::Renderer(PassKey<Locator>)
    {
       vk::Result result{ vertex_buffer_.bindMemory(vertex_buffer_memory_, 0) };
       RUNTIME_ASSERT(result == vk::Result::eSuccess,
@@ -25,7 +25,7 @@ namespace eru
       };
 
       vk::raii::DeviceMemory const vertex_staging_buffer_memory{
-         memory(vertex_staging_buffer.getMemoryRequirements(),
+         context_.allocate_memory(vertex_staging_buffer.getMemoryRequirements(),
             vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent)
       };
 
@@ -56,7 +56,7 @@ namespace eru
       };
 
       vk::raii::DeviceMemory const index_staging_buffer_memory{
-         memory(index_staging_buffer.getMemoryRequirements(),
+         context_.allocate_memory(index_staging_buffer.getMemoryRequirements(),
             vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent)
       };
 
@@ -89,7 +89,7 @@ namespace eru
       };
 
       vk::raii::DeviceMemory const image_staging_buffer_memory{
-         memory(image_staging_buffer.getMemoryRequirements(),
+         context_.allocate_memory(image_staging_buffer.getMemoryRequirements(),
             vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent)
       };
 
@@ -115,8 +115,8 @@ namespace eru
       //
 
       vk::ResultValue const command_buffers{
-         device_.allocateCommandBuffers({
-            .commandPool{ command_pool_ },
+         context_.device.allocateCommandBuffers({
+            .commandPool{ context_.command_pool },
             .level{ vk::CommandBufferLevel::ePrimary },
             .commandBufferCount{ 1 }
          })
@@ -252,7 +252,7 @@ namespace eru
       RUNTIME_ASSERT(result == vk::Result::eSuccess,
          std::format("failed to end command buffer! ({})", to_string(result)));
 
-      queue_.submit({
+      context_.queue.submit({
          {
             {
                .commandBufferCount{ 1 },
@@ -260,7 +260,7 @@ namespace eru
             }
          }
       });
-      result = queue_.waitIdle();
+      result = context_.queue.waitIdle();
       RUNTIME_ASSERT(result == vk::Result::eSuccess,
          std::format("failed to wait for queue! ({})", to_string(result)));
 
@@ -330,22 +330,19 @@ namespace eru
          .pTexelBufferView{ nullptr }
       });
 
-      device_.updateDescriptorSets(writes, {});
+      context_.device.updateDescriptorSets(writes, {});
    }
 
    Renderer::~Renderer()
    {
-      [[maybe_unused]] vk::Result const result{ device_.waitIdle() };
+      vk::Result const result{ context_.device.waitIdle() };
       RUNTIME_ASSERT(result == vk::Result::eSuccess,
          std::format("failed to wait idle on the device! ({})", to_string(result)));
    }
 
-   auto Renderer::render() -> void
+   auto Renderer::render(vk::Image const image, vk::ImageView const image_view, vk::Extent2D extent) -> void
    {
-      vk::raii::CommandBuffer const& command_buffer{ command_buffers_[frame_index_] };
-      vk::raii::Semaphore const& image_available_semaphore{ image_available_semaphores_[frame_index_] };
-      vk::raii::Semaphore const& command_buffer_finished_semaphore{ command_buffer_finished_semaphores_[frame_index_] };
-      vk::raii::Fence const& presentation_finished_fence{ presentation_finished_fences_[frame_index_] };
+      // TODO: this will go outside of the renderer
       auto& [model, view, projection]{ *uniform_buffer_mapped_[frame_index_] };
 
       static auto start_time{ std::chrono::high_resolution_clock::now() };
@@ -355,33 +352,16 @@ namespace eru
 
       model = rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
       view = lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-      projection = glm::perspective(glm::radians(45.0f),
-         static_cast<float>(surface_extent_.width) / static_cast<float>(surface_extent_.height), 0.1f, 10.0f);
+      projection = glm::perspective(glm::radians(45.0f), static_cast<float>(extent.width) / extent.height, 0.1f, 10.0f);
       projection[1][1] *= -1;
 
-      vk::Result result{ device_.waitForFences(*presentation_finished_fence, {}, std::numeric_limits<uint64_t>::max()) };
-      RUNTIME_ASSERT(result == vk::Result::eSuccess,
-         std::format("failed to wait for fence(s)! ({})", to_string(result)));
+      //
 
-      result = device_.resetFences(*presentation_finished_fence);
-      RUNTIME_ASSERT(result == vk::Result::eSuccess,
-         std::format("failed to reset fence(s)! ({})", to_string(result)));
+      vk::raii::CommandBuffer const& command_buffer{ command_buffers_[frame_index_] };
+      vk::raii::Semaphore const& image_available_semaphore{ image_available_semaphores_[frame_index_] };
+      vk::raii::Semaphore const& command_buffer_finished_semaphore{ command_buffer_finished_semaphores_[frame_index_] };
 
-      vk::ResultValue swap_chain_image_index{
-         swap_chain_.acquireNextImage(std::numeric_limits<std::uint64_t>::max(), *image_available_semaphore)
-      };
-
-      if (swap_chain_image_index.result == vk::Result::eErrorOutOfDateKHR)
-      {
-         recreate_swap_chain();
-         swap_chain_image_index =
-            swap_chain_.acquireNextImage(std::numeric_limits<std::uint64_t>::max(), *image_available_semaphore);
-      }
-
-      RUNTIME_ASSERT(swap_chain_image_index.has_value(),
-         std::format("failed to acquire next image index! ({})", to_string(swap_chain_image_index.result)));
-
-      result = command_buffer.begin({
+      vk::Result result = command_buffer.begin({
          .flags{ vk::CommandBufferUsageFlagBits::eOneTimeSubmit }
       });
       RUNTIME_ASSERT(result == vk::Result::eSuccess,
@@ -394,7 +374,7 @@ namespace eru
          .dstAccessMask{ vk::AccessFlagBits2::eColorAttachmentWrite },
          .oldLayout{ vk::ImageLayout::eUndefined },
          .newLayout{ vk::ImageLayout::eColorAttachmentOptimal },
-         .image{ swap_chain_images_[*swap_chain_image_index] },
+         .image{ image },
          .subresourceRange{
             .aspectMask{ vk::ImageAspectFlagBits::eColor },
             .levelCount{ 1 },
@@ -408,7 +388,7 @@ namespace eru
       });
 
       vk::RenderingAttachmentInfo const attachment_info{
-         .imageView{ swap_chain_image_views_[*swap_chain_image_index] },
+         .imageView{ image_view },
          .imageLayout{ vk::ImageLayout::eColorAttachmentOptimal },
          .loadOp{ vk::AttachmentLoadOp::eClear },
          .storeOp{ vk::AttachmentStoreOp::eStore },
@@ -425,7 +405,7 @@ namespace eru
 
       command_buffer.beginRendering({
          .renderArea{
-            .extent{ surface_extent_ }
+            .extent{ extent }
          },
          .layerCount{ 1 },
          .colorAttachmentCount{ 1 },
@@ -438,15 +418,15 @@ namespace eru
       command_buffer.bindIndexBuffer(*index_buffer_, 0, vk::IndexType::eUint16);
       command_buffer.setViewport(0, {
          {
-            .width{ static_cast<float>(surface_extent_.width) },
-            .height{ static_cast<float>(surface_extent_.height) },
+            .width{ static_cast<float>(extent.width) },
+            .height{ static_cast<float>(extent.height) },
             .maxDepth{ 1.0f },
          }
       });
 
       command_buffer.setScissor(0, {
          {
-            .extent{ surface_extent_ }
+            .extent{ extent }
          }
       });
 
@@ -467,7 +447,7 @@ namespace eru
          .dstAccessMask{ vk::AccessFlagBits2::eNone },
          .oldLayout{ vk::ImageLayout::eColorAttachmentOptimal },
          .newLayout{ vk::ImageLayout::ePresentSrcKHR },
-         .image{ swap_chain_images_[*swap_chain_image_index] },
+         .image{ image },
          .subresourceRange{
             .aspectMask{ vk::ImageAspectFlagBits::eColor },
             .levelCount{ 1 },
@@ -511,7 +491,7 @@ namespace eru
          })
       };
 
-      result = queue_.submit2({
+      result = context_.queue.submit2({
          vk::SubmitInfo2{
             .waitSemaphoreInfoCount{ static_cast<std::uint32_t>(std::ranges::size(wait_semaphore_infos)) },
             .pWaitSemaphoreInfos{ std::ranges::data(wait_semaphore_infos) },
@@ -524,319 +504,60 @@ namespace eru
       RUNTIME_ASSERT(result == vk::Result::eSuccess,
          std::format("failed to submit command buffer! ({})", to_string(result)));
 
-      vk::SwapchainPresentFenceInfoEXT const swap_chain_present_fence_info{
-         .swapchainCount{ 1 },
-         .pFences{ &*presentation_finished_fence }
-      };
-
-      result = queue_.presentKHR({
-         .pNext{ &swap_chain_present_fence_info },
-         .waitSemaphoreCount{ 1 },
-         .pWaitSemaphores{ &*command_buffer_finished_semaphore },
-         .swapchainCount{ 1 },
-         .pSwapchains{ &*swap_chain_ },
-         .pImageIndices{ &*swap_chain_image_index },
-         .pResults{}
-      });
-
-      switch (result)
-      {
-         case vk::Result::eErrorOutOfDateKHR:
-            recreate_swap_chain();
-            return;
-
-         default:
-            RUNTIME_ASSERT(result == vk::Result::eSuccess,
-               std::format("failed to submit command buffer! ({})", to_string(result)));
-            break;
-      }
-
       ++frame_index_ %= FRAMES_IN_FLIGHT;
-
-      Locator::get<Platform>().poll();
    }
 
-   auto Renderer::surface() const -> vk::raii::SurfaceKHR
+   auto Renderer::depth_image() const -> vk::raii::Image
    {
-      VkSurfaceKHR surface;
-      glfwCreateWindowSurface(*context_.instance(), &window_.native(), nullptr, &surface);
-      return { context_.instance(), surface };
-   }
-
-   auto Renderer::physical_device() const -> vk::raii::PhysicalDevice
-   {
-      vk::ResultValue const physical_devices{ context_.instance().enumeratePhysicalDevices() };
-      RUNTIME_ASSERT(physical_devices.has_value(),
-         std::format("failed to query available physical devices! ({})", to_string(physical_devices.result)));
-
-      auto const physical_device{
-         std::ranges::find_if(
-            *physical_devices,
-            [](vk::raii::PhysicalDevice const& device)
-            {
-               vk::StructureChain const properties{ device.getProperties2() };
-               vk::StructureChain const features{ device.getFeatures2() };
-
-               return properties.get().properties.deviceType == vk::PhysicalDeviceType::eDiscreteGpu
-                  and features.get().features.wideLines;
-            })
+      vk::ResultValue image{
+         context_.device.createImage({
+            .imageType{ vk::ImageType::e2D },
+            .format{ vk::Format::eD16Unorm },
+            .extent{
+               .width{ surface_extent_.width },
+               .height{ surface_extent_.height },
+               .depth{ 1 }
+            },
+            .mipLevels{ 1 },
+            .arrayLayers{ 1 },
+            .samples{ vk::SampleCountFlagBits::e1 },
+            .tiling{ vk::ImageTiling::eOptimal },
+            .usage{ vk::ImageUsageFlagBits::eDepthStencilAttachment },
+            .sharingMode{ vk::SharingMode::eExclusive },
+            .initialLayout{ vk::ImageLayout::eUndefined },
+         })
       };
+      RUNTIME_ASSERT(image.result == vk::Result::eSuccess,
+         std::format("failed to create depth image! ({})", to_string(image.result)));
 
-      RUNTIME_ASSERT(physical_device not_eq std::ranges::end(*physical_devices),
-         "no suitable physical device found!");
-
-      return *physical_device;
+      return std::move(*image);
    }
 
-   auto Renderer::queue_family_index() const -> std::uint32_t
+   auto Renderer::depth_image_view() const -> vk::raii::ImageView
    {
-      // TODO: use vk::StructureChain
-      auto&& queue_family_properties{ physical_device_.getQueueFamilyProperties2() | std::ranges::views::enumerate };
-      auto const queue_family{
-         std::ranges::find_if(
-            queue_family_properties,
-            [this](auto&& pair)
-            {
-               auto&& [index, properties]{ pair };
-               return Window::presentation_support(context_.instance(), physical_device_, static_cast<std::uint32_t>(index))
-                  and static_cast<bool>(properties.queueFamilyProperties.queueFlags & vk::QueueFlagBits::eGraphics);
-            })
-      };
-
-      RUNTIME_ASSERT(queue_family not_eq std::ranges::end(queue_family_properties),
-         "no suitable queue family found!");
-
-      return static_cast<std::uint32_t>(queue_family.index());
-   }
-
-   auto Renderer::device() const -> vk::raii::Device
-   {
-      vk::StructureChain<
-         vk::PhysicalDeviceFeatures2,
-         vk::PhysicalDeviceVulkan11Features,
-         vk::PhysicalDeviceVulkan13Features,
-         vk::PhysicalDeviceVulkan14Features,
-         vk::PhysicalDeviceSwapchainMaintenance1FeaturesEXT,
-         vk::PhysicalDevicePageableDeviceLocalMemoryFeaturesEXT> const device_feature_chain{
-         {
-            .features
-            {
-               .samplerAnisotropy{ vk::True }
-            }
-         },
-         {
-            .shaderDrawParameters{ vk::True },
-         },
-         {
-            .synchronization2{ vk::True },
-            .dynamicRendering{ vk::True },
-         },
-         {
-            .maintenance5{ vk::True }
-         },
-         {
-            .swapchainMaintenance1{ vk::True }
-         },
-         {
-            .pageableDeviceLocalMemory{ vk::True }
-         }
-      };
-
-      auto constexpr queue_priority{ 0.5f };
-
-      std::array const device_queue_create_info{
-         std::to_array<vk::DeviceQueueCreateInfo>({
-            {
-               .flags{},
-               .queueFamilyIndex{ queue_family_index_ },
-               .queueCount{ 1 },
-               .pQueuePriorities{ &queue_priority }
+      vk::ResultValue image_view{
+         context_.device.createImageView({
+            .image{ depth_image_ },
+            .viewType{ vk::ImageViewType::e2D },
+            .format{ vk::Format::eD16Unorm },
+            .subresourceRange{
+               .aspectMask{ vk::ImageAspectFlagBits::eDepth },
+               .baseMipLevel{ 0 },
+               .levelCount{ 1 },
+               .baseArrayLayer{ 0 },
+               .layerCount{ 1 }
             }
          })
       };
+      RUNTIME_ASSERT(image_view.result == vk::Result::eSuccess,
+         std::format("failed to create depth image view! ({})", to_string(image_view.result)));
 
-      std::array constexpr device_extension_names{
-         std::to_array<char const* const>({
-            vk::EXTMemoryPriorityExtensionName,
-            vk::EXTPageableDeviceLocalMemoryExtensionName,
-            vk::KHRSwapchainExtensionName
-         })
-      };
-
-      // TODO: for backwards compatibility, the validation layers here should be the same as the ones enabled on the instance
-      vk::ResultValue device{
-         physical_device_.createDevice({
-            .pNext{ device_feature_chain.get() },
-            .queueCreateInfoCount{ static_cast<std::uint32_t>(std::ranges::size(device_queue_create_info)) },
-            .pQueueCreateInfos{ std::ranges::data(device_queue_create_info) },
-            .enabledExtensionCount{ static_cast<std::uint32_t>(std::ranges::size(device_extension_names)) },
-            .ppEnabledExtensionNames{ std::ranges::data(device_extension_names) },
-         })
-      };
-      RUNTIME_ASSERT(device.has_value(),
-         std::format("failed to create a device! ({})", to_string(device.result)));
-
-      return std::move(*device);
+      return std::move(*image_view);
    }
 
-   auto Renderer::queue() const -> vk::raii::Queue
+   auto Renderer::depth_image_memory() const -> vk::raii::DeviceMemory
    {
-      return device_.getQueue2({
-         .queueFamilyIndex{ queue_family_index_ },
-         .queueIndex{ 0 }
-      });
-   }
-
-   auto Renderer::surface_format() const -> vk::SurfaceFormatKHR
-   {
-      // TODO: use `vk::StructureChain` and `getSurfaceFormats2KHR` for more functionality
-      vk::ResultValue const available_surface_formats{ physical_device_.getSurfaceFormatsKHR(surface_) };
-      RUNTIME_ASSERT(available_surface_formats.has_value(),
-         std::format("failed to query available surface formats! ({})", to_string(available_surface_formats.result)));
-
-      if (std::ranges::empty(*available_surface_formats))
-         throw Exception{ "no surface formats are available!" };
-
-      auto surface_format{
-         std::ranges::find_if(
-            *available_surface_formats,
-            [](vk::SurfaceFormatKHR const& available_surface_format)
-            {
-               auto const [format, color_space]{ available_surface_format };
-               return format == vk::Format::eB8G8R8A8Srgb
-                  and color_space == vk::ColorSpaceKHR::eSrgbNonlinear;
-            })
-      };
-
-      if (surface_format == std::ranges::end(*available_surface_formats))
-         surface_format = std::ranges::begin(*available_surface_formats);
-
-      return *surface_format;
-   }
-
-   auto Renderer::surface_extent() const -> vk::Extent2D
-   {
-      vk::ResultValue const surface_capabilities{ physical_device_.getSurfaceCapabilitiesKHR(surface_) };
-      RUNTIME_ASSERT(surface_capabilities.has_value(),
-         std::format("failed to query surface capabilities! ({})", to_string(surface_capabilities.result)));
-
-      if (surface_capabilities->currentExtent.width == std::numeric_limits<std::uint32_t>::max()
-         and surface_capabilities->currentExtent.height == std::numeric_limits<std::uint32_t>::max())
-      {
-         int width, height;
-         glfwGetFramebufferSize(&window_.native(), &width, &height);
-
-         return {
-            std::clamp<std::uint32_t>(width, surface_capabilities->minImageExtent.width,
-               surface_capabilities->maxImageExtent.width),
-            std::clamp<std::uint32_t>(height, surface_capabilities->minImageExtent.height,
-               surface_capabilities->maxImageExtent.height)
-         };
-      }
-
-      return surface_capabilities->currentExtent;
-   }
-
-   auto Renderer::swap_chain() const -> vk::raii::SwapchainKHR
-   {
-      // TODO: use `vk::StructureChain` for more functionality
-      vk::ResultValue const available_surface_present_modes{ physical_device_.getSurfacePresentModesKHR(surface_) };
-      RUNTIME_ASSERT(available_surface_present_modes.has_value(),
-         std::format("failed to query available surface present modes! ({})",
-            to_string(available_surface_present_modes.result)));
-
-      RUNTIME_ASSERT(not std::ranges::empty(*available_surface_present_modes),
-         "no present modes are available!");
-
-      auto surface_present_mode{
-         std::ranges::find_if(
-            *available_surface_present_modes,
-            [](vk::PresentModeKHR const& available_surface_present_mode)
-            {
-               return available_surface_present_mode == vk::PresentModeKHR::eMailbox;
-            })
-      };
-
-      if (surface_present_mode == std::ranges::end(*available_surface_present_modes))
-         surface_present_mode = std::ranges::begin(*available_surface_present_modes);
-
-      // TODO: use `vk::StructureChain` and `getSurfaceCapabilities2KHR` for more functionality
-      vk::ResultValue const surface_capabilities{ physical_device_.getSurfaceCapabilitiesKHR(surface_) };
-      RUNTIME_ASSERT(surface_capabilities.has_value(),
-         std::format("failed to query surface capabilities! ({})", to_string(surface_capabilities.result)));
-
-      std::uint32_t minimal_image_count{ std::max(3u, surface_capabilities->minImageCount) };
-      if (surface_capabilities->maxImageCount)
-         minimal_image_count = std::min(minimal_image_count, surface_capabilities->maxImageCount);
-
-      // TODO: make use of `oldSwapchain`
-      vk::ResultValue swap_chain{
-         device_.createSwapchainKHR({
-            .surface{ *surface_ },
-            .minImageCount{ minimal_image_count },
-            .imageFormat{ surface_format_.format },
-            .imageColorSpace{ surface_format_.colorSpace },
-            .imageExtent{ surface_extent_ },
-            .imageArrayLayers{ 1 },
-            .imageUsage{ vk::ImageUsageFlagBits::eColorAttachment },
-            .imageSharingMode{ vk::SharingMode::eExclusive },
-            .queueFamilyIndexCount{},
-            .pQueueFamilyIndices{},
-            .preTransform{ surface_capabilities->currentTransform },
-            .compositeAlpha{ vk::CompositeAlphaFlagBitsKHR::eOpaque },
-            .presentMode{ *surface_present_mode },
-            .clipped{ true },
-            .oldSwapchain{}
-         })
-      };
-      RUNTIME_ASSERT(swap_chain.has_value(),
-         std::format("failed to create a swap chain! ({})", to_string(swap_chain.result)));
-
-      return std::move(*swap_chain);
-   }
-
-   auto Renderer::swap_chain_images() const -> std::vector<vk::Image>
-   {
-      vk::ResultValue swap_chain_images{ swap_chain_.getImages() };
-      RUNTIME_ASSERT(swap_chain_images.has_value(),
-         std::format("failed to retrieve swap chain images! ({})", to_string(swap_chain_images.result)));
-
-      return std::move(*swap_chain_images);
-   }
-
-   auto Renderer::swap_chain_image_views() const -> std::vector<vk::raii::ImageView>
-   {
-      vk::ImageViewCreateInfo create_info{
-         .viewType{ vk::ImageViewType::e2D },
-         .format{ surface_format_.format },
-         .components{
-            .r{ vk::ComponentSwizzle::eIdentity },
-            .g{ vk::ComponentSwizzle::eIdentity },
-            .b{ vk::ComponentSwizzle::eIdentity },
-            .a{ vk::ComponentSwizzle::eIdentity }
-         },
-         .subresourceRange{
-            .aspectMask{ vk::ImageAspectFlagBits::eColor },
-            .baseMipLevel{ 0 },
-            .levelCount{ 1 },
-            .baseArrayLayer{ 0 },
-            .layerCount{ 1 }
-         }
-      };
-
-      std::vector<vk::raii::ImageView> image_views{};
-      image_views.reserve(swap_chain_images_.size());
-      for (vk::Image const image : swap_chain_images_)
-      {
-         create_info.image = image;
-         vk::ResultValue image_view{ device_.createImageView(create_info) };
-         RUNTIME_ASSERT(image_view.has_value(),
-            std::format("failed to create a swap chain image view! ({})", to_string(image_view.result)));
-
-         image_views.push_back(std::move(*image_view));
-      }
-
-      return image_views;
+      return context_.allocate_memory(depth_image_.getMemoryRequirements(), vk::MemoryPropertyFlagBits::eDeviceLocal);
    }
 
    auto Renderer::uniform_buffer_descriptor_set_layout() const -> vk::raii::DescriptorSetLayout
@@ -853,7 +574,7 @@ namespace eru
       };
 
       vk::ResultValue descriptor_set_layout{
-         device_.createDescriptorSetLayout({
+         context_.device.createDescriptorSetLayout({
             .bindingCount{ static_cast<std::uint32_t>(std::ranges::size(bindings)) },
             .pBindings{ std::ranges::data(bindings) }
          })
@@ -884,7 +605,7 @@ namespace eru
       };
 
       vk::ResultValue descriptor_set_layout{
-         device_.createDescriptorSetLayout({
+         context_.device.createDescriptorSetLayout({
             .bindingCount{ static_cast<std::uint32_t>(std::ranges::size(bindings)) },
             .pBindings{ std::ranges::data(bindings) }
          })
@@ -905,7 +626,7 @@ namespace eru
       };
 
       vk::ResultValue pipeline_layout{
-         device_.createPipelineLayout({
+         context_.device.createPipelineLayout({
             .setLayoutCount{ static_cast<std::uint32_t>(std::ranges::size(layouts)) },
             .pSetLayouts{ std::ranges::data(layouts) }
          })
@@ -1057,7 +778,7 @@ namespace eru
       };
 
       vk::ResultValue pipeline{
-         device_.createGraphicsPipeline(nullptr, {
+         context_.device.createGraphicsPipeline(nullptr, {
             .pNext{ &pipeline_rendering_create_info },
             .stageCount{ static_cast<std::uint32_t>(std::ranges::size(shader_stage_create_infos)) },
             .pStages{ std::ranges::data(shader_stage_create_infos) },
@@ -1078,25 +799,11 @@ namespace eru
       return std::move(*pipeline);
    }
 
-   auto Renderer::command_pool() const -> vk::raii::CommandPool
-   {
-      vk::ResultValue command_pool{
-         device_.createCommandPool({
-            .flags{ vk::CommandPoolCreateFlagBits::eResetCommandBuffer },
-            .queueFamilyIndex{ queue_family_index_ }
-         })
-      };
-      RUNTIME_ASSERT(command_pool.has_value(),
-         std::format("failed create a command pool! ({})", to_string(command_pool.result)));
-
-      return std::move(*command_pool);
-   }
-
    auto Renderer::command_buffers() const -> std::vector<vk::raii::CommandBuffer>
    {
       vk::ResultValue command_buffers{
-         device_.allocateCommandBuffers({
-            .commandPool{ command_pool_ },
+         context_.device.allocateCommandBuffers({
+            .commandPool{ context_.command_pool },
             .level{ vk::CommandBufferLevel::ePrimary },
             .commandBufferCount{ FRAMES_IN_FLIGHT }
          })
@@ -1113,7 +820,7 @@ namespace eru
       semaphores.reserve(FRAMES_IN_FLIGHT);
       for (std::size_t index{}; index < FRAMES_IN_FLIGHT; ++index)
       {
-         vk::ResultValue semaphore{ device_.createSemaphore({}) };
+         vk::ResultValue semaphore{ context_.device.createSemaphore({}) };
          RUNTIME_ASSERT(semaphore.has_value(),
             std::format("failed create a semaphore! ({})", to_string(semaphore.result)));
 
@@ -1130,7 +837,7 @@ namespace eru
       for (std::size_t index{}; index < FRAMES_IN_FLIGHT; ++index)
       {
          vk::ResultValue fence{
-            device_.createFence({
+            context_.device.createFence({
                .flags{ vk::FenceCreateFlagBits::eSignaled }
             })
          };
@@ -1145,40 +852,11 @@ namespace eru
 
    auto Renderer::buffer(vk::BufferCreateInfo const& create_info) const -> vk::raii::Buffer
    {
-      vk::ResultValue buffer{ device_.createBuffer(create_info) };
+      vk::ResultValue buffer{ context_.device.createBuffer(create_info) };
       RUNTIME_ASSERT(buffer.has_value(),
          std::format("failed to create vertex buffer! ({})", to_string(buffer.result)));
 
       return std::move(*buffer);
-   }
-
-   auto Renderer::memory(vk::MemoryRequirements const& requirements,
-      vk::MemoryPropertyFlags const properties) const -> vk::raii::DeviceMemory
-   {
-      vk::PhysicalDeviceMemoryProperties2 const available_properties{ physical_device_.getMemoryProperties2() };
-      std::bitset<sizeof(requirements.memoryTypeBits) * 8> const type_bits{ requirements.memoryTypeBits };
-
-      std::uint32_t index{};
-      for (; index < available_properties.memoryProperties.memoryTypeCount; ++index)
-         if (type_bits[index]
-            and (available_properties.memoryProperties.memoryTypes[index].propertyFlags & properties) == properties)
-            break;
-
-      vk::MemoryPriorityAllocateInfoEXT constexpr priority_allocate_info{
-         .priority{ 1.0f }
-      };
-
-      vk::ResultValue device_memory{
-         device_.allocateMemory({
-            .pNext{ &priority_allocate_info },
-            .allocationSize{ requirements.size },
-            .memoryTypeIndex{ index }
-         })
-      };
-      RUNTIME_ASSERT(device_memory.has_value(),
-         std::format("failed to allocate memory! ({})", to_string(device_memory.result)));
-
-      return std::move(*device_memory);
    }
 
    auto Renderer::vertex_buffer() const -> vk::raii::Buffer
@@ -1192,7 +870,7 @@ namespace eru
 
    auto Renderer::vertex_buffer_memory() const -> vk::raii::DeviceMemory
    {
-      return memory(vertex_buffer_.getMemoryRequirements(), vk::MemoryPropertyFlagBits::eDeviceLocal);
+      return context_.allocate_memory(vertex_buffer_.getMemoryRequirements(), vk::MemoryPropertyFlagBits::eDeviceLocal);
    }
 
    auto Renderer::index_buffer() const -> vk::raii::Buffer
@@ -1206,7 +884,7 @@ namespace eru
 
    auto Renderer::index_buffer_memory() const -> vk::raii::DeviceMemory
    {
-      return memory(index_buffer_.getMemoryRequirements(), vk::MemoryPropertyFlagBits::eDeviceLocal);
+      return context_.allocate_memory(index_buffer_.getMemoryRequirements(), vk::MemoryPropertyFlagBits::eDeviceLocal);
    }
 
    auto Renderer::uniform_buffers() const -> std::vector<vk::raii::Buffer>
@@ -1229,7 +907,7 @@ namespace eru
       uniform_buffer_memories.reserve(FRAMES_IN_FLIGHT);
       for (std::size_t index{}; index < FRAMES_IN_FLIGHT; ++index)
          uniform_buffer_memories.push_back(
-            memory(uniform_buffers_[index].getMemoryRequirements(),
+            context_.allocate_memory(uniform_buffers_[index].getMemoryRequirements(),
                vk::MemoryPropertyFlagBits::eDeviceLocal |
                vk::MemoryPropertyFlagBits::eHostVisible |
                vk::MemoryPropertyFlagBits::eHostCoherent));
@@ -1271,7 +949,7 @@ namespace eru
             };
             ktxTexture2* texture;
 
-            [[maybe_unused]] ktx_error_code_e const result{ ktxTexture2_Create(&create_info, KTX_TEXTURE_CREATE_ALLOC_STORAGE, &texture) };
+            ktx_error_code_e const result{ ktxTexture2_Create(&create_info, KTX_TEXTURE_CREATE_ALLOC_STORAGE, &texture) };
             RUNTIME_ASSERT(result == KTX_SUCCESS, std::format("failed to create ktx texture! ({})", ktxErrorString(result)));
 
             return texture;
@@ -1279,7 +957,7 @@ namespace eru
          ktxTexture2_Destroy
       };
 
-      [[maybe_unused]] ktx_error_code_e const result{
+      ktx_error_code_e const result{
          ktxTexture_SetImageFromMemory(ktxTexture(texture.get()), 0, 0, 0, raw_image.get(), width * height * desired_channels)
       };
       RUNTIME_ASSERT(result == KTX_SUCCESS, std::format("failed to set ktx image data! ({})", ktxErrorString(result)));
@@ -1290,7 +968,7 @@ namespace eru
    auto Renderer::image() const -> vk::raii::Image
    {
       vk::ResultValue image{
-         device_.createImage({
+         context_.device.createImage({
             .flags{},
             .imageType{ static_cast<vk::ImageType>(texture_->numDimensions - 1) },
             .format{ static_cast<vk::Format>(texture_->vkFormat) },
@@ -1316,7 +994,7 @@ namespace eru
    auto Renderer::image_view() const -> vk::raii::ImageView
    {
       vk::ResultValue image_view{
-         device_.createImageView({
+         context_.device.createImageView({
             .image{ image_ },
             .viewType{ vk::ImageViewType::e2D },
             .format{ static_cast<vk::Format>(texture_->vkFormat) },
@@ -1336,9 +1014,9 @@ namespace eru
 
    auto Renderer::sampler() const -> vk::raii::Sampler
    {
-      vk::PhysicalDeviceProperties2 const properties{ physical_device_.getProperties2() };
+      vk::PhysicalDeviceProperties2 const properties{ context_.physical_device.getProperties2() };
       vk::ResultValue sampler{
-         device_.createSampler({
+         context_.device.createSampler({
             .magFilter{ vk::Filter::eLinear },
             .minFilter{ vk::Filter::eLinear },
             .mipmapMode{ vk::SamplerMipmapMode::eLinear },
@@ -1363,7 +1041,7 @@ namespace eru
 
    auto Renderer::image_memory() const -> vk::raii::DeviceMemory
    {
-      return memory(image_.getMemoryRequirements(), vk::MemoryPropertyFlagBits::eDeviceLocal);
+      return context_.allocate_memory(image_.getMemoryRequirements(), vk::MemoryPropertyFlagBits::eDeviceLocal);
    }
 
    auto Renderer::descriptor_pool() const -> vk::raii::DescriptorPool
@@ -1386,7 +1064,7 @@ namespace eru
       };
 
       vk::ResultValue descriptor_pool{
-         device_.createDescriptorPool({
+         context_.device.createDescriptorPool({
             .flags{ vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet },
             .maxSets{ FRAMES_IN_FLIGHT + 1 },
             .poolSizeCount{ static_cast<std::uint32_t>(std::ranges::size(desciptor_pool_sizes)) },
@@ -1405,7 +1083,7 @@ namespace eru
       std::ranges::fill(layouts, *uniform_buffer_descriptor_set_layout_);
 
       vk::ResultValue descriptor_sets{
-         device_.allocateDescriptorSets({
+         context_.device.allocateDescriptorSets({
             .descriptorPool{ descriptor_pool_ },
             .descriptorSetCount{ static_cast<std::uint32_t>(std::ranges::size(layouts)) },
             .pSetLayouts{ std::ranges::data(layouts) }
@@ -1420,7 +1098,7 @@ namespace eru
    auto Renderer::sampler_descriptor_set() const -> vk::raii::DescriptorSet
    {
       vk::ResultValue descriptor_sets{
-         device_.allocateDescriptorSets({
+         context_.device.allocateDescriptorSets({
             .descriptorPool{ descriptor_pool_ },
             .descriptorSetCount{ 1 },
             .pSetLayouts{ &*sampler_descriptor_set_layout_ }
@@ -1430,123 +1108,5 @@ namespace eru
          std::format("failed to allocate descriptor sets! ({})", to_string(descriptor_sets.result)));
 
       return std::move(descriptor_sets->front());
-   }
-
-   // TODO: look into physicalDevice.getFormatProperties to ensure the requested format is supported
-   auto Renderer::depth_image() const -> vk::raii::Image
-   {
-      vk::ResultValue image{
-         device_.createImage({
-            .imageType{ vk::ImageType::e2D },
-            .format{ vk::Format::eD16Unorm },
-            .extent{
-               .width{ surface_extent_.width },
-               .height{ surface_extent_.height },
-               .depth{ 1 }
-            },
-            .mipLevels{ 1 },
-            .arrayLayers{ 1 },
-            .samples{ vk::SampleCountFlagBits::e1 },
-            .tiling{ vk::ImageTiling::eOptimal },
-            .usage{ vk::ImageUsageFlagBits::eDepthStencilAttachment },
-            .sharingMode{ vk::SharingMode::eExclusive },
-            .initialLayout{ vk::ImageLayout::eUndefined },
-         })
-      };
-      RUNTIME_ASSERT(image.result == vk::Result::eSuccess,
-         std::format("failed to create depth image! ({})", to_string(image.result)));
-
-      return std::move(*image);
-   }
-
-   auto Renderer::depth_image_view() const -> vk::raii::ImageView
-   {
-      vk::ResultValue image_view{
-         device_.createImageView({
-            .image{ depth_image_ },
-            .viewType{ vk::ImageViewType::e2D },
-            .format{ vk::Format::eD16Unorm },
-            .subresourceRange{
-               .aspectMask{ vk::ImageAspectFlagBits::eDepth },
-               .baseMipLevel{ 0 },
-               .levelCount{ 1 },
-               .baseArrayLayer{ 0 },
-               .layerCount{ 1 }
-            }
-         })
-      };
-      RUNTIME_ASSERT(image_view.result == vk::Result::eSuccess,
-         std::format("failed to create depth image view! ({})", to_string(image_view.result)));
-
-      return std::move(*image_view);
-   }
-
-   auto Renderer::depth_image_memory() const -> vk::raii::DeviceMemory
-   {
-      return memory(depth_image_.getMemoryRequirements(), vk::MemoryPropertyFlagBits::eDeviceLocal);
-   }
-
-   auto Renderer::recreate_swap_chain() -> void
-   {
-      surface_extent_ = surface_extent();
-      swap_chain_.clear();
-      swap_chain_ = swap_chain();
-      swap_chain_images_ = swap_chain_images();
-      swap_chain_image_views_ = swap_chain_image_views();
-      depth_image_ = depth_image();
-      depth_image_memory_ = depth_image_memory();
-      std::ignore = depth_image_.bindMemory(depth_image_memory_, 0);
-
-      // TODO: this transition should be part of the render loop
-      auto command_buffer{
-         std::move(device_.allocateCommandBuffers({
-            .commandPool{ command_pool_ },
-            .level{ vk::CommandBufferLevel::ePrimary },
-            .commandBufferCount{ 1 }
-         })->front())
-      };
-
-      command_buffer.begin({
-         .flags{ vk::CommandBufferUsageFlagBits::eOneTimeSubmit }
-      });
-
-      vk::ImageMemoryBarrier2 const barrier{
-         .srcStageMask{ vk::PipelineStageFlagBits2::eNone },
-         .srcAccessMask{ vk::AccessFlagBits2::eNone },
-         .dstStageMask{ vk::PipelineStageFlagBits2::eNone },
-         .dstAccessMask{ vk::AccessFlagBits2::eNone },
-         .oldLayout{ vk::ImageLayout::eUndefined },
-         .newLayout{ vk::ImageLayout::eDepthAttachmentOptimal },
-         .image{ depth_image_ },
-         .subresourceRange{
-            .aspectMask{ vk::ImageAspectFlagBits::eDepth },
-            .baseMipLevel{ 0 },
-            .levelCount{ 1 },
-            .baseArrayLayer{ 0 },
-            .layerCount{ 1 }
-         }
-      };
-
-      command_buffer.pipelineBarrier2({
-         .imageMemoryBarrierCount{ 1 },
-         .pImageMemoryBarriers{ &barrier }
-      });
-
-      std::ignore = command_buffer.end();
-
-      vk::CommandBufferSubmitInfo const command_buffer_submit_info{
-         .commandBuffer{ command_buffer }
-      };
-
-      queue_.submit2({
-         vk::SubmitInfo2{
-            .commandBufferInfoCount{ 1 },
-            .pCommandBufferInfos{ &command_buffer_submit_info },
-         }
-      });
-
-      device_.waitIdle();
-
-      depth_image_view_ = depth_image_view();
    }
 }

@@ -2,8 +2,8 @@
 #define RENDERER_HPP
 
 #include "eruptor/api.hpp"
+#include "eruptor/locator.hpp"
 #include "eruptor/pch.hpp"
-#include "eruptor/renderer_context.hpp"
 #include "eruptor/vertex.hpp"
 #include "eruptor/window.hpp"
 
@@ -23,7 +23,7 @@ namespace eru
       static constexpr auto FRAMES_IN_FLIGHT{ 2 };
 
       public:
-         ERU_API explicit Renderer(Locator::ConstructionKey);
+         ERU_API explicit Renderer(PassKey<Locator>);
          Renderer(Renderer const&) = delete;
          Renderer(Renderer&&) noexcept = delete;
 
@@ -32,29 +32,20 @@ namespace eru
          auto operator=(Renderer const&) -> Renderer& = delete;
          auto operator=(Renderer&&) -> Renderer& = delete;
 
-         ERU_API auto render() -> void;
+         ERU_API auto render(vk::Image image, vk::ImageView image_view, vk::Extent2D extent) -> void;
 
       private:
-         [[nodiscard]] auto surface() const -> vk::raii::SurfaceKHR;
-         [[nodiscard]] auto physical_device() const -> vk::raii::PhysicalDevice;
-         [[nodiscard]] auto queue_family_index() const -> std::uint32_t;
-         [[nodiscard]] auto device() const -> vk::raii::Device;
-         [[nodiscard]] auto queue() const -> vk::raii::Queue;
-         [[nodiscard]] auto surface_format() const -> vk::SurfaceFormatKHR;
-         [[nodiscard]] auto surface_extent() const -> vk::Extent2D;
-         [[nodiscard]] auto swap_chain() const -> vk::raii::SwapchainKHR;
-         [[nodiscard]] auto swap_chain_images() const -> std::vector<vk::Image>;
-         [[nodiscard]] auto swap_chain_image_views() const -> std::vector<vk::raii::ImageView>;
+         [[nodiscard]] auto depth_image() const -> vk::raii::Image;
+         [[nodiscard]] auto depth_image_view() const -> vk::raii::ImageView;
+         [[nodiscard]] auto depth_image_memory() const -> vk::raii::DeviceMemory;
          [[nodiscard]] auto uniform_buffer_descriptor_set_layout() const -> vk::raii::DescriptorSetLayout;
          [[nodiscard]] auto sampler_descriptor_set_layout() const -> vk::raii::DescriptorSetLayout;
          [[nodiscard]] auto pipeline_layout() const -> vk::raii::PipelineLayout;
          [[nodiscard]] auto pipeline() const -> vk::raii::Pipeline;
-         [[nodiscard]] auto command_pool() const -> vk::raii::CommandPool;
          [[nodiscard]] auto command_buffers() const -> std::vector<vk::raii::CommandBuffer>;
          [[nodiscard]] auto semaphores() const -> std::vector<vk::raii::Semaphore>;
          [[nodiscard]] auto fences() const -> std::vector<vk::raii::Fence>;
          [[nodiscard]] auto buffer(vk::BufferCreateInfo const& create_info) const -> vk::raii::Buffer;
-         [[nodiscard]] auto memory(vk::MemoryRequirements const& requirements, vk::MemoryPropertyFlags properties) const -> vk::raii::DeviceMemory;
          [[nodiscard]] auto vertex_buffer() const -> vk::raii::Buffer;
          [[nodiscard]] auto vertex_buffer_memory() const -> vk::raii::DeviceMemory;
          [[nodiscard]] auto index_buffer() const -> vk::raii::Buffer;
@@ -69,11 +60,6 @@ namespace eru
          [[nodiscard]] auto descriptor_pool() const -> vk::raii::DescriptorPool;
          [[nodiscard]] auto uniform_buffer_descriptor_sets() const -> std::vector<vk::raii::DescriptorSet>;
          [[nodiscard]] auto sampler_descriptor_set() const -> vk::raii::DescriptorSet;
-         [[nodiscard]] auto depth_image() const -> vk::raii::Image;
-         [[nodiscard]] auto depth_image_view() const -> vk::raii::ImageView;
-         [[nodiscard]] auto depth_image_memory() const -> vk::raii::DeviceMemory;
-
-         auto recreate_swap_chain() -> void;
 
          std::uint8_t frame_index_{};
          std::vector<Vertex> const vertices_{
@@ -88,24 +74,14 @@ namespace eru
          };
          std::vector<uint16_t> const indices_{ 0, 1, 3, 2, 4, 5, 7, 6 };
 
-         Window window_{ { 1280, 720 }, "Magma" };
-
-         RendererContext context_{};
-         vk::raii::SurfaceKHR const surface_{ surface() };
-         vk::raii::PhysicalDevice const physical_device_{ physical_device() };
-         std::uint32_t const queue_family_index_{ queue_family_index() };
-         vk::raii::Device const device_{ device() };
-         vk::raii::Queue const queue_{ queue() };
-         vk::SurfaceFormatKHR const surface_format_{ surface_format() };
-         vk::Extent2D surface_extent_{ surface_extent() };
-         vk::raii::SwapchainKHR swap_chain_{ swap_chain() };
-         std::vector<vk::Image> swap_chain_images_{ swap_chain_images() };
-         std::vector<vk::raii::ImageView> swap_chain_image_views_{ swap_chain_image_views() };
+         Context const& context_{ Locator::get<Context>() };
+         vk::raii::Image depth_image_{ depth_image() };
+         vk::raii::DeviceMemory depth_image_memory_{ depth_image_memory() };
+         vk::raii::ImageView depth_image_view_{ nullptr };
          vk::raii::DescriptorSetLayout const uniform_buffer_descriptor_set_layout_{ uniform_buffer_descriptor_set_layout() };
          vk::raii::DescriptorSetLayout const sampler_descriptor_set_layout_{ sampler_descriptor_set_layout() };
          vk::raii::PipelineLayout const pipeline_layout_{ pipeline_layout() };
          vk::raii::Pipeline const pipeline_{ pipeline() };
-         vk::raii::CommandPool const command_pool_{ command_pool() };
          std::vector<vk::raii::CommandBuffer> const command_buffers_{ command_buffers() };
          std::vector<vk::raii::Semaphore> const image_available_semaphores_{ semaphores() };
          std::vector<vk::raii::Semaphore> const command_buffer_finished_semaphores_{ semaphores() };
@@ -125,9 +101,6 @@ namespace eru
          vk::raii::DescriptorPool const descriptor_pool_{ descriptor_pool() };
          std::vector<vk::raii::DescriptorSet> const uniform_buffer_descriptor_sets_{ uniform_buffer_descriptor_sets() };
          vk::raii::DescriptorSet const sampler_descriptor_set_{ sampler_descriptor_set() };
-         vk::raii::Image depth_image_{ depth_image() };
-         vk::raii::DeviceMemory depth_image_memory_{ depth_image_memory() };
-         vk::raii::ImageView depth_image_view_{ nullptr };
    };
 }
 

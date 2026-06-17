@@ -47,7 +47,7 @@ namespace eru
       };
 
       public:
-         ERU_API explicit Logger(Locator::ConstructionKey);
+         ERU_API explicit Logger(PassKey<Locator>);
          Logger(Logger const&) = delete;
          Logger(Logger&&) = delete;
 

@@ -1,4 +1,5 @@
-﻿#include "eruptor/window.hpp"
+﻿#include "eruptor/locator.hpp"
+#include "eruptor/window.hpp"
 
 #include "core/dependencies.hpp"
 
@@ -14,23 +15,25 @@ namespace eru
       return { required_instance_extensions, required_instance_extensions + required_instance_extensions_count };
    }
 
-   auto Window::presentation_support(vk::raii::Instance const& instance, vk::raii::PhysicalDevice const& physical_device,
-      std::uint32_t const queue_family_index) -> bool
+   auto Window::presentation_support(vk::raii::Instance const& instance, vk::raii::PhysicalDevice const& physical_device, std::uint32_t const queue_family_index) -> bool
    {
       return glfwGetPhysicalDevicePresentationSupport(*instance, *physical_device, queue_family_index);
    }
 
-   Window::Window(glm::uvec2 const extent, std::string_view const title)
-      : native_window_{
-         glfwCreateWindow(extent.x, extent.y, title.data(), nullptr, nullptr),
-         glfwDestroyWindow
-      }
-   {
-   }
+   Window::Window(glm::uvec2 const extent, std::string_view const title, SwapChain::Description const& swap_chain_description)
+      : native_window_{ glfwCreateWindow(extent.x, extent.y, title.data(), nullptr, nullptr), glfwDestroyWindow }
+      , surface_{
+         [this] [[nodiscard]] -> vk::raii::SurfaceKHR
+         {
+            static vk::raii::Instance const& INSTANCE{ Locator::get<Context>().instance };
 
-   auto Window::native() const -> GLFWwindow&
+            VkSurfaceKHR surface;
+            glfwCreateWindowSurface(*INSTANCE, native_window_.get(), nullptr, &surface);
+            return { INSTANCE, surface };
+         }()
+      }
+      , swap_chain_{ {}, surface_, swap_chain_description }
    {
-      return *native_window_;
    }
 
    auto Window::change_visibility(bool const visible) -> void
@@ -45,10 +48,13 @@ namespace eru
       glfwSetWindowSize(native_window_.get(), extent.x, extent.y);
    }
 
-   auto Window::extent() const -> glm::uvec2
+   auto Window::extent(bool const in_physical_pixels) const -> glm::uvec2
    {
       glm::ivec2 extent;
-      glfwGetWindowSize(native_window_.get(), &extent.x, &extent.y);
+      in_physical_pixels ?
+         glfwGetFramebufferSize(native_window_.get(), &extent.x, &extent.y) :
+         glfwGetWindowSize(native_window_.get(), &extent.x, &extent.y);
+
       return extent;
    }
 
@@ -72,5 +78,10 @@ namespace eru
    auto Window::title() const -> std::string_view
    {
       return glfwGetWindowTitle(native_window_.get());
+   }
+
+   auto Window::swap_chain() const -> SwapChain const&
+   {
+      return swap_chain_;
    }
 }
