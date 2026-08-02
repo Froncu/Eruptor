@@ -6,6 +6,7 @@
 
 #include "eruptor/api.hpp"
 #include "eruptor/exception.hpp"
+#include "eruptor/pass_key.hpp"
 #include "eruptor/pch.hpp"
 #include "eruptor/type_index.hpp"
 #include "eruptor/unique_pointer.hpp"
@@ -16,31 +17,14 @@ namespace eru
    class Locator final
    {
       public:
-         class ConstructionKey final
-         {
-            friend Locator;
-
-            public:
-               ConstructionKey(ConstructionKey&&) = default;
-               ConstructionKey(ConstructionKey const&) = default;
-
-               ~ConstructionKey() = default;
-
-               auto operator=(ConstructionKey const&) -> ConstructionKey& = delete;
-               auto operator=(ConstructionKey&&) -> ConstructionKey& = delete;
-
-            private:
-               explicit ConstructionKey() = default;
-         };
-
          template<typename Service, std::derived_from<Service> Provider = Service, typename... Arguments>
-            requires std::constructible_from<Provider, ConstructionKey, Arguments...>
+            requires std::constructible_from<Provider, PassKey<Locator>, Arguments...>
          static auto provide(Arguments&&... arguments) -> Service&
          {
             Locator& locator{ instance() };
 
             UniquePointer<void> new_provider{
-               new Provider{ ConstructionKey{}, std::forward<Arguments>(arguments)... },
+               new Provider{ PassKey<Locator>{}, std::forward<Arguments>(arguments)... },
                void_deleter<Provider>
             };
 

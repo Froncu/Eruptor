@@ -1,6 +1,7 @@
 #ifndef PCH_HPP
 #define PCH_HPP
 
+#include <array>
 #include <bitset>
 #include <chrono>
 #include <condition_variable>
@@ -8,6 +9,7 @@
 #include <fstream>
 #include <functional>
 #include <iostream>
+#include <map>
 #include <mutex>
 #include <print>
 #include <queue>

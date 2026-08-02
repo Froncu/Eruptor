@@ -5,7 +5,7 @@
 
 namespace eru
 {
-   Platform::Platform(Locator::ConstructionKey)
+   Platform::Platform(PassKey<Locator>)
    {
       glfwSetErrorCallback(
          []([[maybe_unused]] int const code, [[maybe_unused]] char const* const description)

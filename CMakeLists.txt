@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.15)
+cmake_minimum_required(VERSION 3.19)
 project(eruptor)
 
 option(ERU_BUILD_SHARED "Build ${PROJECT_NAME} as shared library" ${BUILD_SHARED_LIBS})
@@ -6,6 +6,7 @@ option(ERU_BUILD_SHARED "Build ${PROJECT_NAME} as shared library" ${BUILD_SHARED
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 include(project_defaults)
 include(umbrella_header)
+include(shader_structures)
 
 find_package(assimp CONFIG REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
@@ -21,11 +22,11 @@ find_package(VulkanHeaders CONFIG REQUIRED)
 
 file(GLOB_RECURSE ERU_SOURCE_FILES CONFIGURE_DEPENDS source/*.cpp)
 list(FILTER ERU_SOURCE_FILES EXCLUDE REGEX entry\\.cpp)
-if(ERU_BUILD_SHARED)
+if (ERU_BUILD_SHARED)
    add_library(${PROJECT_NAME} SHARED ${ERU_SOURCE_FILES})
-else()
+else ()
    add_library(${PROJECT_NAME} STATIC ${ERU_SOURCE_FILES})
-endif()
+endif ()
 
 target_include_directories(${PROJECT_NAME}
    PUBLIC include
@@ -57,6 +58,7 @@ set_project_defaults(${PROJECT_NAME})
 generate_umbrella_header(${PROJECT_NAME}
    ${CMAKE_CURRENT_SOURCE_DIR}/include
    ${CMAKE_CURRENT_SOURCE_DIR}/include/${PROJECT_NAME})
+generate_shader_structures(${PROJECT_NAME} ${CMAKE_CURRENT_SOURCE_DIR}/generated/shaders)
 
 # Entry point library - provides the application entry point
 # This is the recommended target for executables to link against

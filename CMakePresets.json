@@ -1,12 +1,16 @@
 {
-   "version" : 3,
-   "configurePresets" : [
+   "version": 3,
+   "configurePresets": [
       {
-         "name" : "vcpkg",
-         "binaryDir" : "${sourceDir}/build/${presetName}",
-         "toolchainFile" : "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake",
-         "cacheVariables" : {
-            "VCPKG_MANIFEST_DIR" : "${sourceDir}"
+         "name": "vcpkg",
+         "generator": "Ninja",
+         "binaryDir": "${sourceDir}/build/clang/${presetName}",
+         "toolchainFile": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake",
+         "cacheVariables": {
+            "CMAKE_C_COMPILER": "clang",
+            "CMAKE_CXX_COMPILER": "clang++",
+            "CMAKE_BUILD_TYPE": "Debug",
+            "VCPKG_MANIFEST_DIR": "${sourceDir}"
          }
       }
    ]

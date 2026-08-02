@@ -20,7 +20,7 @@ namespace eru
          [[nodiscard]] virtual auto tick() -> bool = 0;
 
       protected:
-         ERU_API explicit Application(Locator::ConstructionKey);
+         ERU_API explicit Application(PassKey<Locator>);
    };
 }
 
