@@ -1,35 +1,37 @@
-function(generate_umbrella_header UMBRELLA_HEADER_NAME INCLUDE_DIRECTORY OUTPUT_DIRECTORY)
+function (generate_umbrella_header UMBRELLA_HEADER_NAME INCLUDE_DIRECTORY OUTPUT_DIRECTORY)
    get_filename_component(EXTENSION ${UMBRELLA_HEADER_NAME} EXT)
-   if(NOT ${EXTENSION} STREQUAL "")
+   if (NOT ${EXTENSION} STREQUAL "")
       message(FATAL_ERROR "UMBRELLA_HEADER_NAME must not contain an extension (${UMBRELLA_HEADER_NAME})")
-   endif()
+   endif ()
 
-   if(NOT IS_ABSOLUTE ${INCLUDE_DIRECTORY})
+   if (NOT IS_ABSOLUTE ${INCLUDE_DIRECTORY})
       message(FATAL_ERROR "INCLUDE_DIRECTORY must be an absolute path (${INCLUDE_DIRECTORY})")
-   endif()
+   endif ()
 
    set(HEADER_GUARD ${UMBRELLA_HEADER_NAME})
    string(TOUPPER ${HEADER_GUARD} HEADER_GUARD)
    string(APPEND HEADER_GUARD _HPP)
    set(UMBRELLA_HEADER_FILE ${UMBRELLA_HEADER_NAME}.hpp)
 
-   set(CONTENT "// Auto-generated file - do not edit")
-   list(APPEND CONTENT "\n")
-   list(APPEND CONTENT "\n#ifndef ${HEADER_GUARD}")
-   list(APPEND CONTENT "\n#define ${HEADER_GUARD}")
-   list(APPEND CONTENT "\n")
+   set(CONTENT
+      "// Auto-generated file - do not edit"
+      "\n"
+      "\n#ifndef ${HEADER_GUARD}"
+      "\n#define ${HEADER_GUARD}"
+      "\n")
 
    file(GLOB_RECURSE INCLUDE_FILE_PATHS ${INCLUDE_DIRECTORY}/*.hpp)
-   foreach(INCLUDE_FILE_PATH ${INCLUDE_FILE_PATHS})
+   foreach (INCLUDE_FILE_PATH ${INCLUDE_FILE_PATHS})
       get_filename_component(INCLUDE_FILE ${INCLUDE_FILE_PATH} NAME)
-      if(NOT ${INCLUDE_FILE} STREQUAL ${UMBRELLA_HEADER_FILE})
+      if (NOT ${INCLUDE_FILE} STREQUAL ${UMBRELLA_HEADER_FILE})
          file(RELATIVE_PATH PATH ${INCLUDE_DIRECTORY} ${INCLUDE_FILE_PATH})
          list(APPEND CONTENT "\n#include \"${PATH}\"")
-      endif()
-   endforeach()
+      endif ()
+   endforeach ()
 
-   list(APPEND CONTENT "\n")
-   list(APPEND CONTENT "\n#endif")
+   list(APPEND CONTENT
+      "\n"
+      "\n#endif")
 
    file(WRITE ${OUTPUT_DIRECTORY}/${UMBRELLA_HEADER_FILE} ${CONTENT})
-endfunction()
+endfunction ()

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.15)
+cmake_minimum_required(VERSION 3.19)
 project(eruptor)
 
 option(ERU_BUILD_SHARED "Build ${PROJECT_NAME} as shared library" ${BUILD_SHARED_LIBS})
@@ -21,11 +21,11 @@ find_package(VulkanHeaders CONFIG REQUIRED)
 
 file(GLOB_RECURSE ERU_SOURCE_FILES CONFIGURE_DEPENDS source/*.cpp)
 list(FILTER ERU_SOURCE_FILES EXCLUDE REGEX entry\\.cpp)
-if(ERU_BUILD_SHARED)
+if (ERU_BUILD_SHARED)
    add_library(${PROJECT_NAME} SHARED ${ERU_SOURCE_FILES})
-else()
+else ()
    add_library(${PROJECT_NAME} STATIC ${ERU_SOURCE_FILES})
-endif()
+endif ()
 
 target_include_directories(${PROJECT_NAME}
    PUBLIC include

@@ -18,6 +18,8 @@ namespace eru
    #ifdef ERU_FRAMEWORK_LEVEL
    inline constexpr std::string_view COMPILE_SOURCE_PATH{ ERU_COMPILE_SOURCE_PATH };
    #endif
+
+   static constexpr auto MAX_FRAMES_IN_FLIGHT{ 3 };
 }
 
 #endif

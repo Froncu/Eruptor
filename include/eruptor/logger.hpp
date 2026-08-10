@@ -3,18 +3,18 @@
 
 #include "eruptor/api.hpp"
 #include "eruptor/constants.hpp"
-#include "eruptor/locator.hpp"
+#include "eruptor/pass_key.hpp"
 #include "eruptor/pch.hpp"
 
 namespace std
 {
-   template <>
+   template<>
    struct hash<source_location>
    {
       [[nodiscard]] auto operator()(source_location const& location) const noexcept -> std::size_t;
    };
 
-   template <>
+   template<>
    struct equal_to<source_location>
    {
       [[nodiscard]] auto operator()(source_location const& location_a, source_location const& location_b) const noexcept -> bool;
@@ -23,6 +23,8 @@ namespace std
 
 namespace eru
 {
+   class Locator;
+
    class Logger final
    {
       enum class Type
@@ -47,7 +49,7 @@ namespace eru
       };
 
       public:
-         ERU_API explicit Logger(Locator::ConstructionKey);
+         ERU_API explicit Logger(PassKey<Locator>);
          Logger(Logger const&) = delete;
          Logger(Logger&&) = delete;
 
@@ -59,7 +61,7 @@ namespace eru
          ERU_API auto register_framework_source_root(std::filesystem::path user_root) -> void;
          ERU_API auto register_source_root(std::filesystem::path user_root, std::filesystem::path compile_root) -> void;
 
-         template <typename Message>
+         template<typename Message>
          auto info(Message&& message, bool const once = false, std::source_location location = std::source_location::current()) -> void
          {
             {
@@ -78,7 +80,7 @@ namespace eru
             condition_.notify_one();
          }
 
-         template <typename Message>
+         template<typename Message>
          auto warning(Message&& message, bool const once = false,
             std::source_location location = std::source_location::current()) -> void
          {
@@ -98,7 +100,7 @@ namespace eru
             condition_.notify_one();
          }
 
-         template <typename Message>
+         template<typename Message>
          auto error(Message&& message, bool const once = false, std::source_location location = std::source_location::current()) -> void
          {
             {

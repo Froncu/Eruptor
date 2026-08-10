@@ -5,7 +5,7 @@
 
 namespace eru
 {
-   template <typename Type>
+   template<typename Type>
    auto type_index() -> std::type_index
    {
       return typeid(Type);

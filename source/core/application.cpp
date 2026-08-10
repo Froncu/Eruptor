@@ -2,7 +2,7 @@
 
 namespace eru
 {
-   Application::Application(Locator::ConstructionKey)
+   Application::Application(PassKey<Locator>)
    {
    }
 }

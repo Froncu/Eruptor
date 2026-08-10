@@ -1,14 +1,17 @@
 ﻿#ifndef PLATFORM_HPP
 #define PLATFORM_HPP
 
-#include "locator.hpp"
+#include "eruptor/api.hpp"
+#include "eruptor/pass_key.hpp"
 
 namespace eru
 {
+   class Locator;
+
    class Platform final
    {
       public:
-         ERU_API explicit Platform(Locator::ConstructionKey);
+         ERU_API explicit Platform(PassKey<Locator>);
          Platform(Platform const&) = delete;
          Platform(Platform&&) = delete;
 
@@ -17,7 +20,7 @@ namespace eru
          auto operator=(Platform const&) -> Platform& = delete;
          auto operator=(Platform&&) -> Platform& = delete;
 
-         auto poll() const -> void;
+         ERU_API auto poll() const -> void;
    };
 }
 
