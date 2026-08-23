@@ -1,10 +1,9 @@
 cmake_minimum_required(VERSION 3.19)
-project(eruptor)
+project(eruptor LANGUAGES CXX)
 
 option(ERU_BUILD_SHARED "Build ${PROJECT_NAME} as shared library" ${BUILD_SHARED_LIBS})
 
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
-include(project_defaults)
+include(target_defaults)
 include(umbrella_header)
 
 find_package(assimp CONFIG REQUIRED)
@@ -13,6 +12,7 @@ find_package(glm CONFIG REQUIRED)
 find_package(Ktx CONFIG REQUIRED)
 find_package(slang CONFIG REQUIRED)
 find_package(Stb REQUIRED)
+find_package(tephra CONFIG REQUIRED)
 find_package(VulkanHeaders CONFIG REQUIRED)
 
 # Framework library - contains all functionality
@@ -26,6 +26,8 @@ if (ERU_BUILD_SHARED)
 else ()
    add_library(${PROJECT_NAME} STATIC ${ERU_SOURCE_FILES})
 endif ()
+
+tephra_enable(${PROJECT_NAME})
 
 target_include_directories(${PROJECT_NAME}
    PUBLIC include
@@ -53,7 +55,7 @@ target_link_libraries(${PROJECT_NAME}
    PRIVATE KTX::ktx
    PRIVATE slang::slang)
 
-set_project_defaults(${PROJECT_NAME})
+set_target_defaults(${PROJECT_NAME})
 generate_umbrella_header(${PROJECT_NAME}
    ${CMAKE_CURRENT_SOURCE_DIR}/include
    ${CMAKE_CURRENT_SOURCE_DIR}/include/${PROJECT_NAME})
@@ -70,4 +72,4 @@ add_library(${ERU_ENTRY_NAME} STATIC
 target_link_libraries(${ERU_ENTRY_NAME}
    PUBLIC ${PROJECT_NAME})
 
-set_project_defaults(${ERU_ENTRY_NAME})
+set_target_defaults(${ERU_ENTRY_NAME})
