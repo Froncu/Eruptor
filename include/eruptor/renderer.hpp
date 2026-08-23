@@ -11,7 +11,7 @@ struct ktxTexture2;
 
 namespace eru
 {
-   struct UniformBufferObject final
+   struct [[clang::annotate("shader_structure")]] UniformBufferObject final
    {
       glm::mat4 model;
       glm::mat4 view;

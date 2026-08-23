@@ -28,6 +28,10 @@
          "name": "stb"
       },
       {
+         "name": "tephra",
+         "host": true
+      },
+      {
          "name": "vulkan-headers"
       },
       {
