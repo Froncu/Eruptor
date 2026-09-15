@@ -1,0 +1,27 @@
+#include <eruptor/core/application.hpp>
+#include <eruptor/core/context.hpp>
+#include <eruptor/core/locator.hpp>
+#include <eruptor/core/logger.hpp>
+#include <eruptor/core/platform.hpp>
+#include <eruptor/entry/entry.hpp>
+
+auto main(int const arguments_count, char const* const* arguments) -> int try
+{
+   eru::Locator::provide<eru::Logger>();
+   eru::Locator::provide<eru::Platform>();
+   eru::Locator::provide<eru::Context>();
+   eru::provide_application({ arguments, static_cast<std::size_t>(arguments_count) });
+
+   while (eru::Locator::get<eru::Application>().tick())
+   {
+   }
+
+   eru::Locator::remove_all();
+   return 0;
+}
+catch (eru::Exception const& exception)
+{
+   eru::Locator::get<eru::Logger>().error(exception.what(), false, exception.source_location());
+   eru::Locator::remove_all();
+   return 1;
+}
