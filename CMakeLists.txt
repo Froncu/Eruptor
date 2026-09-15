@@ -1,74 +1,8 @@
-cmake_minimum_required(VERSION 3.19)
+cmake_minimum_required(VERSION 3.30)
 project(eruptor LANGUAGES CXX)
 
-option(ERU_BUILD_SHARED "Build ${PROJECT_NAME} as shared library" ${BUILD_SHARED_LIBS})
-
-include(target_defaults)
-include(umbrella_header)
-
-find_package(assimp CONFIG REQUIRED)
-find_package(glfw3 CONFIG REQUIRED)
-find_package(glm CONFIG REQUIRED)
-find_package(Ktx CONFIG REQUIRED)
-find_package(slang CONFIG REQUIRED)
-find_package(Stb REQUIRED)
-find_package(tephra CONFIG REQUIRED)
-find_package(VulkanHeaders CONFIG REQUIRED)
-
-# Framework library - contains all functionality
-# Can be built as SHARED or STATIC depending on ERU_BUILD_SHARED
-# Direct linking is possible but not recommended; use the entry point library instead unless you know what you are doing
-
-file(GLOB_RECURSE ERU_SOURCE_FILES CONFIGURE_DEPENDS source/*.cpp)
-list(FILTER ERU_SOURCE_FILES EXCLUDE REGEX entry\\.cpp)
-if (ERU_BUILD_SHARED)
-   add_library(${PROJECT_NAME} SHARED ${ERU_SOURCE_FILES})
-else ()
-   add_library(${PROJECT_NAME} STATIC ${ERU_SOURCE_FILES})
-endif ()
-
-target_include_directories(${PROJECT_NAME}
-   PUBLIC include
-   PRIVATE source
-   PRIVATE ${Stb_INCLUDE_DIR})
-
-target_precompile_headers(${PROJECT_NAME}
-   PUBLIC include/${PROJECT_NAME}/pch.hpp
-   PRIVATE source/core/dependencies.hpp)
-
-target_compile_definitions(${PROJECT_NAME}
-   PUBLIC GLM_FORCE_DEPTH_ZERO_TO_ONE
-   PUBLIC VULKAN_HPP_ASSERT_ON_RESULT=void
-   PUBLIC VULKAN_HPP_NO_STRUCT_CONSTRUCTORS
-   PUBLIC VULKAN_HPP_NO_EXCEPTIONS
-   PUBLIC $<$<BOOL:${ERU_BUILD_SHARED}>:ERU_SHARED>
-   PRIVATE ERU_FRAMEWORK_LEVEL
-   PRIVATE ERU_COMPILE_SOURCE_PATH="${CMAKE_CURRENT_SOURCE_DIR}")
-
-target_link_libraries(${PROJECT_NAME}
-   PUBLIC glm::glm-header-only
-   PUBLIC Vulkan::Headers
-   PRIVATE assimp::assimp
-   PRIVATE glfw
-   PRIVATE KTX::ktx
-   PRIVATE slang::slang)
-
-tephra_enable(${PROJECT_NAME})
-set_target_defaults(${PROJECT_NAME})
-generate_umbrella_header(${PROJECT_NAME}
-   ${CMAKE_CURRENT_SOURCE_DIR}/include
-   ${CMAKE_CURRENT_SOURCE_DIR}/include/${PROJECT_NAME})
-
-# Entry point library - provides the application entry point
-# This is the recommended target for executables to link against
-# Automatically includes the framework library as a transitive dependency
-
-set(ERU_ENTRY_NAME ${PROJECT_NAME}_entry)
-
-add_library(${ERU_ENTRY_NAME} STATIC
-   source/core/entry.cpp)
-
-target_link_libraries(${ERU_ENTRY_NAME}
-   PUBLIC ${PROJECT_NAME})
-
-set_target_defaults(${ERU_ENTRY_NAME})
+file(GLOB MODULE_LISTS CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/modules/*/CMakeLists.txt")
+foreach (MODULE_LIST IN LISTS MODULE_LISTS)
+   cmake_path(GET MODULE_LIST PARENT_PATH MODULE_DIRECTORY)
+   add_subdirectory("${MODULE_DIRECTORY}")
+endforeach ()

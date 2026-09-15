@@ -1,27 +1,23 @@
 {
-   "version": 4,
-   "include": [
-      "registry/registry_base.json"
-   ],
+   "version": 3,
    "configurePresets": [
       {
-         "name": "eruptor_base",
+         "name": "base",
          "hidden": true,
-         "inherits": "registry_base",
-         "cacheVariables": {
-            "VCPKG_MANIFEST_DIR": "${sourceDir}"
-         }
+         "generator": "Ninja",
+         "binaryDir": "${sourceDir}/build/${presetName}",
+         "toolchainFile": "${sourceDir}/toolchain.cmake"
       },
       {
          "name": "debug",
-         "inherits": "eruptor_base",
+         "inherits": "base",
          "cacheVariables": {
             "CMAKE_BUILD_TYPE": "Debug"
          }
       },
       {
          "name": "release",
-         "inherits": "eruptor_base",
+         "inherits": "base",
          "cacheVariables": {
             "CMAKE_BUILD_TYPE": "Release"
          }

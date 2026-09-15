@@ -1,12 +1,12 @@
 /*
 
-!cmake
-!include
-!source
+!assets
+!modules
+!scripts
 !vcpkg
 
 !.gitignore
 !.gitmodules
 !CMakeLists.txt
 !CMakePresets.json
-!vcpkg.json
+!toolchain.cmake

@@ -1,0 +1,37 @@
+{
+   "dependencies": [
+      {
+         "name": "assimp"
+      },
+      {
+         "name": "glfw3",
+         "features": [
+            {
+               "name": "wayland",
+               "platform": "linux"
+            }
+         ]
+      },
+      {
+         "name": "glm"
+      },
+      {
+         "name": "ktx",
+         "features": [
+            "vulkan"
+         ]
+      },
+      {
+         "name": "shader-slang"
+      },
+      {
+         "name": "stb"
+      },
+      {
+         "name": "vulkan-headers"
+      },
+      {
+         "name": "vulkan-validationlayers"
+      }
+   ]
+}
